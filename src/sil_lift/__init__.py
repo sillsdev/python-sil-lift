@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ._errors import LiftError, LiftParseError
+from ._errors import LiftError, LiftParseError, LiftValidationError
 from ._extras import Extras
 from ._header import FieldDefinition, Header, Range, RangeElement
 from ._model import (
@@ -31,6 +31,7 @@ from ._model import (
     Variant,
 )
 from ._text import Annotation, Form, Multitext, Span, Text, Trait
+from ._validate import Problem, iter_problems, validate_file
 
 if TYPE_CHECKING:
     import os
@@ -51,9 +52,11 @@ __all__ = [
     "Lexicon",
     "LiftError",
     "LiftParseError",
+    "LiftValidationError",
     "MediaRef",
     "Multitext",
     "Note",
+    "Problem",
     "Pronunciation",
     "Range",
     "RangeElement",
@@ -68,7 +71,9 @@ __all__ = [
     "Translation",
     "URLRef",
     "Variant",
+    "iter_problems",
     "load",
+    "validate_file",
 ]
 
 

@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import Literal
 
+    from ._validate import Problem
     from ._writer import _RangesSourceInfo, _SourceInfo
 
 __all__ = [
@@ -385,6 +386,17 @@ class Lexicon:
                 ranges_file.save(target.parent / ranges_file.path.name)
             else:
                 ranges_file.save()
+
+    def iter_problems(self) -> Iterator[Problem]:
+        """Validate the in-memory state (schema layers + semantic checks).
+
+        The schema layers need serialized bytes: an unedited loaded document
+        is validated from its source bytes; otherwise the in-memory state is
+        canonically serialized first (a documented cost on large lexicons).
+        """
+        from ._validate import iter_lexicon_problems
+
+        return iter_lexicon_problems(self)
 
     def all_ranges(self) -> dict[str, Range]:
         """Inline and external ranges, merged by id.

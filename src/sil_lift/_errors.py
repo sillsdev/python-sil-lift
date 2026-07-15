@@ -1,6 +1,13 @@
 """Exception hierarchy."""
 
-__all__ = ["LiftError", "LiftParseError"]
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._validate import Problem
+
+__all__ = ["LiftError", "LiftParseError", "LiftValidationError"]
 
 
 class LiftError(Exception):
@@ -14,3 +21,12 @@ class LiftParseError(LiftError):
     than 0.13 (sil-lift does not migrate; see the lift-standard repo's XSLTs
     for one-off migration of legacy files).
     """
+
+
+class LiftValidationError(LiftError):
+    """Raised by the fail-fast validation wrappers on the first error-level
+    :class:`~sil_lift.Problem` (warnings never raise)."""
+
+    def __init__(self, problem: Problem) -> None:
+        super().__init__(str(problem))
+        self.problem = problem
