@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<lift version="0.12">
+  <!--
+  \lx utan
+  \ps n
+  \sd Nplant
+  \ge veg
+  \gn sayur; jamu
+  \re vegetable; mushroom
+  \de non-bulbous edible leafy and stalky plant and fungi
+  -->
+  <entry id="utan">
+    <lexical-unit>
+      <form lang="zxx-Latn">
+        <text>utan</text>
+      </form>
+    </lexical-unit>
+    <sense id="utan_">
+      <grammatical-info value="n"/>
+      <trait name="semantic-domain" value="Nplant"/>
+      <gloss lang="en">
+        <text>veg</text>
+      </gloss>
+      <gloss lang="id">
+        <text>sayur</text>
+      </gloss>
+      <gloss lang="id">
+        <text>jamu</text>
+      </gloss>
+      <reversal type="eng">
+        <form lang="en">
+          <text>mushroom</text>
+        </form>
+        <main>
+          <form lang="en">
+            <text>vegetable</text>
+          </form>
+        </main>
+      </reversal>
+      <definition>
+        <form lang="en">
+          <text>non-bulbous edible leafy and stalky plant and fungi</text>
+        </form>
+      </definition>
+    </sense>
+  </entry>
+</lift>

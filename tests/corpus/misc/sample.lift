@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--See http://code.google.com/p/lift-standard for more information on the format used here.-->
+<lift producer="SIL.FLEx 2.4.0.39737" version="0.12">
+<header>
+<ranges>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="dialect"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="etymology"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="grammatical-info"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="lexical-relations"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="note-type"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="paradigm"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="reversal-type"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="semantic_domain"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="status"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="users"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="locations"></range>
+<!--The following ranges are produced by FieldWorks Language Explorer, and are not part of the LIFT standard.--><range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="anthro_codes"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="translation-types"></range>
+<!--The parts of speech are duplicated in another range because derivational affixes require a "From" PartOfSpeech as well as a "To" PartOfSpeech.--><range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="FromPartOfSpeech"></range>
+<range href="file://C:/LiftTweaker/sample/sample.lift-ranges" id="MorphType"></range>
+</ranges>
+<fields><field tag="cvPattern"><form lang="en"><text>This records the syllable pattern for a LexPronunciation in FieldWorks.</text>
+</form>
+</field>
+<field tag="tone"><form lang="en"><text>This records the tone information for a LexPronunciation in FieldWorks.</text>
+</form>
+</field>
+<field tag="multiform"><form lang="en"><text>This records the multilingual "Form" field of the LexEtymology in FieldWorks.</text>
+</form>
+</field>
+<field tag="comment"><form lang="en"><text>This records a comment (note) in a LexEtymology in FieldWorks.</text>
+</form>
+</field>
+<field tag="ImportResidue"><form lang="en"><text>This records residue left over from importing a standard format file into FieldWorks (or LinguaLinks).</text>
+</form>
+</field>
+<field tag="literal_meaning"><form lang="en"><text>This field is used to store a literal meaning of the entry.  Typically, this field is necessary only for a compound or an idiom where the meaning of the whole is different from the sum of its parts.</text>
+</form>
+</field>
+<field tag="summary_definition"><form lang="en"><text>A summary definition (located at the entry level in the Entry pane) is a general definition summarizing all the senses of a primary entry. It has no theoretical value; its use is solely pragmatic.</text>
+</form>
+</field>
+<field tag="scientific_name"><form lang="en"><text>This field stores the scientific name pertinent to the current sense.</text>
+</form>
+</field>
+</fields>
+</header>
+<entry dateCreated="2008-12-12T09:42:48+10:00" dateModified="2008-12-12T09:42:48+10:00" guid="a054bd6c-71c2-4156-9860-657beb35b65b" id="me_a054bd6c-71c2-4156-9860-657beb35b65b">
+<lexical-unit>
+<form lang="en"><text>me</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Main Entry"></trait>
+<sense id="***_387a36e2-c06b-437b-be10-8c5b6031670d">
+<grammatical-info value="John"></grammatical-info>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T15:38:26+10:00" dateModified="2008-12-08T16:22:26+10:00" guid="9a28cffe-2b00-4ef9-bfd2-6f17909ea19c" id="blackbird_9a28cffe-2b00-4ef9-bfd2-6f17909ea19c">
+<lexical-unit>
+<form lang="en"><text>blackbird</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Compound"></trait>
+<relation type="main" ref="black_2fa31748-d0ad-4f7d-b2ae-314863c24ee9"></relation>
+<relation type="main" ref="bird_a5324836-5ba1-4157-90e3-d3ad44a586a4"></relation>
+<sense id="annoying bird_eb70eb78-4fbc-4afa-bf74-db2fb890f848">
+<grammatical-info value="Noun"></grammatical-info>
+<gloss lang="en"><text>annoying bird</text></gloss>
+<trait name="semantic_domain" value="1.6.1.2"></trait>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T15:39:02+10:00" dateModified="2008-12-12T07:55:39+10:00" guid="2fa31748-d0ad-4f7d-b2ae-314863c24ee9" id="black_2fa31748-d0ad-4f7d-b2ae-314863c24ee9">
+<lexical-unit>
+<form lang="en"><text>black</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Main Entry"></trait>
+<relation type="minorentry" ref="blak_3f18d075-04c3-4f28-b3b7-567e7bf1ff54"></relation>
+<relation type="subentry" ref="blackbird_9a28cffe-2b00-4ef9-bfd2-6f17909ea19c"></relation>
+<relation type="subentry" ref="blackout_07d6915b-a727-4877-a2d6-1c3996fcc5d1"></relation>
+<sense id="color_0a9da9c0-c9ce-4173-babe-5461eb81b2f7">
+<grammatical-info value="Adjective"></grammatical-info>
+<gloss lang="en"><text>color</text></gloss>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T15:39:18+10:00" dateModified="2008-12-12T07:55:46+10:00" guid="a5324836-5ba1-4157-90e3-d3ad44a586a4" id="bird_a5324836-5ba1-4157-90e3-d3ad44a586a4">
+<lexical-unit>
+<form lang="en"><text>bird</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Main Entry"></trait>
+<relation type="subentry" ref="blackbird_9a28cffe-2b00-4ef9-bfd2-6f17909ea19c"></relation>
+<sense id="avian thingy_9deea922-0aa5-4fa6-9d83-9bdba65053b1">
+<grammatical-info value="Noun"></grammatical-info>
+<gloss lang="en"><text>avian thingy</text></gloss>
+<trait name="semantic_domain" value="1.6.1.2"></trait>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T15:54:41+10:00" dateModified="2008-12-08T16:27:04+10:00" guid="3f18d075-04c3-4f28-b3b7-567e7bf1ff54" id="blak_3f18d075-04c3-4f28-b3b7-567e7bf1ff54">
+<lexical-unit>
+<form lang="en"><text>blak</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Spelling Variant"></trait>
+<relation type="main" ref="black_2fa31748-d0ad-4f7d-b2ae-314863c24ee9"></relation>
+<sense id="pretend alternate spelling of black_9065412b-566b-4581-86f9-d27eb956177d">
+<definition>
+<form lang="en"><text>pretend alternate spelling of black</text></form>
+</definition>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T16:24:34+10:00" dateModified="2008-12-12T07:56:11+10:00" guid="07d6915b-a727-4877-a2d6-1c3996fcc5d1" id="blackout_07d6915b-a727-4877-a2d6-1c3996fcc5d1">
+<lexical-unit>
+<form lang="en"><text>blackout</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Compound"></trait>
+<relation type="main" ref="black_2fa31748-d0ad-4f7d-b2ae-314863c24ee9"></relation>
+<sense id="when all the electricity in an area is off_0409d816-2cd0-44ed-be99-1d9d0986faf9" order="1">
+<grammatical-info value="Noun"></grammatical-info>
+<gloss lang="en"><text>when all the electricity in an area is off</text></gloss>
+</sense>
+<sense id="Cover up a light source_af264866-4a2a-43eb-a010-4b0edc20365c" order="2">
+<grammatical-info value="Verb"></grammatical-info>
+<gloss lang="en"><text>Cover up a light source</text></gloss>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T16:45:11+10:00" dateModified="2008-12-11T11:11:19+10:00" guid="7a9bd2b9-fc30-4ed7-b32b-a359ad1fe06c" id="toxic_7a9bd2b9-fc30-4ed7-b32b-a359ad1fe06c">
+<lexical-unit>
+<form lang="en"><text>toxic</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<note type="comment">
+<form lang="en"><text>a note on toxic</text></form>
+</note>
+<trait name="EntryType" value="Main Entry"></trait>
+<relation type="subentry" ref="nontoxic_4ef632e2-1df7-48a7-8be8-220be92bace2"></relation>
+<relation type="subentry" ref="toxicity_36c2896c-98e0-4c91-b9a2-fe181d955b50"></relation>
+<relation ref="toxin_eb79c3ea-2286-4cdf-a565-5c8201e0c012" type="cf"></relation>
+<sense id="poisonous_2f35568a-e96d-48d1-b46d-d348663387bc">
+<grammatical-info value="Adjective"></grammatical-info>
+<gloss lang="en"><text>poisonous</text></gloss>
+<note type="anthropology">
+<form lang="en"><text>antrho</text></form>
+</note>
+<note type="bibliography">
+<form lang="en"><text>a bibnote</text></form>
+</note>
+<note type="discourse">
+<form lang="en"><text>a discourse note</text></form>
+</note>
+<note type="general">
+<form lang="en"><text>a general noteli</text></form>
+</note>
+<field type="scientific_name"><form lang="en"><text>scientific note</text></form>
+</field>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T16:45:37+10:00" dateModified="2008-12-09T06:38:01+10:00" guid="9ee507ab-1587-430b-904c-9b3293b4853a" id="detox_9ee507ab-1587-430b-904c-9b3293b4853a">
+<lexical-unit>
+<form lang="en"><text>detox</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Derivation"></trait>
+<relation type="main" ref="de-_04278d87-5987-49c7-b976-e5b11aa3c7a7"></relation>
+<relation type="main" ref="toxin_eb79c3ea-2286-4cdf-a565-5c8201e0c012"></relation>
+<sense id="a therapudic program for substance abusers_e757ba8c-4740-4809-b3bb-0774bb5d8e13">
+<grammatical-info value="Noun"></grammatical-info>
+<gloss lang="en"><text>a therapudic program for substance abusers</text></gloss>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T16:45:58+10:00" dateModified="2008-12-09T06:36:50+10:00" guid="1f985e40-9aa2-4c9a-9732-8aec866f264f" id="detoxify_1f985e40-9aa2-4c9a-9732-8aec866f264f">
+<lexical-unit>
+<form lang="en"><text>detoxify</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Derivation"></trait>
+<relation type="main" ref="de-_04278d87-5987-49c7-b976-e5b11aa3c7a7"></relation>
+<relation type="main" ref="toxin_eb79c3ea-2286-4cdf-a565-5c8201e0c012"></relation>
+<relation type="main" ref="-ify_574fc32b-c412-4a19-bc5f-3b72e44e7b50"></relation>
+<sense id="***_b12137d3-191f-4933-9891-6fe76705dac8">
+<grammatical-info value="Verb"></grammatical-info>
+</sense>
+</entry>
+<entry dateCreated="2008-12-08T16:46:18+10:00" dateModified="2008-12-09T06:34:36+10:00" guid="4ef632e2-1df7-48a7-8be8-220be92bace2" id="nontoxic_4ef632e2-1df7-48a7-8be8-220be92bace2">
+<lexical-unit>
+<form lang="en"><text>nontoxic</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Derivation"></trait>
+<relation type="main" ref="toxic_7a9bd2b9-fc30-4ed7-b32b-a359ad1fe06c"></relation>
+<sense id="***_75c708d2-1934-41e2-b909-40d626c6257f">
+<grammatical-info value="Adjective"></grammatical-info>
+</sense>
+</entry>
+<entry dateCreated="2008-12-09T06:26:06+10:00" dateModified="2008-12-09T06:33:20+10:00" guid="36c2896c-98e0-4c91-b9a2-fe181d955b50" id="toxicity_36c2896c-98e0-4c91-b9a2-fe181d955b50">
+<lexical-unit>
+<form lang="en"><text>toxicity</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Derivation"></trait>
+<relation type="main" ref="toxic_7a9bd2b9-fc30-4ed7-b32b-a359ad1fe06c"></relation>
+<sense id="level of poinsonousness_3135689e-29f3-467c-a027-64b35110c368">
+<grammatical-info value="Noun"></grammatical-info>
+<gloss lang="en"><text>level of poinsonousness</text></gloss>
+</sense>
+</entry>
+<entry dateCreated="2008-12-09T06:34:06+10:00" dateModified="2008-12-12T07:55:13+10:00" guid="eb79c3ea-2286-4cdf-a565-5c8201e0c012" id="toxin_eb79c3ea-2286-4cdf-a565-5c8201e0c012">
+<lexical-unit>
+<form lang="en"><text>toxin</text></form>
+</lexical-unit>
+<trait name="MorphType" value="stem"></trait>
+<trait name="EntryType" value="Main Entry"></trait>
+<relation type="subentry" ref="detox_9ee507ab-1587-430b-904c-9b3293b4853a"></relation>
+<relation type="subentry" ref="detoxify_1f985e40-9aa2-4c9a-9732-8aec866f264f"></relation>
+<relation ref="toxic_7a9bd2b9-fc30-4ed7-b32b-a359ad1fe06c" type="cf"></relation>
+<sense id="poison_7fa7d03f-cfd2-4146-9154-a362584cf838">
+<grammatical-info value="Noun"></grammatical-info>
+<gloss lang="en"><text>poison</text></gloss>
+</sense>
+</entry>
+<entry dateCreated="2008-12-09T06:35:37+10:00" dateModified="2008-12-09T06:35:37+10:00" guid="04278d87-5987-49c7-b976-e5b11aa3c7a7" id="de-_04278d87-5987-49c7-b976-e5b11aa3c7a7">
+<lexical-unit>
+<form lang="en"><text>de-</text></form>
+</lexical-unit>
+<trait name="MorphType" value="prefix"></trait>
+<trait name="EntryType" value="Main Entry"></trait>
+<relation type="subentry" ref="detoxify_1f985e40-9aa2-4c9a-9732-8aec866f264f"></relation>
+<relation type="subentry" ref="detox_9ee507ab-1587-430b-904c-9b3293b4853a"></relation>
+<sense id="remove_27e0d486-bb93-411f-a307-d7ec1bb007f0">
+<gloss lang="en"><text>remove</text></gloss>
+</sense>
+</entry>
+<entry dateCreated="2008-12-09T06:36:50+10:00" dateModified="2008-12-09T06:36:50+10:00" guid="574fc32b-c412-4a19-bc5f-3b72e44e7b50" id="-ify_574fc32b-c412-4a19-bc5f-3b72e44e7b50">
+<lexical-unit>
+<form lang="en"><text>-ify</text></form>
+</lexical-unit>
+<trait name="MorphType" value="suffix"></trait>
+<trait name="EntryType" value="Main Entry"></trait>
+<relation type="subentry" ref="detoxify_1f985e40-9aa2-4c9a-9732-8aec866f264f"></relation>
+<sense id="***_45b7389f-05a3-4530-b902-d2d8b0e9819e">
+<grammatical-info value="Verb">
+<trait name="type" value="derivAffix"></trait>
+<trait name="FromPartOfSpeech" value="Noun"></trait>
+</grammatical-info>
+</sense>
+</entry>
+<entry dateCreated="2008-12-09T08:05:55+10:00" dateModified="2008-12-09T08:05:55+10:00" guid="3e418283-aa02-4bf0-8182-db2ce47394af" id="toxic waste dump_3e418283-aa02-4bf0-8182-db2ce47394af">
+<lexical-unit>
+<form lang="en"><text>toxic waste dump</text></form>
+</lexical-unit>
+<trait name="MorphType" value="phrase"></trait>
+<trait name="EntryType" value="Main Entry"></trait>
+<sense id="place where poisonous rubbish is stored_83f5feec-328c-40f3-af70-40f8e9b57ab3">
+<grammatical-info value="Noun"></grammatical-info>
+<gloss lang="en"><text>place where poisonous rubbish is stored</text></gloss>
+</sense>
+</entry>
+</lift>

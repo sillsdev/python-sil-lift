@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<lift version="0.12">
+  <!--
+  \lx opon
+  \ps n
+  \sn 1a
+  \ge grand_kin
+  \de grandparent, grandchild; reciprocal term of plus or minus two generations
+  \sn 1b
+  \ge ancestor
+  \de ancestor, descendent
+  \sn 2
+  \ge master
+  \de master, lord, owner; the one with the say over someone or something-->
+  <entry id="opon">
+    <lexical-unit>
+      <form lang="zxx-Latn">
+        <text>opon</text>
+      </form>
+    </lexical-unit>
+    <sense id="opon_1" order="1">
+      <subsense id="opon_1a" order="1">
+        <grammatical-info value="n"/>
+        <gloss lang="en">
+          <text>grand kin</text>
+        </gloss>
+        <definition>
+          <form lang="en">
+            <text>
+              grandparent, grandchild; reciprocal term of
+              plus or minus two generations
+            </text>
+          </form>
+        </definition>
+      </subsense>
+      <subsense id="opon_1b" order="2">
+        <grammatical-info value="n"/>
+        <gloss lang="en">
+          <text>ancestor</text>
+        </gloss>
+        <definition>
+          <form lang="en">
+            <text>ancestor, descendent</text>
+          </form>
+        </definition>
+      </subsense>
+    </sense>
+    <sense id="opon_2" order="2">
+      <grammatical-info value="n"/>
+      <gloss lang="en">
+        <text>master</text>
+      </gloss>
+      <definition>
+        <form lang="en">
+          <text>
+            master, lord, owner; the one with the say
+            over someone or something
+          </text>
+        </form>
+      </definition>
+    </sense>
+  </entry>
+</lift>
