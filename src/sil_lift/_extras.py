@@ -1,0 +1,43 @@
+"""The opaque out-of-schema residue bucket (decision A2).
+
+Every model node carries an ``Extras`` holding whatever the parser found that the
+LIFT 0.13 schema does not define: unknown attributes, unknown child elements, XML
+comments/processing instructions, and stray text in element-only contexts. The
+writer (M2) re-emits it so nothing is dropped.
+
+The public surface is deliberately tiny — equality, repr, emptiness, to_string()
+— so the internal representation stays swappable and no lxml type ever leaks.
+"""
+
+from dataclasses import dataclass, field
+
+__all__ = ["Extras"]
+
+
+@dataclass(slots=True)
+class _ExtraNode:
+    kind: str  # "element" | "comment" | "pi" | "text"
+    xml: str  # serialized fragment (for "text": the raw character data)
+    index: int  # child position in the original parent, the re-emit anchor
+
+
+@dataclass(slots=True, repr=False)
+class Extras:
+    """Out-of-schema content carried losslessly (opaque; see module docstring)."""
+
+    _attrs: dict[str, str] = field(default_factory=dict)
+    _nodes: list[_ExtraNode] = field(default_factory=list)
+
+    def __bool__(self) -> bool:
+        return bool(self._attrs or self._nodes)
+
+    def __repr__(self) -> str:
+        if not self:
+            return "Extras()"
+        return f"Extras({len(self._attrs)} attrs, {len(self._nodes)} nodes)"
+
+    def to_string(self) -> str:
+        """Human-readable dump of the carried content (not a serialization format)."""
+        parts = [f"@{name}={value!r}" for name, value in self._attrs.items()]
+        parts += [node.xml for node in self._nodes]
+        return "\n".join(parts)
