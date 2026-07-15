@@ -97,6 +97,33 @@ that script; committed so tests don't depend on regeneration.
 - **libpalaso inline edge-case XML** (§C.5): extracted per-milestone as needed.
 - **Enggano export** (§C.8): license/permission check pending; not fetched.
 
+## Known RNG-invalid fixtures (kept deliberately)
+
+Validated 2026-07-14 against the vendored `lift-0.13.rng` via `lxml.etree.RelaxNG`.
+Two real-world quirk classes make some fixtures schema-invalid; they are kept
+as-is — the library's losslessness contract (A2) must carry exactly this kind of
+content, and the validator (M4) needs realistic subjects:
+
+1. **`<form>` without `@lang` inside `<etymology>`** — the RNG requires `@lang`
+   on every form. Affects: `spec-examples/0.13/dialects.lift`,
+   `spec-examples/0.13/fields any order.lift` (and their 0.12 originals).
+2. **`range/@href` of the shape `file://C:/...`** — fails the RNG's `anyURI`
+   datatype under libxml2 (malformed authority; often unencoded spaces too).
+   This is how FLEx actually writes range hrefs: **every real FLEx export in
+   this corpus** has it. Affects: `spec-examples/0.13/header.lift`,
+   `misc/sample.0.13.lift`, `flex/AllFLExFields/AllFLExFields.lift`,
+   `large/sango/sango.lift`.
+
+   **M4 design implication**: the C# validator's RELAX NG engine evidently did
+   not enforce anyURI syntax, so "RNG-valid" per SIL.Lift ≠ RNG-valid per lxml
+   on real FLEx output. The validation layer must account for this (e.g.
+   downgrade/annotate anyURI-only failures) or it will flag virtually every
+   FLEx lexicon. Recorded in the planning repo's Phase 3 notes.
+
+RNG-valid fixtures: the other 16 migrated spec examples,
+`ranges/test20080407.lift`, and `folder/Moma/Moma.lift` (WeSay writes relative
+hrefs, which pass). `tests/test_corpus.py` locks in both lists.
+
 ## generated/ — synthetic large files (not committed)
 
 Produced by `tests/tools/generate_large.py` for streaming/perf tests (M6);
