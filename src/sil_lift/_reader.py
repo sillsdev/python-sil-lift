@@ -29,6 +29,7 @@ from ._model import (
     Lexicon,
     Note,
     Pronunciation,
+    RangesFile,
     Relation,
     Reversal,
     ReversalMain,
@@ -59,6 +60,52 @@ def parse_document(path: Path) -> Lexicon:
     lexicon = parse_root(root, path=path)
     _attach_source(lexicon, data, root)
     return lexicon
+
+
+def parse_ranges_document(path: Path) -> RangesFile:
+    data = path.read_bytes()
+    try:
+        root = etree.fromstring(data, parser=_PARSER)
+    except etree.XMLSyntaxError as exc:
+        raise LiftParseError(f"{path}: not well-formed XML: {exc}") from exc
+    if root.tag != "lift-ranges":
+        raise LiftParseError(f"{path}: root element is <{root.tag}>, expected <lift-ranges>")
+    ranges_file = RangesFile(path=path)
+    _split_attrs(root, (), ranges_file.extra)
+    _walk(
+        root,
+        ranges_file.extra,
+        {"range": lambda el: ranges_file.ranges.append(_parse_range(el))},
+    )
+    _attach_ranges_source(ranges_file, data, root)
+    return ranges_file
+
+
+def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Element) -> None:
+    import copy
+
+    from ._scan import scan
+    from ._writer import _RangeRecord, _RangesSourceInfo, range_digest
+
+    encoding = root.getroottree().docinfo.encoding
+    if encoding is not None and encoding.lower() not in ("utf-8", "us-ascii", "ascii"):
+        return
+    result = scan(data)
+    if result is None:
+        return
+    range_spans = [span for span in result.children if span.tag == "range"]
+    if len(range_spans) != len(ranges_file.ranges):
+        return
+    ranges_file._source = _RangesSourceInfo(
+        data=data,
+        root_open_start=result.root_open_start,
+        root_open_end=result.root_open_end,
+        root_self_closing=result.root_self_closing,
+        children=result.children,
+        range_records=[_RangeRecord(range_, range_digest(range_)) for range_ in ranges_file.ranges],
+        root_extra_attrs=dict(ranges_file.extra._attrs),
+        root_extra_snapshot=copy.deepcopy(ranges_file.extra),
+    )
 
 
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:

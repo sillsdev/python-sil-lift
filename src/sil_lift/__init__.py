@@ -18,8 +18,10 @@ from ._model import (
     Field,
     GrammaticalInfo,
     Lexicon,
+    MediaRef,
     Note,
     Pronunciation,
+    RangesFile,
     Relation,
     Reversal,
     ReversalMain,
@@ -49,11 +51,13 @@ __all__ = [
     "Lexicon",
     "LiftError",
     "LiftParseError",
+    "MediaRef",
     "Multitext",
     "Note",
     "Pronunciation",
     "Range",
     "RangeElement",
+    "RangesFile",
     "Relation",
     "Reversal",
     "ReversalMain",
@@ -68,6 +72,10 @@ __all__ = [
 ]
 
 
-def load(path: str | os.PathLike[str]) -> Lexicon:
-    """Parse a ``.lift`` file (LIFT 0.13 only) into a :class:`Lexicon`."""
-    return Lexicon.load(path)
+def load(path: str | os.PathLike[str], *, resolve_ranges: bool = True) -> Lexicon:
+    """Parse a ``.lift`` file (LIFT 0.13 only) into a :class:`Lexicon`.
+
+    Companion ``.lift-ranges`` files are located and loaded too unless
+    ``resolve_ranges=False``; see :meth:`Lexicon.load`.
+    """
+    return Lexicon.load(path, resolve_ranges=resolve_ranges)

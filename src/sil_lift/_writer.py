@@ -36,6 +36,7 @@ from ._model import (
     Lexicon,
     Note,
     Pronunciation,
+    RangesFile,
     Relation,
     Reversal,
     ReversalMain,
@@ -53,7 +54,15 @@ if TYPE_CHECKING:
     from ._extras import _ExtraNode
     from ._scan import ChildSpan
 
-__all__ = ["canonical_document", "entry_digest", "header_digest", "render_document"]
+__all__ = [
+    "canonical_document",
+    "canonical_ranges_document",
+    "entry_digest",
+    "header_digest",
+    "range_digest",
+    "render_document",
+    "render_ranges_document",
+]
 
 _FRAGMENT_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
@@ -81,12 +90,34 @@ class _SourceInfo:
     root_extra_snapshot: Extras
 
 
+@dataclass(slots=True)
+class _RangeRecord:
+    range: Range
+    digest: bytes
+
+
+@dataclass(slots=True)
+class _RangesSourceInfo:
+    data: bytes
+    root_open_start: int
+    root_open_end: int
+    root_self_closing: bool
+    children: list[ChildSpan]
+    range_records: list[_RangeRecord]  # parallel to the "range" spans in children
+    root_extra_attrs: dict[str, str]
+    root_extra_snapshot: Extras
+
+
 def entry_digest(entry: Entry) -> bytes:
     return hashlib.sha256(_node_bytes(_entry_el(entry))).digest()
 
 
 def header_digest(header: Header) -> bytes:
     return hashlib.sha256(_node_bytes(_header_el(header))).digest()
+
+
+def range_digest(range_: Range) -> bytes:
+    return hashlib.sha256(_node_bytes(_range_el(range_))).digest()
 
 
 # --- canonical building blocks ---------------------------------------------------
@@ -717,6 +748,90 @@ def render_document(lexicon: Lexicon) -> bytes:
         elif span.tag == "entry":
             parts.append(entry_fn(lexicon.entries[entry_index]))
             entry_index += 1
+        else:
+            parts.append(data[span.start : span.end])
+        position = span.end
+    parts.append(data[position:])
+    return b"".join(parts)
+
+
+# --- .lift-ranges documents ----------------------------------------------------------
+
+
+def canonical_ranges_document(
+    ranges_file: RangesFile,
+    range_bytes: Callable[[Range], bytes] | None = None,
+) -> bytes:
+    if range_bytes is None:
+        range_bytes = lambda r: _node_bytes(_range_el(r))  # noqa: E731
+    chunks = [range_bytes(range_) for range_ in ranges_file.ranges]
+    for node in sorted(ranges_file.extra._nodes, key=lambda n: n.index):
+        if node.kind == "text":
+            continue
+        chunks.insert(min(node.index, len(chunks)), node.xml.encode("utf-8") + b"\n")
+    root = _element("lift-ranges", [], ranges_file.extra)
+    serialized = etree.tostring(root, encoding="unicode").encode("utf-8")
+    parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', serialized[:-2] + b">", b"\n"]
+    parts.extend(chunks)
+    parts.append(b"</lift-ranges>\n")
+    return b"".join(parts)
+
+
+def _range_bytes_fn(source: _RangesSourceInfo) -> Callable[[Range], bytes]:
+    spans = [span for span in source.children if span.tag == "range"]
+    by_identity = {
+        id(record.range): (record, span)
+        for record, span in zip(source.range_records, spans, strict=True)
+    }
+
+    def fn(range_: Range) -> bytes:
+        found = by_identity.get(id(range_))
+        if found is not None:
+            record, span = found
+            if range_digest(range_) == record.digest:
+                return source.data[span.start : span.end]
+        return _node_bytes(_range_el(range_))
+
+    return fn
+
+
+def render_ranges_document(ranges_file: RangesFile) -> bytes:
+    source = ranges_file._source
+    if source is None:
+        return canonical_ranges_document(ranges_file)
+
+    range_fn = _range_bytes_fn(source)
+    root_unchanged = dict(ranges_file.extra._attrs) == source.root_extra_attrs
+
+    if ranges_file.extra._nodes != source.root_extra_snapshot._nodes:
+        return canonical_ranges_document(ranges_file, range_fn)
+    if source.root_self_closing:
+        if not ranges_file.ranges and root_unchanged:
+            return source.data
+        return canonical_ranges_document(ranges_file, range_fn)
+
+    aligned = len(ranges_file.ranges) == len(source.range_records) and all(
+        current is record.range
+        for current, record in zip(ranges_file.ranges, source.range_records, strict=True)
+    )
+    if not aligned:
+        return canonical_ranges_document(ranges_file, range_fn)
+
+    data = source.data
+    parts = [data[: source.root_open_start]]
+    if root_unchanged:
+        parts.append(data[source.root_open_start : source.root_open_end])
+    else:
+        root = _element("lift-ranges", [], ranges_file.extra)
+        serialized = etree.tostring(root, encoding="unicode").encode("utf-8")
+        parts.append(serialized[:-2] + b">")
+    position = source.root_open_end
+    range_index = 0
+    for span in source.children:
+        parts.append(data[position : span.start])
+        if span.tag == "range":
+            parts.append(range_fn(ranges_file.ranges[range_index]))
+            range_index += 1
         else:
             parts.append(data[span.start : span.end])
         position = span.end

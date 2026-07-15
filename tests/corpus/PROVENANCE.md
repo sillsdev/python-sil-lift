@@ -124,6 +124,14 @@ RNG-valid fixtures: the other 16 migrated spec examples,
 `ranges/test20080407.lift`, and `folder/Moma/Moma.lift` (WeSay writes relative
 hrefs, which pass). `tests/test_corpus.py` locks in both lists.
 
+3. **`trait`/`field` inside `range-element`** (`.lift-ranges` files, validated
+   against the project-authored `lift-ranges-0.13.rng`): FLEx extends range
+   elements beyond the spec's description/label/abbrev content model (e.g.
+   morph-type traits). Affects `flex/AllFLExFields/AllFLExFields.lift-ranges`
+   and `large/sango/sango.lift-ranges`; the hand-crafted
+   `ranges/test20080407.lift-ranges` validates. Carried losslessly in
+   `Extras`; same M4 implication as the anyURI quirk.
+
 ## generated/ — synthetic large files (not committed)
 
 Produced by `tests/tools/generate_large.py` for streaming/perf tests (M6);

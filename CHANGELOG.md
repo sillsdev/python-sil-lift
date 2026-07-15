@@ -20,3 +20,10 @@ During 0.x, minor releases may contain breaking changes.
   entries re-serialize canonically with all out-of-schema content preserved.
   Fidelity contract documented in `docs/en/fidelity.md` and enforced by
   corpus byte-identity tests plus Hypothesis round-trip properties.
+- M3: LIFT-folder handling — `RangesFile` (standalone `.lift-ranges`
+  documents, same fidelity guarantees), automatic companion
+  discovery/tracking on load (`Lexicon.ranges_files`), `save()` writes
+  companions together, `all_ranges()` merged view, `media_refs()` /
+  `missing_media()` helpers; authored `schemas/lift-ranges-0.13.rng` — the
+  first schema for standalone ranges documents (spec-faithful, built from
+  the vendored grammar's own defines).
