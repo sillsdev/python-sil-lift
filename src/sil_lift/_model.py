@@ -23,6 +23,8 @@ from ._text import Annotation, Form, Multitext, Text, Trait
 if TYPE_CHECKING:
     import os
 
+    from ._writer import _SourceInfo
+
 __all__ = [
     "Entry",
     "Etymology",
@@ -227,7 +229,7 @@ class Entry(_Extensible):
 class Lexicon:
     """The root handle: a parsed ``.lift`` document (and, from M3, its folder)."""
 
-    __slots__ = ("entries", "extra", "header", "path", "producer")
+    __slots__ = ("_source", "entries", "extra", "header", "path", "producer")
 
     def __init__(
         self,
@@ -243,6 +245,7 @@ class Lexicon:
         self.producer = producer
         self.path = path
         self.extra = extra if extra is not None else Extras()
+        self._source: _SourceInfo | None = None  # set by the reader (A2 passthrough)
 
     @classmethod
     def load(cls, path: str | os.PathLike[str]) -> Lexicon:
@@ -250,6 +253,21 @@ class Lexicon:
         from ._reader import parse_document
 
         return parse_document(Path(path))
+
+    def save(self, path: str | os.PathLike[str] | None = None) -> None:
+        """Write the ``.lift`` file.
+
+        Untouched entries are emitted byte-identical to the source; modified
+        entries are re-serialized canonically with all residue preserved (A2).
+        With no ``path``, saves to where the lexicon was loaded from.
+        """
+        from ._writer import render_document
+
+        target = Path(path) if path is not None else self.path
+        if target is None:
+            raise ValueError("no target path: pass save(path) or load the lexicon from a file")
+        target.write_bytes(render_document(self))
+        self.path = target
 
     def find(self, *, id: str | None = None, guid: str | None = None) -> Entry | None:
         """The first entry matching the given id and/or guid, or None."""

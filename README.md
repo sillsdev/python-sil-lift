@@ -21,9 +21,16 @@ lex.save()
 `sil-lift` treats LIFT as an *interchange* format: it never drops what it does
 not understand.
 
-- Entries you did not modify are written back **byte-identical**.
+- Saving an unchanged document is **byte-identical** (no reformatting, ever).
+- Entries you did not modify are written back **byte-identical**, even when
+  other entries changed.
 - Entries you did modify are re-serialized in a documented canonical form, with
   all out-of-schema content (unknown elements, attributes, comments) preserved.
+- Whitespace inside `<text>` is never altered — not even for indentation.
+
+The precise rules and their few edge cases are documented in
+[docs/en/fidelity.md](docs/en/fidelity.md); they are enforced by corpus-wide
+byte-identity tests and property-based (Hypothesis) round-trip tests.
 
 ## Scope
 

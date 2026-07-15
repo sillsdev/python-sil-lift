@@ -51,11 +51,49 @@ _PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
 def parse_document(path: Path) -> Lexicon:
+    data = path.read_bytes()
     try:
-        tree = etree.parse(path, parser=_PARSER)
+        root = etree.fromstring(data, parser=_PARSER)
     except etree.XMLSyntaxError as exc:
         raise LiftParseError(f"{path}: not well-formed XML: {exc}") from exc
-    return parse_root(tree.getroot(), path=path)
+    lexicon = parse_root(root, path=path)
+    _attach_source(lexicon, data, root)
+    return lexicon
+
+
+def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
+    """Capture what the A2 passthrough needs; on any doubt, capture nothing.
+
+    Without source info the writer falls back to canonical serialization —
+    semantically complete, just not byte-preserving.
+    """
+    import copy
+
+    from ._scan import scan
+    from ._writer import _EntryRecord, _SourceInfo, entry_digest, header_digest
+
+    encoding = root.getroottree().docinfo.encoding
+    if encoding is not None and encoding.lower() not in ("utf-8", "us-ascii", "ascii"):
+        return  # byte scanning assumes an ASCII-compatible encoding
+    result = scan(data)
+    if result is None:
+        return
+    entry_spans = [span for span in result.children if span.tag == "entry"]
+    header_spans = [span for span in result.children if span.tag == "header"]
+    if len(entry_spans) != len(lexicon.entries) or len(header_spans) > 1:
+        return  # scanner and parser disagree: distrust the scan
+    lexicon._source = _SourceInfo(
+        data=data,
+        root_open_start=result.root_open_start,
+        root_open_end=result.root_open_end,
+        root_self_closing=result.root_self_closing,
+        children=result.children,
+        entry_records=[_EntryRecord(entry, entry_digest(entry)) for entry in lexicon.entries],
+        header_digest=header_digest(lexicon.header) if header_spans else None,
+        producer=lexicon.producer,
+        root_extra_attrs=dict(lexicon.extra._attrs),
+        root_extra_snapshot=copy.deepcopy(lexicon.extra),
+    )
 
 
 def parse_root(root: etree._Element, *, path: Path | None = None) -> Lexicon:

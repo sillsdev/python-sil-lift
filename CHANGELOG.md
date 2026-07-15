@@ -12,3 +12,11 @@ During 0.x, minor releases may contain breaking changes.
 
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
   test corpus with provenance, corpus-prep and large-file-generator tooling.
+- M1: full object model (all 35 LIFT 0.13 elements as typed dataclasses),
+  `sil_lift.load()` / `Lexicon.load()` full-document reader with per-node
+  `Extras` residue capture, LIFT-version guard.
+- M2: `Lexicon.save()` writer with byte-fidelity passthrough — unchanged
+  documents and untouched entries are written byte-identically; touched
+  entries re-serialize canonically with all out-of-schema content preserved.
+  Fidelity contract documented in `docs/en/fidelity.md` and enforced by
+  corpus byte-identity tests plus Hypothesis round-trip properties.
