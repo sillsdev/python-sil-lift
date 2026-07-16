@@ -1,0 +1,161 @@
+"""The demo CLI (decision-document section D): validate / stats / sort / check-media.
+
+A LiftTools-style utility exercising every scope pillar end-to-end: validation
+(all three layers), streaming reads (stats), the canonical sort + write path
+(sort), and the folder/media model (check-media). Deliberately stdlib-only.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from collections import Counter
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from ._canonical import canonicalize
+from ._errors import LiftError
+from ._model import Lexicon
+from ._stream import open_reader
+from ._validate import iter_problems
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from ._model import Entry, Sense
+
+__all__ = ["main"]
+
+
+def _cmd_validate(args: argparse.Namespace) -> int:
+    errors = warnings = 0
+    for problem in iter_problems(args.path):
+        print(problem)
+        if problem.level == "error":
+            errors += 1
+        else:
+            warnings += 1
+    print(f"{errors} error(s), {warnings} warning(s)")
+    return 1 if errors else 0
+
+
+def _iter_senses(entry: Entry) -> list[Sense]:
+    senses: list[Sense] = []
+    stack = list(entry.senses)
+    while stack:
+        sense = stack.pop()
+        senses.append(sense)
+        stack.extend(sense.subsenses)
+    return senses
+
+
+def _cmd_stats(args: argparse.Namespace) -> int:
+    entries = senses = examples = media = 0
+    langs: set[str] = set()
+    traits: Counter[str] = Counter()
+    with open_reader(args.path) as reader:
+        for entry in reader:
+            entries += 1
+            langs.update(entry.lexical_unit.keys())
+            traits.update(trait.name for trait in entry.traits)
+            for pronunciation in entry.pronunciations:
+                media += len(pronunciation.media)
+            for sense in _iter_senses(entry):
+                senses += 1
+                examples += len(sense.examples)
+                media += len(sense.illustrations)
+                langs.update(g.lang for g in sense.glosses if g.lang)
+                langs.update(sense.definition.keys())
+                traits.update(trait.name for trait in sense.traits)
+    print(f"entries:   {entries}")
+    print(f"senses:    {senses}")
+    print(f"examples:  {examples}")
+    print(f"media refs: {media}")
+    print(f"languages: {', '.join(sorted(langs)) if langs else '(none)'}")
+    if traits:
+        top = ", ".join(f"{name} ({count})" for name, count in traits.most_common(5))
+        print(f"top traits: {top}")
+    return 0
+
+
+def _cmd_sort(args: argparse.Namespace) -> int:
+    target = args.output if args.output is not None else args.path
+    canonicalize(args.path, target)
+    print(f"wrote {target}")
+    return 0
+
+
+def _cmd_check_media(args: argparse.Namespace) -> int:
+    lexicon = Lexicon.load(args.path)
+    missing = lexicon.missing_media()
+    for ref in missing:
+        owner = ref.entry_id or ref.entry_guid or "?"
+        print(f"missing  {ref.kind:12s} {ref.href!r} (entry {owner})")
+
+    referenced: set[Path] = set()
+    base = Path(args.path).parent
+    for ref in lexicon.media_refs():
+        normalized = ref.href.replace("\\", "/")
+        referenced.add((base / normalized).resolve())
+        subfolder = "audio" if ref.kind == "media" else "pictures"
+        referenced.add((base / subfolder / normalized).resolve())
+    orphans = [
+        file
+        for folder in ("audio", "pictures")
+        if (base / folder).is_dir()
+        for file in sorted((base / folder).rglob("*"))
+        if file.is_file() and file.resolve() not in referenced
+    ]
+    for file in orphans:
+        print(f"orphaned {file.relative_to(base)} (no media/illustration references it)")
+    if orphans:
+        print(
+            "note: WeSay-style audio writing systems reference files from form "
+            "text, which this check does not follow"
+        )
+    print(f"{len(missing)} missing, {len(orphans)} orphaned")
+    return 1 if missing else 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="sil-lift",
+        description="Utilities for LIFT 0.13 lexicon files.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    validate = subparsers.add_parser(
+        "validate", help="schema + semantic validation; exit 1 on errors"
+    )
+    validate.add_argument("path", type=Path, help="a .lift file")
+    validate.set_defaults(func=_cmd_validate)
+
+    stats = subparsers.add_parser("stats", help="entry/sense/language counts (streaming)")
+    stats.add_argument("path", type=Path, help="a .lift file")
+    stats.set_defaults(func=_cmd_stats)
+
+    sort = subparsers.add_parser("sort", help="write a canonically sorted copy")
+    sort.add_argument("path", type=Path, help="a .lift file")
+    sort.add_argument("-o", "--output", type=Path, default=None, help="default: in place")
+    sort.set_defaults(func=_cmd_sort)
+
+    check_media = subparsers.add_parser(
+        "check-media", help="report missing and orphaned media files"
+    )
+    check_media.add_argument("path", type=Path, help="a .lift file")
+    check_media.set_defaults(func=_cmd_check_media)
+
+    args = parser.parse_args(argv)
+    try:
+        result: int = args.func(args)
+    except LiftError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except OSError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    return result
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -8,13 +8,20 @@ canonical sorting — with streaming APIs for large lexicons.
 ```python
 import sil_lift
 
-lex = sil_lift.load("thesaurus.lift")
+lex = sil_lift.load("thesaurus.lift")      # tracks .lift-ranges companions too
 for entry in lex.entries:
     ...
-lex.save()
+entry = lex.find(id="hoofd_a1b2")
+entry.senses[0].definition["en"] = "head (anatomy)"
+lex.save()                                  # untouched entries byte-identical
 ```
 
 **Status: pre-release, under active development.** The API is not yet stable.
+
+Requires Python 3.11+; the only runtime dependency is lxml. Install
+`sil-lift[cli]` for the `sil-lift` command (`validate` / `stats` / `sort` /
+`check-media`). Documentation lives in `docs/en/` (mkdocs-material; build
+with `pip install -e .[docs] && mkdocs build`).
 
 ## Fidelity guarantees
 

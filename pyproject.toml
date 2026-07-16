@@ -36,9 +36,12 @@ classifiers = [
 ]
 dependencies = ["lxml>=5.0"]
 
+[project.scripts]
+sil-lift = "sil_lift._cli:main"
+
 [project.optional-dependencies]
-# The demo CLI (milestone M7) uses only the stdlib; the extra exists so
-# `pip install sil-lift[cli]` is the documented install from day one.
+# The demo CLI uses only the stdlib, so this extra is empty; it exists so
+# `pip install sil-lift[cli]` stays the documented install for CLI users.
 cli = []
 dev = [
   "pytest>=8",

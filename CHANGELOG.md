@@ -20,6 +20,10 @@ During 0.x, minor releases may contain breaking changes.
   entries re-serialize canonically with all out-of-schema content preserved.
   Fidelity contract documented in `docs/en/fidelity.md` and enforced by
   corpus byte-identity tests plus Hypothesis round-trip properties.
+- M7: the `sil-lift` CLI (`validate` / `stats` / `sort` / `check-media`,
+  stdlib-only, installed via the `[cli]` extra) and the documentation site
+  (task-oriented guides, fidelity contract, mkdocstrings API reference,
+  mkdocs-static-i18n wired for future localization).
 - M6: streaming — `open_reader()` (lazy entry iterator with the parsed
   header available up front; iterparse cleanup internal) and `open_writer()`
   (header + one canonical chunk per entry; byte-identical to
