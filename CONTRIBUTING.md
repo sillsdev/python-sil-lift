@@ -76,3 +76,14 @@ Before touching the reader/writer, read `docs/en/fidelity.md` — it is the
 library's core promise, and the byte-identity, Hypothesis, and semantic
 round-trip tests exist to keep it true. A change that makes an untouched entry
 re-serialize is a bug even if every model value survives.
+
+## Future maintenance
+
+Conditions to revisit, not yet actionable:
+
+- **Python 3.11 floor.** Drop after Python 3.11 is EOL (2027-10) and Debian 12
+  "bookworm" (the last major distro with 3.11 by default) LTS ends (2028-06).
+- **MkDocs → Zensical.** `docs/en/` depends on `mkdocstrings` (API reference)
+  and `i18n` (Crowdin localization); Zensical doesn't support either yet.
+  Revisit once both ship — <https://zensical.org/compatibility/plugins/>
+  tracks status.
