@@ -1,13 +1,14 @@
-"""The demo CLI (decision-document section D): validate / stats / sort / check-media.
+"""The demo CLI (decision-document section D): validate / stats / sort / check-media / export.
 
 A LiftTools-style utility exercising every scope pillar end-to-end: validation
-(all three layers), streaming reads (stats), the canonical sort + write path
-(sort), and the folder/media model (check-media). Deliberately stdlib-only.
+(all three layers), streaming reads (stats, export), the canonical sort + write
+path (sort), and the folder/media model (check-media). Deliberately stdlib-only.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 from collections import Counter
 from pathlib import Path
@@ -20,9 +21,11 @@ from ._stream import open_reader
 from ._validate import iter_problems
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterator, Sequence
+    from typing import TextIO
 
     from ._model import Entry, Sense
+    from ._text import Text
 
 __all__ = ["main"]
 
@@ -117,6 +120,63 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
     return 1 if missing else 0
 
 
+def _iter_leaf_senses(senses: Sequence[Sense]) -> Iterator[Sense]:
+    """Depth-first leaf senses, document order.
+
+    A sense with subsenses is a LIFT grouping node (e.g. numbered "1a"/"1b"
+    under a bare "1") whose own gloss/definition are conventionally empty —
+    its subsenses carry the content and get the rows instead.
+    """
+    for sense in senses:
+        if sense.subsenses:
+            yield from _iter_leaf_senses(sense.subsenses)
+        else:
+            yield sense
+
+
+def _text_or_empty(text: Text | None) -> str:
+    return str(text) if text is not None else ""
+
+
+def _cmd_export(args: argparse.Namespace) -> int:
+    if args.langs:
+        langs: list[str] = [lang.strip() for lang in args.langs.split(",") if lang.strip()]
+    else:
+        detected: set[str] = set()
+        with open_reader(args.path) as reader:
+            for entry in reader:
+                for sense in _iter_leaf_senses(entry.senses):
+                    detected.update(form.lang for form in sense.glosses if form.lang is not None)
+                    detected.update(sense.definition.keys())
+        langs = sorted(detected)
+
+    header = ["entry_id", "entry_guid", "sense_id", "lexeme", "pos"]
+    for lang in langs:
+        header.extend([f"gloss_{lang}", f"definition_{lang}"])
+
+    out_file: TextIO = (
+        sys.stdout if args.output is None else args.output.open("w", encoding="utf-8", newline="")
+    )
+    try:
+        writer = csv.writer(out_file, delimiter="\t" if args.tsv else ",")
+        writer.writerow(header)
+        with open_reader(args.path) as reader:
+            for entry in reader:
+                forms = entry.lexical_unit.forms
+                lexeme = str(forms[0].text) if forms else ""
+                for sense in _iter_leaf_senses(entry.senses):
+                    pos = sense.grammatical_info.value if sense.grammatical_info else ""
+                    row = [entry.id or "", entry.guid or "", sense.id or "", lexeme, pos]
+                    for lang in langs:
+                        row.append(_text_or_empty(sense.gloss(lang)))
+                        row.append(_text_or_empty(sense.definition.get(lang)))
+                    writer.writerow(row)
+    finally:
+        if args.output is not None:
+            out_file.close()
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="sil-lift",
@@ -144,6 +204,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     check_media.add_argument("path", type=Path, help="a .lift file")
     check_media.set_defaults(func=_cmd_check_media)
+
+    export = subparsers.add_parser(
+        "export", help="flatten senses to CSV/TSV, one row per sense (streaming)"
+    )
+    export.add_argument("path", type=Path, help="a .lift file")
+    export.add_argument("-o", "--output", type=Path, default=None, help="default: stdout")
+    export.add_argument(
+        "--langs", default=None, help="comma-separated analysis languages (default: auto-detect)"
+    )
+    export.add_argument("--tsv", action="store_true", help="tab-delimited output (default: CSV)")
+    export.set_defaults(func=_cmd_export)
 
     args = parser.parse_args(argv)
     try:

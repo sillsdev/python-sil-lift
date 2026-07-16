@@ -20,8 +20,12 @@ During 0.x, minor releases may contain breaking changes.
   entries re-serialize canonically with all out-of-schema content preserved.
   Fidelity contract documented in `docs/en/fidelity.md` and enforced by
   corpus byte-identity tests plus Hypothesis round-trip properties.
-- Docs: "Differences from the C# libraries" page summarizing where sil-lift
-  deviates from SIL.Lift/LiftSorter/Chorus behavior and why.
+- CLI: `sil-lift export` — one row per leaf sense (subsenses flattened) to
+  CSV/TSV, streaming; analysis languages auto-detected or set with `--langs`.
+- Docs: worked example "bulk-editing glosses" (complete runnable script,
+  verified output) and a "Differences from the C# libraries" page
+  summarizing where sil-lift deviates from SIL.Lift/LiftSorter/Chorus
+  behavior and why.
 - M7: the `sil-lift` CLI (`validate` / `stats` / `sort` / `check-media`,
   stdlib-only, installed via the `[cli]` extra) and the documentation site
   (task-oriented guides, fidelity contract, mkdocstrings API reference,

@@ -32,6 +32,7 @@ nav:
       - Large files: guides/large-files.md
       - Ranges and media: guides/folder-media.md
       - Command line: guides/cli.md
+      - "Worked example: bulk-editing glosses": guides/bulk-edit-glosses.md
   - Fidelity guarantees: fidelity.md
   - Differences from the C# libraries: csharp-differences.md
   - API reference: reference.md

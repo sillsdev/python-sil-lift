@@ -1,6 +1,7 @@
 """M7 acceptance: the CLI works against the corpus, including the
 filename-with-space fixture."""
 
+import csv
 import shutil
 from pathlib import Path
 
@@ -78,3 +79,92 @@ def test_check_media_flags_missing(capsys: pytest.CaptureFixture[str]) -> None:
 def test_bad_input_exits_2(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["validate", str(CORPUS_DIR / "PROVENANCE.md")]) == 2
     assert "error:" in capsys.readouterr().err
+
+
+def test_export_auto_detects_langs(tmp_path: Path) -> None:
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift"
+    out = tmp_path / "out.csv"
+    assert main(["export", str(source), "-o", str(out)]) == 0
+    header, *data = csv.reader(out.open(encoding="utf-8", newline=""))
+    assert header == [
+        "entry_id",
+        "entry_guid",
+        "sense_id",
+        "lexeme",
+        "pos",
+        "gloss_en",
+        "definition_en",
+        "gloss_id",
+        "definition_id",
+    ]
+    assert len(data) == 1
+    row = dict(zip(header, data[0], strict=True))
+    assert row["entry_id"] == "abat"
+    assert row["pos"] == "n"
+    assert row["gloss_en"] == "grove"
+    assert row["gloss_id"] == "dusun"
+
+
+def test_export_flattens_subsenses(tmp_path: Path) -> None:
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
+    out = tmp_path / "out.csv"
+    assert main(["export", str(source), "-o", str(out)]) == 0
+    header, *data = csv.reader(out.open(encoding="utf-8", newline=""))
+    assert len(data) == 3
+    sense_ids = [row[header.index("sense_id")] for row in data]
+    assert sense_ids == ["opon_1a", "opon_1b", "opon_2"]
+
+
+def test_export_langs_option_restricts_and_orders(tmp_path: Path) -> None:
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift"
+
+    reordered = tmp_path / "reordered.csv"
+    assert main(["export", str(source), "-o", str(reordered), "--langs", "id,en"]) == 0
+    header = next(csv.reader(reordered.open(encoding="utf-8", newline="")))
+    assert header == [
+        "entry_id",
+        "entry_guid",
+        "sense_id",
+        "lexeme",
+        "pos",
+        "gloss_id",
+        "definition_id",
+        "gloss_en",
+        "definition_en",
+    ]
+
+    restricted = tmp_path / "restricted.csv"
+    assert main(["export", str(source), "-o", str(restricted), "--langs", "en"]) == 0
+    header = next(csv.reader(restricted.open(encoding="utf-8", newline="")))
+    assert header == [
+        "entry_id",
+        "entry_guid",
+        "sense_id",
+        "lexeme",
+        "pos",
+        "gloss_en",
+        "definition_en",
+    ]
+
+
+def test_export_tsv(tmp_path: Path) -> None:
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift"
+    out = tmp_path / "out.tsv"
+    assert main(["export", str(source), "-o", str(out), "--tsv", "--langs", "en"]) == 0
+    first_line = out.read_text(encoding="utf-8").splitlines()[0]
+    assert first_line == "entry_id\tentry_guid\tsense_id\tlexeme\tpos\tgloss_en\tdefinition_en"
+
+
+def test_export_to_stdout(capsys: pytest.CaptureFixture[str]) -> None:
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift"
+    assert main(["export", str(source), "--langs", "en"]) == 0
+    out = capsys.readouterr().out
+    assert "entry_id" in out
+    assert "abat" in out
+
+
+def test_export_filename_with_space(tmp_path: Path) -> None:
+    path = CORPUS_DIR / "spec-examples" / "0.13" / "fields any order.lift"
+    out = tmp_path / "out.csv"
+    assert main(["export", str(path), "-o", str(out)]) == 0
+    assert out.is_file()

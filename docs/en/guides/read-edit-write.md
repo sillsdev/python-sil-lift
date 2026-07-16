@@ -73,3 +73,5 @@ lex.save()      # untouched entries keep their exact bytes, in the new order
 
 sil_lift.canonicalize("in.lift", "out.lift")   # fully re-serialized, diff-ready
 ```
+
+See also: [Worked example: bulk-editing glosses](bulk-edit-glosses.md).

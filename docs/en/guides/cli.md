@@ -4,10 +4,12 @@
 LiftTools-style utility (and a worked example of the library API).
 
 ```
-sil-lift validate PATH        all problems, entry/line-addressed; exit 1 on errors
-sil-lift stats PATH           entry/sense/language counts (streaming; any size)
-sil-lift sort PATH [-o OUT]   canonically sorted, diff-ready copy (default: in place)
-sil-lift check-media PATH     missing and orphaned media report; exit 1 if missing
+sil-lift validate PATH                    all problems, entry/line-addressed; exit 1 on errors
+sil-lift stats PATH                       entry/sense/language counts (streaming; any size)
+sil-lift sort PATH [-o OUT]               canonically sorted, diff-ready copy (default: in place)
+sil-lift check-media PATH                 missing and orphaned media report; exit 1 if missing
+sil-lift export PATH [-o OUT] [--langs L] [--tsv]
+                                           one row per sense (subsenses flattened) to CSV/TSV (streaming)
 ```
 
 Examples:
@@ -22,6 +24,8 @@ $ sil-lift stats sango.lift
 entries:   3507
 senses:    4238
 ...
+
+$ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
 Exit codes: `0` success (warnings allowed), `1` findings (validation errors /
