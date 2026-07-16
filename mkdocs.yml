@@ -33,4 +33,5 @@ nav:
       - Ranges and media: guides/folder-media.md
       - Command line: guides/cli.md
   - Fidelity guarantees: fidelity.md
+  - Differences from the C# libraries: csharp-differences.md
   - API reference: reference.md

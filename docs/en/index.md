@@ -41,4 +41,5 @@ lex.save()   # untouched entries byte-identical; edited entry re-serialized
 - [The LIFT folder: ranges and media](guides/folder-media.md)
 - [The command line](guides/cli.md)
 - [Fidelity guarantees](fidelity.md) — what "lossless" means here, precisely
+- [Differences from the C# libraries](csharp-differences.md)
 - [API reference](reference.md)
