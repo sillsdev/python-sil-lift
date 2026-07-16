@@ -20,6 +20,12 @@ During 0.x, minor releases may contain breaking changes.
   entries re-serialize canonically with all out-of-schema content preserved.
   Fidelity contract documented in `docs/en/fidelity.md` and enforced by
   corpus byte-identity tests plus Hypothesis round-trip properties.
+- M6: streaming — `open_reader()` (lazy entry iterator with the parsed
+  header available up front; iterparse cleanup internal) and `open_writer()`
+  (header + one canonical chunk per entry; byte-identical to
+  `canonical_document` output by construction), both over the same `Entry`
+  types as full-document mode and O(one entry) in memory (verified on a
+  ~340 MB generated file).
 - M5: canonical sort — `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by
   tag; LiftSorter-informed, locale-independent) and `sil_lift.canonicalize()`

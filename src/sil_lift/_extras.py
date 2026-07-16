@@ -18,7 +18,9 @@ __all__ = ["Extras"]
 class _ExtraNode:
     kind: str  # "element" | "comment" | "pi" | "text"
     xml: str  # serialized fragment (for "text": the raw character data)
-    index: int  # child position in the original parent, the re-emit anchor
+    # Child position in the original parent — a re-emit anchor, not content:
+    # the same residue at a slightly different position is still equal.
+    index: int = field(compare=False, default=0)
 
 
 @dataclass(slots=True, repr=False)

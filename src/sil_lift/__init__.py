@@ -31,6 +31,7 @@ from ._model import (
     URLRef,
     Variant,
 )
+from ._stream import LiftReader, LiftWriter, open_reader, open_writer
 from ._text import Annotation, Form, Multitext, Span, Text, Trait
 from ._validate import Problem, iter_problems, validate_file
 
@@ -53,7 +54,9 @@ __all__ = [
     "Lexicon",
     "LiftError",
     "LiftParseError",
+    "LiftReader",
     "LiftValidationError",
+    "LiftWriter",
     "MediaRef",
     "Multitext",
     "Note",
@@ -75,6 +78,8 @@ __all__ = [
     "canonicalize",
     "iter_problems",
     "load",
+    "open_reader",
+    "open_writer",
     "validate_file",
 ]
 
