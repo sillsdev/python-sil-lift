@@ -20,6 +20,14 @@ During 0.x, minor releases may contain breaking changes.
   entries re-serialize canonically with all out-of-schema content preserved.
   Fidelity contract documented in `docs/en/fidelity.md` and enforced by
   corpus byte-identity tests plus Hypothesis round-trip properties.
+- M4: validation — `validate_file()` / `iter_problems()` /
+  `Lexicon.iter_problems()` returning an addressable `Problem` stream
+  (file/entry/line). RELAX NG layer with two documented deviations from raw
+  libxml2 (href masking with `uri-not-rfc` warnings; tag-grouped validation
+  to sidestep libxml2's interleave limitation); authored ranges schema over
+  companions; semantic checks: duplicate-guid, dangling-ref, range-parent,
+  undefined-range-value (NFC-normalized), duplicate-form-lang,
+  missing-media. Hand-authored negative corpus under `tests/corpus/negative/`.
 - M3: LIFT-folder handling — `RangesFile` (standalone `.lift-ranges`
   documents, same fidelity guarantees), automatic companion
   discovery/tracking on load (`Lexicon.ranges_files`), `save()` writes

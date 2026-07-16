@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): entry "one" has a relation whose ref
+     matches nothing. Expected: exactly one error dangling-ref on entry "one".
+     Entry "two" exercises the valid target kinds (entry id, sense id). -->
+<lift version="0.13">
+<entry id="one" guid="21111111-1111-1111-1111-111111111111">
+<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+<relation type="see-also" ref="no-such-target"/>
+<sense id="sense-1">
+<gloss lang="en"><text>first</text></gloss>
+</sense>
+</entry>
+<entry id="two" guid="21111111-1111-1111-1111-111111111112">
+<lexical-unit><form lang="en"><text>two</text></form></lexical-unit>
+<relation type="see-also" ref="one"/>
+<sense>
+<relation type="synonym" ref="sense-1"/>
+</sense>
+</entry>
+</lift>

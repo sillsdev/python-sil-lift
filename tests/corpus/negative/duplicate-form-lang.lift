@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): a lexical-unit with two forms in the
+     same language. RELAX NG cannot express this (it is the RNG's Schematron
+     rule, which lxml ignores). Expected: warning duplicate-form-lang. -->
+<lift version="0.13">
+<entry id="one">
+<lexical-unit>
+<form lang="en"><text>colour</text></form>
+<form lang="en"><text>color</text></form>
+</lexical-unit>
+</entry>
+</lift>

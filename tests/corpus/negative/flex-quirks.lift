@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): the FLEx/WeSay URI quirks — a Windows
+     drive letter as URI authority and an unencoded space. Expected: warnings
+     uri-not-rfc only; NO schema errors (the href-masking policy). -->
+<lift version="0.13">
+<header>
+<ranges>
+<range id="dialect" href="file://C:/My Documents/quirky.lift-ranges"/>
+</ranges>
+</header>
+<entry id="one">
+<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+</entry>
+</lift>

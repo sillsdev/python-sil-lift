@@ -137,7 +137,14 @@ hrefs, which pass). `tests/test_corpus.py` locks in both lists.
 Produced by `tests/tools/generate_large.py` for streaming/perf tests (M6);
 git-ignored, regenerated on demand.
 
-## negative/ — invalid fixtures (milestone M4)
+## negative/ — invalid fixtures (hand-authored, milestone M4)
 
-Hand-authored schema-invalid / semantically-broken files; authored with the
-validator (§C.7), each documenting the defect it carries.
+Each file carries an XML comment documenting its defect and the expected
+Problem code: `duplicate-guid`, `dangling-ref`, `range-parent`,
+`undefined-range-value` (2 warnings + a clean control entry),
+`duplicate-form-lang` (the Schematron-only rule), `schema-invalid`
+(structural), `missing-media/` (a folder fixture), and `flex-quirks`
+(URI quirks that must yield warnings, never schema errors).
+`schema-invalid.lift` and `flex-quirks.lift` are raw-RNG-invalid (the
+latter only under libxml2's anyURI check) and appear in the corpus test's
+expected-invalid list.

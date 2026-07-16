@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): structural schema violations — a form
+     without its required lang attribute and an element the grammar does not
+     know. Expected: error schema, addressed to entry "broken". -->
+<lift version="0.13">
+<entry id="broken">
+<lexical-unit><form><text>x</text></form></lexical-unit>
+<bogus/>
+</entry>
+</lift>

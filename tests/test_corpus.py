@@ -19,7 +19,8 @@ LIFT_FILES = sorted(
     p for p in CORPUS_DIR.rglob("*") if p.suffix in {".lift", ".lift-ranges"} and p.is_file()
 )
 
-# Documented in PROVENANCE.md: lang-less etymology forms / file://C:/ range hrefs.
+# Documented in PROVENANCE.md: lang-less etymology forms / file://C:/ range
+# hrefs / hand-authored negative fixtures (raw libxml2 validation, no masking).
 EXPECTED_INVALID = {
     "spec-examples/0.13/dialects.lift",
     "spec-examples/0.13/fields any order.lift",
@@ -27,6 +28,8 @@ EXPECTED_INVALID = {
     "misc/sample.0.13.lift",
     "flex/AllFLExFields/AllFLExFields.lift",
     "large/sango/sango.lift",
+    "negative/schema-invalid.lift",
+    "negative/flex-quirks.lift",
 }
 
 VALIDATABLE = [
