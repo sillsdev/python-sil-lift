@@ -4,5 +4,5 @@
 # (docs/<lang>/) are machine-managed by Crowdin sync and must never be
 # hand-edited in-repo.
 files:
-  - source: /docs/en/**/*.md
-    translation: /docs/%two_letters_code%/**/%original_file_name%
+- source: /docs/en/**/*.md
+  translation: /docs/%two_letters_code%/**/%original_file_name%

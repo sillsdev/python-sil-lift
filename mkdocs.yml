@@ -6,33 +6,33 @@ docs_dir: docs
 theme:
   name: material
   features:
-    - navigation.sections
-    - content.code.copy
+  - content.code.copy
+  - navigation.sections
 
 plugins:
-  - search
-  - i18n:
-      docs_structure: folder
-      fallback_to_default: true
-      languages:
-        - locale: en
-          name: English
-          default: true
-          build: true
-  - mkdocstrings:
-      handlers:
-        python:
-          paths: [src]
+- i18n:
+    docs_structure: folder
+    fallback_to_default: true
+    languages:
+    - locale: en
+      name: English
+      default: true
+      build: true
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [ src ]
+- search
 
 nav:
-  - Home: index.md
-  - Guides:
-      - Read, edit, write: guides/read-edit-write.md
-      - Validate: guides/validate.md
-      - Large files: guides/large-files.md
-      - Ranges and media: guides/folder-media.md
-      - Command line: guides/cli.md
-      - "Worked example: bulk-editing glosses": guides/bulk-edit-glosses.md
-  - Fidelity guarantees: fidelity.md
-  - Differences from the C# libraries: csharp-differences.md
-  - API reference: reference.md
+- Home: index.md
+- Guides:
+  - Read, edit, write: guides/read-edit-write.md
+  - Validate: guides/validate.md
+  - Large files: guides/large-files.md
+  - Ranges and media: guides/folder-media.md
+  - Command line: guides/cli.md
+  - "Worked example: bulk-editing glosses": guides/bulk-edit-glosses.md
+- Fidelity guarantees: fidelity.md
+- Differences from the C# libraries: csharp-differences.md
+- API reference: reference.md
