@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ._canonical import canonicalize
 from ._errors import LiftError, LiftParseError, LiftValidationError
 from ._extras import Extras
 from ._header import FieldDefinition, Header, Range, RangeElement
@@ -71,6 +72,7 @@ __all__ = [
     "Translation",
     "URLRef",
     "Variant",
+    "canonicalize",
     "iter_problems",
     "load",
     "validate_file",

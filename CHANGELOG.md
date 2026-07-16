@@ -20,6 +20,12 @@ During 0.x, minor releases may contain breaking changes.
   entries re-serialize canonically with all out-of-schema content preserved.
   Fidelity contract documented in `docs/en/fidelity.md` and enforced by
   corpus byte-identity tests plus Hypothesis round-trip properties.
+- M5: canonical sort — `Lexicon.sort()` / `RangesFile.sort()` (entries by
+  case-folded guid/id, ranges/range-elements by id, field definitions by
+  tag; LiftSorter-informed, locale-independent) and `sil_lift.canonicalize()`
+  for fully re-serialized diff-ready output. Sorting composes with the
+  passthrough: sort + save moves untouched entries' bytes without rewriting
+  them. Text whitespace is never normalized (unlike `canonicalizeLift.xsl`).
 - M4: validation — `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning an addressable `Problem` stream
   (file/entry/line). RELAX NG layer with two documented deviations from raw

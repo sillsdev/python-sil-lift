@@ -281,6 +281,12 @@ class RangesFile:
                 return range_
         return None
 
+    def sort(self) -> None:
+        """Sort ranges and their elements into canonical (id) order."""
+        from ._canonical import sort_ranges_file
+
+        sort_ranges_file(self)
+
     def __repr__(self) -> str:
         source = f", path={str(self.path)!r}" if self.path else ""
         return f"RangesFile({len(self.ranges)} ranges{source})"
@@ -386,6 +392,19 @@ class Lexicon:
                 ranges_file.save(target.parent / ranges_file.path.name)
             else:
                 ranges_file.save()
+
+    def sort(self) -> None:
+        """Sort into canonical order, in place: entries by (guid, id), header
+        ranges/range-elements by id, field definitions by tag (decision A6).
+
+        Sorting alone does not mark entries as modified — a subsequent
+        :meth:`save` still emits untouched entries byte-identically, just in
+        the new order. For fully re-serialized diff-ready output use
+        :func:`sil_lift.canonicalize`.
+        """
+        from ._canonical import sort_lexicon
+
+        sort_lexicon(self)
 
     def iter_problems(self) -> Iterator[Problem]:
         """Validate the in-memory state (schema layers + semantic checks).
