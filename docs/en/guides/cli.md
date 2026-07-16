@@ -1,7 +1,6 @@
 # The command line
 
-`pip install sil-lift[cli]` provides the `sil-lift` command — a small
-LiftTools-style utility (and a worked example of the library API).
+`pip install sil-lift[cli]` provides the `sil-lift` command — a small LiftTools-style utility (and a worked example of the library API).
 
 ```
 sil-lift validate PATH                    all problems, entry/line-addressed; exit 1 on errors
@@ -28,5 +27,4 @@ senses:    4238
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Exit codes: `0` success (warnings allowed), `1` findings (validation errors /
-missing media), `2` unreadable input.
+Exit codes: `0` success (warnings allowed), `1` findings (validation errors / missing media), `2` unreadable input.

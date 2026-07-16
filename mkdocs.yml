@@ -24,6 +24,24 @@ plugins:
         paths: [ src ]
 - search
 
+extra:
+  social:
+  - icon: fontawesome/solid/globe
+    link: https://software.sil.org/
+    name: SIL Language Software
+  - icon: fontawesome/brands/github
+    link: https://github.com/sillsdev
+    name: sillsdev on GitHub
+  - icon: fontawesome/brands/discourse
+    link: https://community.software.sil.org/
+    name: SIL software community forum
+  - icon: fontawesome/brands/vimeo
+    link: https://vimeo.com/lingtransoft
+    name: SIL Language Technology on Vimeo
+  - icon: fontawesome/brands/linkedin
+    link: https://www.linkedin.com/showcase/sil-language-technology/
+    name: SIL Language Technology on LinkedIn
+
 nav:
 - Home: index.md
 - Guides:

@@ -8,17 +8,11 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` accepts any well-formed LIFT **0.13** document — including
-schema-invalid real-world files. Anything the model doesn't define (unknown
-elements/attributes, comments) is carried losslessly in each node's opaque
-`extra` bucket. Other LIFT versions raise `LiftParseError` naming the version.
+`load()` accepts any well-formed LIFT **0.13** document — including schema-invalid real-world files. Anything the model doesn't define (unknown elements/attributes, comments) is carried losslessly in each node's opaque `extra` bucket. Other LIFT versions raise `LiftParseError` naming the version.
 
 ## The model
 
-Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`,
-`Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on.
-Multilingual text is a `Multitext`, which behaves like a mapping from
-language code to `Text`:
+Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on. Multilingual text is a `Multitext`, which behaves like a mapping from language code to `Text`:
 
 ```python
 entry = lex.find(id="abat")
@@ -28,12 +22,9 @@ entry.lexical_unit["en"] = "grove"      # plain strings are coerced
 "en" in entry.citation                  # False
 ```
 
-`Text` is structured — an ordered list of `str` and `Span` fragments — because
-`<text>` can contain nested `<span>` markup. `str(text)` flattens to plain
-text; the fragments keep the markup for round-tripping.
+`Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
 
-Glosses are *form-shaped* in LIFT (each `<gloss>` carries its own language),
-so a sense has `glosses: list[Form]` plus a helper:
+Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus a helper:
 
 ```python
 sense = entry.senses[0]
@@ -48,9 +39,7 @@ lex.save()                # back to where it was loaded from
 lex.save("elsewhere.lift")
 ```
 
-Entries you didn't modify are written back **byte-identical**; a document you
-didn't modify at all is byte-identical from the first byte to the last. See
-[Fidelity guarantees](../fidelity.md) for the precise contract.
+Entries you didn't modify are written back **byte-identical**; a document you didn't modify at all is byte-identical from the first byte to the last. See [Fidelity guarantees](../fidelity.md) for the precise contract.
 
 ## Building from scratch
 
