@@ -1,5 +1,8 @@
 # Crowdin source/translation mapping (decision B8/D11).
-# Dormant until a remote repo and a Crowdin project exist (post-Phase 3, D8).
+# Crowdin project: https://crowdin.com/project/sil-lift-python
+# (owned by SIL account `techops`, created 2026-07-17).
+# Sync stays dormant until a remote repo exists and the Crowdin GitHub
+# integration is connected to it (post-Phase 3, D8).
 # docs/en/ is the only human-edited docs tree; translated trees
 # (docs/<lang>/) are machine-managed by Crowdin sync and must never be
 # hand-edited in-repo.
