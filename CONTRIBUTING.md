@@ -21,6 +21,19 @@ python scripts/check.py
 All four must be green before a commit. `ruff format .` fixes formatting; the
 rest you fix by hand.
 
+## Branches, tags, releases
+
+Do not work directly on the default branch (`main`). All work is to be merged
+into the default branch by PR.
+
+In the final commit before a new release, bump `__version__` in
+`src/sil_lift/__init__.py` (the single version source), and roll
+`CHANGELOG.md`'s `[Unreleased]` into a new dated `[X.Y.Z]` section.
+
+Releases are cut by publishing a GitHub Release with a `vX.Y.Z` SemVer tag
+matching `__version__`. A release-triggered workflow builds the distribution,
+verifies that the tag and version match, and publishes to PyPI.
+
 ## The test corpus is byte-exact — never hand-edit it
 
 The fidelity tests assert that saving writes back the **exact bytes** of

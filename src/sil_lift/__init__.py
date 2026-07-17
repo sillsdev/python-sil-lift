@@ -38,7 +38,7 @@ from ._validate import Problem, iter_problems, validate_file
 if TYPE_CHECKING:
     import os
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0"
 
 __all__ = [
     "Annotation",

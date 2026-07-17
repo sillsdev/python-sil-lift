@@ -51,14 +51,12 @@ byte-identity tests and property-based (Hypothesis) round-trip tests.
 ## Versioning
 
 [SemVer](https://semver.org/). During 0.x, minor releases may contain breaking
-changes; see `CHANGELOG.md`. The public API is exactly what `sil_lift`
-re-exports at the top level.
+changes; see [CHANGELOG.md](CHANGELOG.md). The public API is exactly what
+`sil_lift` re-exports at the top level.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — in short: `pip install -e .[dev]`,
-then `python scripts/check.py` must be green. Mind the byte-exact test
-corpus rules before touching anything under `tests/corpus/`.
+[CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 
