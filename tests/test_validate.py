@@ -1,6 +1,3 @@
-"""M4 acceptance: every negative fixture caught with correct addressing;
-clean corpus validates; C# Validator parity on shared cases (duplicate-guid)."""
-
 from pathlib import Path
 
 import pytest

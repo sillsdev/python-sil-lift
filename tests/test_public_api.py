@@ -1,5 +1,3 @@
-"""B7 discipline: no lxml type may appear anywhere in the public surface."""
-
 import inspect
 import typing
 

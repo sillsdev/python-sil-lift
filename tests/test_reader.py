@@ -1,5 +1,3 @@
-"""M1 acceptance: every 0.13 corpus file loads; content spot-checks; version guard."""
-
 from datetime import UTC, date, datetime
 from pathlib import Path
 

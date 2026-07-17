@@ -1,6 +1,3 @@
-"""M7 acceptance: the CLI works against the corpus, including the
-filename-with-space fixture."""
-
 import csv
 import shutil
 from pathlib import Path

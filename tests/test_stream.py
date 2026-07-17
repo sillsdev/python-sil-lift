@@ -1,6 +1,3 @@
-"""M6 acceptance: full-vs-streaming parse equality on the whole corpus,
-stream-copy fidelity, bounded memory on a generated large file (measured)."""
-
 import os
 import sys
 from pathlib import Path

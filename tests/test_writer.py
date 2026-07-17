@@ -1,6 +1,3 @@
-"""M2 acceptance: byte-identical unchanged saves, touched-entry isolation,
-semantic round-trip equality, residue survival through re-serialization."""
-
 from pathlib import Path
 
 import pytest

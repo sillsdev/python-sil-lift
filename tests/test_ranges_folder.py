@@ -1,6 +1,3 @@
-"""M3 acceptance: ranges pair round-trips byte-identically, edits save back to
-the right file, merged range view, media helpers against a real folder."""
-
 import shutil
 from pathlib import Path
 

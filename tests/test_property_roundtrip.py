@@ -1,4 +1,4 @@
-"""Property-based round-trip suite (corpus plan §C.9).
+"""Property-based round-trip suite.
 
 Two properties over generated LIFT documents:
 

@@ -36,3 +36,7 @@ jobs:
         run: python -m mypy
       - name: Test
         run: python -m pytest --cov=sil_lift --cov-report=term-missing
+      - name: Coverage summary + floor
+        # Only run on one matrix leg.
+        if: matrix.os == 'macos-latest'
+        run: python -m coverage report --format=markdown --fail-under=90 >> "$GITHUB_STEP_SUMMARY"

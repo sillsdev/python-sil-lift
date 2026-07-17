@@ -1,6 +1,3 @@
-"""M5 acceptance: idempotent, deterministic, LiftSorter-rule-faithful sort;
-canonicalized output stays RNG-valid and semantically equal to its input."""
-
 from pathlib import Path
 
 import pytest
