@@ -1,0 +1,25 @@
+# Environments
+.venv/
+venv/
+
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docs build
+site/
+
+# Generated corpus (synthetic large files — regenerate with tests/tools/generate_large.py)
+tests/corpus/generated/

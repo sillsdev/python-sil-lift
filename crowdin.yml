@@ -1,0 +1,8 @@
+# Crowdin source/translation mapping (decision B8/D11).
+# Dormant until a remote repo and a Crowdin project exist (post-Phase 3, D8).
+# docs/en/ is the only human-edited docs tree; translated trees
+# (docs/<lang>/) are machine-managed by Crowdin sync and must never be
+# hand-edited in-repo.
+files:
+  - source: /docs/en/**/*.md
+    translation: /docs/%two_letters_code%/**/%original_file_name%

@@ -1,0 +1,29 @@
+site_name: sil-lift
+site_description: >-
+  Read, write, and validate LIFT (Lexicon Interchange Format) 0.13 lexicons.
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+          build: true
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+
+nav:
+  - Home: index.md
+  - Fidelity guarantees: fidelity.md
