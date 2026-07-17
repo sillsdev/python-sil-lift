@@ -76,6 +76,30 @@ def test_check_media_flags_missing(capsys: pytest.CaptureFixture[str]) -> None:
     assert "none.wav" in out and "gone.png" in out
 
 
+def test_check_media_absolute_href_cannot_vouch_for_local_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # An absolute href (FLEx-style dangling path) must not mark a folder file
+    # as referenced — mirrors missing_media(), which skips non-relative hrefs.
+    audio = tmp_path / "audio"
+    audio.mkdir()
+    wav = audio / "one.wav"
+    wav.write_bytes(b"")
+    href = str(wav).replace("\\", "/")
+    (tmp_path / "abs.lift").write_bytes(
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<lift version="0.13">\n'
+        b'<entry id="e1">\n'
+        b'<lexical-unit><form lang="en"><text>x</text></form></lexical-unit>\n'
+        b'<pronunciation><media href="' + href.encode() + b'"/></pronunciation>\n'
+        b"</entry>\n"
+        b"</lift>\n"
+    )
+    assert main(["check-media", str(tmp_path / "abs.lift")]) == 0
+    out = capsys.readouterr().out
+    assert "orphaned" in out and "one.wav" in out
+
+
 def test_bad_input_exits_2(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["validate", str(CORPUS_DIR / "PROVENANCE.md")]) == 2
     assert "error:" in capsys.readouterr().err

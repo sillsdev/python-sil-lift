@@ -377,7 +377,9 @@ class Lexicon:
         entries are re-serialized canonically with all residue preserved (A2).
         With no ``path``, saves to where the lexicon was loaded from. When
         saving into a different directory, companions are written next to the
-        new ``.lift`` file under their original basenames.
+        new ``.lift`` file under their original basenames. Saving under a new
+        name in the *same* directory leaves companions at their original
+        paths (they are shared with the original document, not copied).
         """
         from ._writer import render_document
 
@@ -409,9 +411,11 @@ class Lexicon:
     def iter_problems(self) -> Iterator[Problem]:
         """Validate the in-memory state (schema layers + semantic checks).
 
-        The schema layers need serialized bytes: an unedited loaded document
-        is validated from its source bytes; otherwise the in-memory state is
-        canonically serialized first (a documented cost on large lexicons).
+        The schema layers need serialized bytes: what :meth:`save` would
+        write is validated, so in-memory edits are always visible. For an
+        untouched loaded document those are the source bytes (line numbers
+        match the file on disk); otherwise serialization is a documented
+        cost on large lexicons.
         """
         from ._validate import iter_lexicon_problems
 

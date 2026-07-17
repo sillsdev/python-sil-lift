@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from ._canonical import canonicalize
 from ._errors import LiftError
-from ._model import Lexicon
+from ._model import Lexicon, _normalize_href
 from ._stream import open_reader
 from ._validate import iter_problems
 
@@ -98,10 +98,12 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
     referenced: set[Path] = set()
     base = Path(args.path).parent
     for ref in lexicon.media_refs():
-        normalized = ref.href.replace("\\", "/")
-        referenced.add((base / normalized).resolve())
+        relative = _normalize_href(ref.href)
+        if relative is None:  # remote/absolute hrefs can't vouch for local files
+            continue
+        referenced.add((base / relative).resolve())
         subfolder = "audio" if ref.kind == "media" else "pictures"
-        referenced.add((base / subfolder / normalized).resolve())
+        referenced.add((base / subfolder / relative).resolve())
     orphans = [
         file
         for folder in ("audio", "pictures")

@@ -85,20 +85,21 @@ def validate_file(path: str | os.PathLike[str]) -> None:
 
 
 def iter_lexicon_problems(lexicon: Lexicon) -> Iterator[Problem]:
-    from ._writer import canonical_document, canonical_ranges_document
+    from ._writer import render_document, render_ranges_document
 
     lift_schema = etree.RelaxNG(etree.parse(_SCHEMAS_DIR / "lift-0.13.rng"))
     ranges_schema = etree.RelaxNG(etree.parse(_SCHEMAS_DIR / "lift-ranges-0.13.rng"))
 
-    data = lexicon._source.data if lexicon._source else canonical_document(lexicon)
+    # What save() would write, not the loaded bytes: edits must be visible to
+    # validation. Untouched loaded documents render byte-identical to their
+    # source, so line numbers keep matching the file on disk — and rendered
+    # entry order always matches lexicon.entries, keeping the entry_lines
+    # table aligned for semantic addressing even after edits or sort().
+    data = render_document(lexicon)
     entry_lines, problems = _schema_problems(data, lift_schema, lexicon.path)
     yield from problems
     for ranges_file in lexicon.ranges_files.values():
-        rdata = (
-            ranges_file._source.data
-            if ranges_file._source
-            else canonical_ranges_document(ranges_file)
-        )
+        rdata = render_ranges_document(ranges_file)
         _, range_problems = _schema_problems(rdata, ranges_schema, ranges_file.path)
         yield from range_problems
     yield from _semantic_problems(lexicon, entry_lines)

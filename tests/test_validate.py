@@ -147,6 +147,27 @@ def test_sango_real_defects_are_found() -> None:
     )
 
 
+def test_problems_reflect_in_memory_edits() -> None:
+    # Regression: validation must see what save() would write, not the bytes
+    # the document was loaded from.
+    lexicon = sil_lift.Lexicon.load(NEGATIVE_DIR / "schema-invalid.lift")
+    assert any(p.code == "schema" for p in lexicon.iter_problems())
+    del lexicon.entries[0]  # removes the schema-invalid entry
+    assert list(lexicon.iter_problems()) == []
+
+
+def test_semantic_addressing_covers_added_entries() -> None:
+    # Regression: the entry-line table must align with lexicon.entries even
+    # after edits, so problems in appended entries get line addressing.
+    lexicon = sil_lift.Lexicon.load(NEGATIVE_DIR / "duplicate-guid.lift")
+    extra = sil_lift.Entry(id="three", guid="11111111-1111-1111-1111-111111111111")
+    extra.lexical_unit["en"] = "three"
+    lexicon.entries.append(extra)
+    problems = [p for p in lexicon.iter_problems() if p.code == "duplicate-guid"]
+    assert [p.entry_id for p in problems] == ["two", "three"]
+    assert all(p.line is not None for p in problems)
+
+
 def test_in_memory_lexicon_validation() -> None:
     lexicon = sil_lift.Lexicon()
     for entry_id in ("a", "b"):
