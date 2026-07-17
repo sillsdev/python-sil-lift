@@ -61,7 +61,10 @@ def _cmd_stats(args: argparse.Namespace) -> int:
             entries += 1
             langs.update(entry.lexical_unit.keys())
             traits.update(trait.name for trait in entry.traits)
-            for pronunciation in entry.pronunciations:
+            pronunciations = list(entry.pronunciations)
+            for variant in entry.variants:
+                pronunciations.extend(variant.pronunciations)
+            for pronunciation in pronunciations:
                 media += len(pronunciation.media)
             for sense in _iter_senses(entry):
                 senses += 1

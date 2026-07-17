@@ -2,10 +2,10 @@
 <!-- Negative fixture (hand-authored): two entries share a guid.
      Expected: error duplicate-guid on entry "two". Schema-valid otherwise. -->
 <lift version="0.13">
-<entry id="one" guid="11111111-1111-1111-1111-111111111111">
+<entry id="one" guid="11111111-1111-4444-8888-111111111111">
 <lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
 </entry>
-<entry id="two" guid="11111111-1111-1111-1111-111111111111">
+<entry id="two" guid="11111111-1111-4444-8888-111111111111">
 <lexical-unit><form lang="en"><text>two</text></form></lexical-unit>
 </entry>
 </lift>

@@ -31,13 +31,13 @@ UNSORTED = b"""<?xml version="1.0" encoding="UTF-8"?>
 <range id="Alpha"/>
 </ranges>
 </header>
-<entry id="mid" guid="BBBBBBBB-0000-0000-0000-000000000000">
+<entry id="mid" guid="BBBBBBBB-BBBB-4444-8888-BBBBBBBBBBBB">
 <lexical-unit><form lang="en"><text>mid</text></form></lexical-unit>
 </entry>
-<entry id="last" guid="cccccccc-0000-0000-0000-000000000000">
+<entry id="last" guid="cccccccc-cccc-4444-8888-cccccccccccc">
 <lexical-unit><form lang="en"><text>last</text></form></lexical-unit>
 </entry>
-<entry id="first" guid="aaaaaaaa-0000-0000-0000-000000000000">
+<entry id="first" guid="aaaaaaaa-aaaa-4444-8888-aaaaaaaaaaaa">
 <lexical-unit><form lang="en"><text>first</text></form></lexical-unit>
 </entry>
 <entry id="no-guid">

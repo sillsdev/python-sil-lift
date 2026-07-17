@@ -29,7 +29,7 @@ Three layers, all explicit-call (never implicit on load/save):
 from __future__ import annotations
 
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -37,6 +37,7 @@ from lxml import etree
 
 from ._errors import LiftValidationError
 from ._model import Lexicon
+from ._text import Multitext
 
 if TYPE_CHECKING:
     import os
@@ -44,7 +45,6 @@ if TYPE_CHECKING:
 
     from ._header import Range
     from ._model import Entry, Sense
-    from ._text import Multitext
 
 __all__ = ["Problem", "iter_problems", "validate_file"]
 
@@ -214,6 +214,29 @@ def _iter_senses(entry: Entry) -> Iterator[Sense]:
         stack.extend(sense.subsenses)
 
 
+def _iter_multitexts(obj: object) -> Iterator[tuple[str, Multitext]]:
+    """Every ``Multitext`` reachable from ``obj``, generic over the model shape.
+
+    Mirrors the RNG's Schematron ``multitext-content`` rule, which fires on
+    every ``<form>``-bearing element in the grammar — including forms nested
+    inside annotation content (``Annotation.content`` is itself a Multitext,
+    reachable from almost any node via ``.annotations``). Walking the
+    dataclass tree instead of hand-listing fields keeps this in sync as the
+    model grows.
+    """
+    if isinstance(obj, list):
+        for item in obj:
+            yield from _iter_multitexts(item)
+        return
+    if not is_dataclass(obj) or isinstance(obj, type):
+        return
+    for f in fields(obj):
+        value = getattr(obj, f.name)
+        if isinstance(value, Multitext):
+            yield f.name.replace("_", "-"), value
+        yield from _iter_multitexts(value)
+
+
 def _semantic_problems(
     lexicon: Lexicon,
     entry_lines: list[tuple[int | None, str | None, str | None]],
@@ -252,6 +275,8 @@ def _semantic_problems(
     for index, entry in enumerate(lexicon.entries):
         refs: list[str] = [r.ref for r in entry.relations]
         refs.extend(v.ref for v in entry.variants if v.ref)
+        for variant in entry.variants:
+            refs.extend(r.ref for r in variant.relations)
         for sense in _iter_senses(entry):
             refs.extend(r.ref for r in sense.relations)
         for ref in refs:
@@ -266,15 +291,10 @@ def _semantic_problems(
                     line=at(index),
                 )
 
-    # Duplicate form languages (the RNG's Schematron rule; lxml ignores it).
+    # Duplicate form languages (the RNG's Schematron rule; lxml ignores it) —
+    # every Multitext under the entry, not just the top-level ones.
     for index, entry in enumerate(lexicon.entries):
-        multitexts: list[tuple[str, Multitext]] = [
-            ("lexical-unit", entry.lexical_unit),
-            ("citation", entry.citation),
-        ]
-        for sense in _iter_senses(entry):
-            multitexts.append(("definition", sense.definition))
-        for label, multitext in multitexts:
+        for label, multitext in _iter_multitexts(entry):
             langs = [f.lang for f in multitext.forms if f.lang is not None]
             for lang in sorted({lang for lang in langs if langs.count(lang) > 1}):
                 yield Problem(

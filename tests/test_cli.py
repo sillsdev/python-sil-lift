@@ -40,6 +40,25 @@ def test_stats_streaming_on_sango(capsys: pytest.CaptureFixture[str]) -> None:
     assert "sg" in out  # a language present in the data
 
 
+def test_stats_counts_variant_media(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # Regression: media inside a <variant>'s <pronunciation> must count too,
+    # matching media_refs()/check-media rather than just top-level pronunciations.
+    path = tmp_path / "variant-media.lift"
+    path.write_bytes(
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<lift version="0.13">\n'
+        b'<entry id="e1">\n'
+        b'<lexical-unit><form lang="en"><text>x</text></form></lexical-unit>\n'
+        b"<variant>\n"
+        b'<pronunciation><media href="one.wav"/></pronunciation>\n'
+        b"</variant>\n"
+        b"</entry>\n"
+        b"</lift>\n"
+    )
+    assert main(["stats", str(path)]) == 0
+    assert "media refs: 1" in capsys.readouterr().out
+
+
 def test_sort_writes_canonical_copy(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
     out = tmp_path / "sorted.lift"

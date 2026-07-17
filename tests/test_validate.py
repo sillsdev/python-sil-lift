@@ -22,7 +22,7 @@ def test_duplicate_guid_is_error_with_addressing() -> None:
     (problem,) = problems
     assert (problem.level, problem.code) == ("error", "duplicate-guid")
     assert problem.entry_id == "two"
-    assert problem.guid == "11111111-1111-1111-1111-111111111111"
+    assert problem.guid == "11111111-1111-4444-8888-111111111111"
     assert problem.line is not None and problem.line > 1
 
 
@@ -157,7 +157,7 @@ def test_semantic_addressing_covers_added_entries() -> None:
     # Regression: the entry-line table must align with lexicon.entries even
     # after edits, so problems in appended entries get line addressing.
     lexicon = sil_lift.Lexicon.load(NEGATIVE_DIR / "duplicate-guid.lift")
-    extra = sil_lift.Entry(id="three", guid="11111111-1111-1111-1111-111111111111")
+    extra = sil_lift.Entry(id="three", guid="11111111-1111-4444-8888-111111111111")
     extra.lexical_unit["en"] = "three"
     lexicon.entries.append(extra)
     problems = [p for p in lexicon.iter_problems() if p.code == "duplicate-guid"]
@@ -165,10 +165,40 @@ def test_semantic_addressing_covers_added_entries() -> None:
     assert all(p.line is not None for p in problems)
 
 
+def test_dangling_ref_inside_variant_relation() -> None:
+    # Regression: relation/@ref nested inside a <variant> must be checked too,
+    # not just entry-level and sense-level relations.
+    lexicon = sil_lift.Lexicon()
+    entry = sil_lift.Entry(id="e1", guid="44444444-4444-4444-8888-444444444444")
+    entry.lexical_unit["en"] = "e1"
+    variant = sil_lift.Variant()
+    variant.relations.append(sil_lift.Relation(type="see", ref="no-such-target"))
+    entry.variants.append(variant)
+    lexicon.entries.append(entry)
+    problems = [p for p in lexicon.iter_problems() if p.code == "dangling-ref"]
+    assert len(problems) == 1
+    assert "no-such-target" in problems[0].message
+
+
+def test_duplicate_form_lang_found_in_nested_multitext() -> None:
+    # Regression: the check must cover every Multitext, not just lexical-unit,
+    # citation, and sense.definition -- a <note>'s forms is a fourth, nested one.
+    lexicon = sil_lift.Lexicon()
+    entry = sil_lift.Entry(id="e1", guid="55555555-5555-4444-8888-555555555555")
+    entry.lexical_unit["en"] = "e1"
+    note = sil_lift.Note()
+    note.forms.forms.append(sil_lift.Form(lang="en", text=sil_lift.Text(["a"])))
+    note.forms.forms.append(sil_lift.Form(lang="en", text=sil_lift.Text(["b"])))
+    entry.notes.append(note)
+    lexicon.entries.append(entry)
+    problems = [p for p in lexicon.iter_problems() if p.code == "duplicate-form-lang"]
+    assert any(p.message.startswith("forms has more than one form") for p in problems)
+
+
 def test_in_memory_lexicon_validation() -> None:
     lexicon = sil_lift.Lexicon()
     for entry_id in ("a", "b"):
-        entry = sil_lift.Entry(id=entry_id, guid="33333333-3333-3333-3333-333333333333")
+        entry = sil_lift.Entry(id=entry_id, guid="66666666-6666-4444-8888-666666666666")
         entry.lexical_unit["en"] = entry_id
         lexicon.entries.append(entry)
     problems = list(lexicon.iter_problems())

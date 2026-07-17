@@ -128,7 +128,7 @@ def test_added_and_removed_entries(tmp_path: Path) -> None:
 
 def test_from_scratch_document(tmp_path: Path) -> None:
     lexicon = sil_lift.Lexicon(producer="sil-lift tests")
-    entry = sil_lift.Entry(id="hello", guid="00000000-0000-0000-0000-000000000001")
+    entry = sil_lift.Entry(id="hello", guid="00000000-0000-4444-8888-000000000000")
     entry.lexical_unit["en"] = "hello"
     sense = sil_lift.Sense()
     sense.glosses.append(sil_lift.Form("fr", sil_lift.Text(["bonjour"])))
