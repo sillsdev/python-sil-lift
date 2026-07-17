@@ -1,11 +1,15 @@
 site_name: sil-lift
 site_description: >-
   Read, write, and validate LIFT (Lexicon Interchange Format) 0.13 lexicons.
+site_url: https://sillsdev.github.io/python-sil-lift/
+repo_url: https://github.com/sillsdev/python-sil-lift
+edit_uri: edit/main/docs/
 docs_dir: docs
 
 theme:
   name: material
   features:
+  - content.action.edit
   - content.code.copy
   - navigation.sections
 
@@ -33,7 +37,7 @@ extra:
     link: https://github.com/sillsdev
     name: sillsdev on GitHub
   - icon: fontawesome/brands/discourse
-    link: https://community.software.sil.org/
+    link: https://community.software.sil.org/c/other/
     name: SIL software community forum
   - icon: fontawesome/brands/vimeo
     link: https://vimeo.com/lingtransoft

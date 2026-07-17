@@ -36,6 +36,13 @@ classifiers = [
 ]
 dependencies = ["lxml>=5.0"]
 
+[project.urls]
+Documentation = "https://sillsdev.github.io/python-sil-lift/"
+Repository = "https://github.com/sillsdev/python-sil-lift"
+Changelog = "https://github.com/sillsdev/python-sil-lift/blob/main/CHANGELOG.md"
+Issues = "https://github.com/sillsdev/python-sil-lift/issues"
+Forum = "https://community.software.sil.org/c/other/"
+
 [project.scripts]
 sil-lift = "sil_lift._cli:main"
 
