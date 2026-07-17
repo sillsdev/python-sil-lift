@@ -394,6 +394,12 @@ class Lexicon:
                 ranges_file.save(target.parent / ranges_file.path.name)
             else:
                 ranges_file.save()
+        # Keys must keep tracking the companions' current locations.
+        self.ranges_files = {
+            ranges_file.path.resolve(): ranges_file
+            for ranges_file in self.ranges_files.values()
+            if ranges_file.path is not None
+        }
 
     def sort(self) -> None:
         """Sort into canonical order, in place: entries by (guid, id), header

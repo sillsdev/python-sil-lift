@@ -195,7 +195,9 @@ def _nearest_entry(
         return None, None
     best: tuple[str | None, str | None] = (None, None)
     for entry_line, entry_id, guid in entry_lines:
-        if entry_line is None or entry_line > line:
+        if entry_line is None:
+            continue  # parsed entries always carry a sourceline; stay defensive
+        if entry_line > line:
             break
         best = (entry_id, guid)
     return best

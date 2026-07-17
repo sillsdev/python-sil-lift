@@ -56,6 +56,8 @@ def test_save_to_new_directory_carries_companions(tmp_path: Path) -> None:
     assert (target_dir / "test20080407.lift-ranges").read_bytes() == (
         PAIR_DIR / "test20080407.lift-ranges"
     ).read_bytes()
+    # The tracking dict must be re-keyed to the companions' new locations.
+    assert set(lexicon.ranges_files) == {(target_dir / "test20080407.lift-ranges").resolve()}
 
 
 def test_ranges_edit_saves_back_to_the_right_file(tmp_path: Path) -> None:
