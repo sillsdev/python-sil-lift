@@ -68,6 +68,12 @@ docs = [
 [tool.hatch.version]
 path = "src/sil_lift/__init__.py"
 
+[tool.hatch.build.targets.sdist]
+# The test corpus contains third-party fixtures whose upstream licensing is
+# not distribution-clean (see tests/corpus/PROVENANCE.md); release artifacts
+# must not redistribute them. Develop from the git repo to run the tests.
+exclude = ["/tests"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/sil_lift"]
 

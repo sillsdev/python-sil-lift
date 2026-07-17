@@ -5,11 +5,19 @@ the commits recorded below (raw.githubusercontent.com at pinned SHA). Git
 line-ending normalization is disabled for everything under `tests/corpus/`
 (`.gitattributes`) — fidelity tests depend on the bytes staying exactly as fetched.
 
-**License review flag (pre-release)**: `lift-standard` and `LiftTweaker` have no
-license file; `flashgrab`'s LICENSE reads "Free and open source, under Anki's
-license" (Anki is AGPL-3.0). All are SIL-authored repos and this use is
-SIL-internal test data, but resolve licensing before any public release
-(tracked with the other release gates in milestone M7).
+Files under `tests/corpus/` retain their upstream licenses (recorded per
+fixture below) and are **not** covered by this repository's MIT license.
+
+**License review (2026-07-17, re-verified against the live repos)**:
+`lift-standard` and `LiftTweaker` still have no license file; `flashgrab`'s
+LICENSE reads "Free and open source, under Anki's license" (Anki is
+AGPL-3.0). All three are SIL-authored repos, so carrying their fixtures in
+this SIL repo with provenance is acceptable, but PyPI release artifacts must
+not redistribute them: the sdist excludes `tests/` (pyproject
+`[tool.hatch.build.targets.sdist]`). Open asks, tracked in the planning
+repo: a LICENSE for lift-standard (raised with the ranges-schema offer),
+license clarification or fixture replacement for LiftTweaker's sample.lift,
+and flashgrab license/attribution cleanup.
 
 ## spec-examples/0.12/ — 19 files
 
