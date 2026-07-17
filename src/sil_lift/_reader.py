@@ -109,7 +109,7 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
 
 
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
-    """Capture what the A2 passthrough needs; on any doubt, capture nothing.
+    """Capture what the passthrough layer needs; on any doubt, capture nothing.
 
     Without source info the writer falls back to canonical serialization —
     semantically complete, just not byte-preserving.
@@ -619,7 +619,7 @@ def _parse_range(el: etree._Element) -> Range:
     range_ = Range(id="")
     attrs = _split_attrs(el, ("id", "href", "guid"), range_.extra)
     range_.id = attrs.get("id", "")
-    range_.href = attrs.get("href")  # carried unresolved (M3)
+    range_.href = attrs.get("href")  # carried unresolved
     range_.guid = attrs.get("guid")
     _walk(
         el,

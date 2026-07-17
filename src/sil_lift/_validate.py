@@ -1,4 +1,4 @@
-"""Validation: schema layers + semantic checks -> a stream of Problems (A5).
+"""Validation: schema layers + semantic checks -> a stream of Problems.
 
 Three layers, all explicit-call (never implicit on load/save):
 

@@ -1,9 +1,9 @@
-"""The opaque out-of-schema residue bucket (decision A2).
+"""The opaque out-of-schema residue bucket.
 
 Every model node carries an ``Extras`` holding whatever the parser found that the
 LIFT 0.13 schema does not define: unknown attributes, unknown child elements, XML
 comments/processing instructions, and stray text in element-only contexts. The
-writer (M2) re-emits it so nothing is dropped.
+writer re-emits it so nothing is dropped.
 
 The public surface is deliberately tiny — equality, repr, emptiness, to_string()
 — so the internal representation stays swappable and no lxml type ever leaks.

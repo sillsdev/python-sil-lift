@@ -1,10 +1,10 @@
 """Byte-span scanner: locate the exact source bytes of each root child.
 
-The passthrough layer (decision A2) emits untouched entries verbatim from
-their original bytes, which requires knowing each top-level ``<entry>``'s
-(and ``<header>``'s) exact byte span in the source. lxml exposes no byte
-offsets, so this module walks the raw bytes with a small state machine that
-understands tags, quoted attribute values, comments, CDATA sections, and PIs.
+The passthrough layer emits untouched entries verbatim from their original
+bytes, which requires knowing each top-level ``<entry>``'s (and
+``<header>``'s) exact byte span in the source. lxml exposes no byte offsets,
+so this module walks the raw bytes with a small state machine that understands
+tags, quoted attribute values, comments, CDATA sections, and PIs.
 
 It is deliberately conservative: anything unexpected (DOCTYPE, malformed
 nesting, non-ASCII-compatible encoding — checked by the caller) returns

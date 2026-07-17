@@ -43,7 +43,7 @@ class Range:
     """A ``<range>``: a controlled vocabulary, inline and/or via ``href``.
 
     ``href`` points at an external ``.lift-ranges`` resource; its contents are
-    carried unresolved here (resolution/tracking is milestone M3).
+    carried unresolved here.
     """
 
     id: str

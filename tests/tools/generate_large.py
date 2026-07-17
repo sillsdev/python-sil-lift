@@ -1,4 +1,4 @@
-"""Generate a synthetic large LIFT 0.13 file for streaming/perf tests (milestone M6).
+"""Generate a synthetic large LIFT 0.13 file for streaming/perf tests.
 
 Deterministic for a given (--entries, --seed): the same arguments always produce the
 same bytes. Entries average roughly 1 KB, so --entries 200000 yields a file of a few

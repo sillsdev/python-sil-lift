@@ -1,10 +1,10 @@
 """Author schemas/lift-ranges-0.13.rng from the vendored lift-0.13.rng.
 
-No schema for standalone ``.lift-ranges`` documents exists anywhere (research
-finding 05): the LIFT RNG defines ``<ranges>`` only inside ``<header>``. This
-tool builds one by copying the relevant ``<define>`` blocks verbatim from the
-vendored grammar and adding a ``<lift-ranges>`` root, so the range content
-model stays byte-faithful to the spec's.
+No known schema for standalone ``.lift-ranges`` exists: the LIFT RNG defines
+``<ranges>`` only inside ``<header>``. This tool builds one by copying the
+relevant ``<define>`` blocks verbatim from the vendored grammar and adding a
+``<lift-ranges>`` root, so the range content model stays byte-faithful to the
+spec's.
 
 Usage: python tests/tools/build_ranges_schema.py
 """

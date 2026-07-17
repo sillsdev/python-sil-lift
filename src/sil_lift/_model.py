@@ -325,7 +325,7 @@ class Lexicon:
         self.path = path
         self.extra = extra if extra is not None else Extras()
         self.ranges_files: dict[Path, RangesFile] = {}
-        self._source: _SourceInfo | None = None  # set by the reader (A2 passthrough)
+        self._source: _SourceInfo | None = None  # set by the reader
 
     @classmethod
     def load(cls, path: str | os.PathLike[str], *, resolve_ranges: bool = True) -> Lexicon:
@@ -374,7 +374,7 @@ class Lexicon:
         """Write the ``.lift`` file and every tracked ``.lift-ranges`` companion.
 
         Untouched entries are emitted byte-identical to the source; modified
-        entries are re-serialized canonically with all residue preserved (A2).
+        entries are re-serialized canonically with all residue preserved.
         With no ``path``, saves to where the lexicon was loaded from. When
         saving into a different directory, companions are written next to the
         new ``.lift`` file under their original basenames. Saving under a new
@@ -403,7 +403,7 @@ class Lexicon:
 
     def sort(self) -> None:
         """Sort into canonical order, in place: entries by (guid, id), header
-        ranges/range-elements by id, field definitions by tag (decision A6).
+        ranges/range-elements by id, field definitions by tag.
 
         Sorting alone does not mark entries as modified — a subsequent
         :meth:`save` still emits untouched entries byte-identically, just in

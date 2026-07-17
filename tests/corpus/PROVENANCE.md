@@ -28,7 +28,7 @@ and flashgrab license/attribution cleanup.
   `fields any order.lift` (filename with a space — path-handling edge case).
   The upstream `VerifyExamples.proj` (MSBuild/Jing harness) was not taken —
   not corpus data. These originals also serve as version-guard fixtures
-  (the library rejects non-0.13 input per decision D2).
+  (the library rejects non-0.13 input).
 
 ## spec-examples/0.13/ — generated
 
@@ -39,18 +39,16 @@ that script; committed so tests don't depend on regeneration.
 ## ranges/ — test20080407 pair
 
 - **Source**: `sillsdev/lift-standard` `LIFTDotNet/LiftIO.Tests/test20080407.lift`
-  + `.lift-ranges`
+  \+ `.lift-ranges`
 - **Commit**: `39a83be083174a40dff5b7bacac86b4f5e68afe4`
 - **License**: none in repo (see flag above)
-- The only `.lift` + external `.lift-ranges` sample pair in existence
-  (research finding 05); primary ranges fixture. `version="0.13"`,
-  `producer="hand crafted"`.
+- The only known `.lift` \+ external `.lift-ranges` sample pair; primary ranges
+  fixture. `version="0.13"`, `producer="hand crafted"`.
 
 ## flex/AllFLExFields/ — FLEx-flavored 0.13 reference fixture
 
 - **Source**: `sillsdev/web-languageforge`
-  `sample_data/lift/AllFLExFields/{AllFLExFields.lift, AllFLExFields.lift-ranges,
-  WritingSystems/{en,fr,th}.ldml}`
+  `sample_data/lift/AllFLExFields/{AllFLExFields.lift, AllFLExFields.lift-ranges,WritingSystems/{en,fr,th}.ldml}`
 - **Commit**: `6ea4d7b0d39c0263f531e13246d5942550bf58ba` (HEAD of default branch
   at fetch time)
 - **License**: MIT
@@ -68,11 +66,11 @@ that script; committed so tests don't depend on regeneration.
   at fetch time)
 - **License**: see flag above (flashgrab/Anki)
 - A WeSay-produced lexicon (`producer="Palaso.DictionaryServices.LiftWriter"`,
-  `version="0.13"`) with real referenced media: 5 wav + 2 png, including
+  `version="0.13"`) with real referenced media: 5 wav \+ 2 png, including
   `pictures/cultural law.png` (space in filename). The file has a UTF-8 BOM and
   tab-indented attribute-per-line formatting — a byte-fidelity edge case.
   Upstream `Moma.WeSayConfig` not taken (not LIFT). Primary fixture for
-  media_refs()/missing_media() (milestone M3).
+  media_refs()/missing_media().
 
 ## misc/sample.lift
 
@@ -80,9 +78,9 @@ that script; committed so tests don't depend on regeneration.
 - **Commit**: `b7857369ccca99884c911515b8ad46cd7ba0155c` (HEAD of default branch
   at fetch time)
 - **License**: none in repo (see flag above)
-- **Note**: contrary to the Phase 1 triage note, this file is
-  `<lift version="0.12">` (`producer="SIL.FLEx 2.4.0.39737"`), so
-  `migrate_corpus.py` also produces `misc/sample.0.13.lift` from it.
+- **Note**: this file is `<lift version="0.12">`
+  (`producer="SIL.FLEx 2.4.0.39737"`), so `migrate_corpus.py` also produces
+  `misc/sample.0.13.lift` from it.
 
 ## large/sango/ — real 3507-entry FLEx export
 
@@ -90,27 +88,27 @@ that script; committed so tests don't depend on regeneration.
 - **Commit**: `3b2359defe6c4ac0c223864cdcff8925778538b9` (HEAD of default branch
   at fetch time)
 - **License**: MIT
-- 4.8 MB / 3507 entries (`producer="SIL.FLEx 9.1.15.658"`, `version="0.13"`) +
+- 4.8 MB / 3507 entries (`producer="SIL.FLEx 9.1.15.658"`, `version="0.13"`) \+
   1.5 MB ranges companion. Credit Nate Marti (SIL Cameroon) if used in any
-  published material (decision D1). Upstream `WritingSystems/` not taken (the
-  AllFLExFields fixture already covers LDML-carry).
+  published material. Upstream `WritingSystems/` not taken (the AllFLExFields
+  fixture already covers LDML-carry).
 
 ## Not fetchable as files
 
-- **chorus / LiftTools test data** (corpus plan §C.4): verified at the Phase 1
-  pinned SHAs (`7313dd6…`, `f3e87cc…`) that neither repo contains any standalone
-  `.lift`/`.lift-ranges` file — their LIFT test data is inline C# strings. The
-  C# suites remain a behavioral oracle; targeted extraction into
-  `negative/`/edge-case fixtures happens per-milestone (§C.5, M4).
-- **libpalaso inline edge-case XML** (§C.5): extracted per-milestone as needed.
-- **Enggano export** (§C.8): license/permission check pending; not fetched.
+- **chorus / LiftTools test data**: verified at pinned SHAs (`7313dd6…`,
+  `f3e87cc…`) that neither repo contains any standalone `.lift`/`.lift-ranges`
+  file — their LIFT test data is inline C# strings. The C# suites remain a
+  behavioral oracle; targeted extraction into `negative/`/edge-case fixtures
+  happens as needed.
+- **libpalaso inline edge-case XML**: extracted as needed.
+- **Enggano export**: license/permission check pending; not fetched.
 
 ## Known RNG-invalid fixtures (kept deliberately)
 
 Validated 2026-07-14 against the vendored `lift-0.13.rng` via `lxml.etree.RelaxNG`.
 Two real-world quirk classes make some fixtures schema-invalid; they are kept
-as-is — the library's losslessness contract (A2) must carry exactly this kind of
-content, and the validator (M4) needs realistic subjects:
+as-is — the library's losslessness contract must carry exactly this kind of
+content, and the validator needs realistic subjects:
 
 1. **`<form>` without `@lang` inside `<etymology>`** — the RNG requires `@lang`
    on every form. Affects: `spec-examples/0.13/dialects.lift`,
@@ -122,11 +120,11 @@ content, and the validator (M4) needs realistic subjects:
    `misc/sample.0.13.lift`, `flex/AllFLExFields/AllFLExFields.lift`,
    `large/sango/sango.lift`.
 
-   **M4 design implication**: the C# validator's RELAX NG engine evidently did
+   **Design implication**: the C# validator's RELAX NG engine evidently did
    not enforce anyURI syntax, so "RNG-valid" per SIL.Lift ≠ RNG-valid per lxml
    on real FLEx output. The validation layer must account for this (e.g.
    downgrade/annotate anyURI-only failures) or it will flag virtually every
-   FLEx lexicon. Recorded in the planning repo's Phase 3 notes.
+   FLEx lexicon.
 
 RNG-valid fixtures: the other 16 migrated spec examples,
 `ranges/test20080407.lift`, and `folder/Moma/Moma.lift` (WeSay writes relative
@@ -138,18 +136,18 @@ hrefs, which pass). `tests/test_corpus.py` locks in both lists.
    morph-type traits). Affects `flex/AllFLExFields/AllFLExFields.lift-ranges`
    and `large/sango/sango.lift-ranges`; the hand-crafted
    `ranges/test20080407.lift-ranges` validates. Carried losslessly in
-   `Extras`; same M4 implication as the anyURI quirk.
+   `Extras`; same implication as the anyURI quirk.
 
 ## generated/ — synthetic large files (not committed)
 
-Produced by `tests/tools/generate_large.py` for streaming/perf tests (M6);
+Produced by `tests/tools/generate_large.py` for streaming/perf tests;
 git-ignored, regenerated on demand.
 
-## negative/ — invalid fixtures (hand-authored, milestone M4)
+## negative/ — invalid fixtures (hand-authored)
 
 Each file carries an XML comment documenting its defect and the expected
 Problem code: `duplicate-guid`, `dangling-ref`, `range-parent`,
-`undefined-range-value` (2 warnings + a clean control entry),
+`undefined-range-value` (2 warnings \+ a clean control entry),
 `duplicate-form-lang` (the Schematron-only rule), `schema-invalid`
 (structural), `missing-media/` (a folder fixture), and `flex-quirks`
 (URI quirks that must yield warnings, never schema errors).

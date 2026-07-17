@@ -50,10 +50,10 @@ releases may contain breaking changes.
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and
   `sil_lift.canonicalize()` for fully re-serialized diff-ready output. Sorting
-  composes with the passthrough: sort + save moves untouched entries' bytes
+  composes with the passthrough: sort \+ save moves untouched entries' bytes
   without rewriting them. Text whitespace is never normalized.
 - Streaming: `open_reader()` (lazy entry iterator with the parsed header
-  available up front) and `open_writer()` (header + one canonical chunk per
+  available up front) and `open_writer()` (header \+ one canonical chunk per
   entry; byte-identical to `canonical_document` output by construction), both
   over the same `Entry` types as full-document mode and O(one entry) in
   memory (verified on a ~340 MB generated file).

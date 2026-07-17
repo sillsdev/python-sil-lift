@@ -1,4 +1,4 @@
-"""Streaming read/write (decision A4): same Entry types, O(one entry) memory.
+"""Streaming read/write: same Entry types, O(one entry) memory.
 
 The reader wraps ``lxml.etree.iterparse`` with all ``clear()``/preceding-sibling
 bookkeeping internal; the writer emits the same bytes ``canonical_document``
@@ -7,9 +7,9 @@ subtree is built normally, serialized, and flushed — the byte layout is shared
 with the canonical serializer by construction, so full and streaming output
 never drift apart).
 
-Streaming mode has no byte-passthrough layer (A2: its memory cost is "absent
-in streaming mode"): output is always canonical. Root-level residue (comments
-between entries) is not carried either — entries and the header are.
+Streaming mode has no byte-passthrough layer: output is always canonical.
+Root-level residue (comments between entries) is not carried either — entries
+and the header are.
 """
 
 from __future__ import annotations

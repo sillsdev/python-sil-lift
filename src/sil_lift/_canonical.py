@@ -1,4 +1,4 @@
-"""Canonical sort (decision A6): a native implementation, LiftSorter-informed.
+"""Canonical sort: a native implementation, LiftSorter-informed.
 
 The C# oracle (libpalaso ``SIL.Lift/LiftSorter.cs`` @ 4840de8) sorts entries
 by case-insensitive guid, orders header children description → ranges →
@@ -18,7 +18,7 @@ narrowing:
 
 The reference ``canonicalizeLift.xsl`` is deliberately NOT used: it
 whitespace-normalizes all text nodes (destructive to lexical data) and its
-generated ids are session-specific (research finding, decision A6).
+generated ids are session-specific.
 """
 
 from __future__ import annotations

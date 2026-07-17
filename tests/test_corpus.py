@@ -36,9 +36,9 @@ VALIDATABLE = [
     p
     for p in LIFT_FILES
     # Only version-0.13 .lift documents are subjects of the 0.13 schema:
-    # .lift-ranges files have a different root (no schema exists yet — M3 authors
-    # one), and the 0.12 originals (spec-examples/0.12/, misc/sample.lift) are
-    # version-guard fixtures.
+    # .lift-ranges files have a different root (no schema exists yet), and the
+    # 0.12 originals (spec-examples/0.12/, misc/sample.lift) are version-guard
+    # fixtures.
     if p.suffix == ".lift" and "0.12" not in p.parts and p.name != "sample.lift"
 ]
 

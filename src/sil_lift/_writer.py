@@ -1,4 +1,4 @@
-"""Canonical serializer + the A2 passthrough layer.
+"""Canonical serializer + the passthrough layer.
 
 Two paths out of a :class:`~sil_lift._model.Lexicon`:
 
