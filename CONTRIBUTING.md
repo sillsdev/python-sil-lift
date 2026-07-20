@@ -11,15 +11,16 @@ python -m venv .venv
 pip install -e .[dev]
 ```
 
-Run everything CI runs (lint, format check, type-check, and tests) with one
-command:
+Run everything CI runs (lint, format check, type-check, and tests under a 90%
+coverage floor) with one command:
 
 ```
 python scripts/check.py
 ```
 
-All four must be green before a commit. `ruff format .` fixes formatting; the
-rest you fix by hand.
+All four must be green before a commit. The test step runs under coverage and
+fails below 90% (`--cov-fail-under=90`), matching the floor CI enforces.
+`ruff format .` fixes formatting; the rest you fix by hand.
 
 ## Branches, tags, releases
 

@@ -13,8 +13,10 @@
   gap). SIL-internal use; resolve with upstream before any public release of
   this package.
 
-## lift-ranges-0.13.rng (planned)
+## lift-ranges-0.13.rng
 
-To be authored by this project — no schema for standalone `.lift-ranges` files
-exists anywhere. Will reuse the `range`/`range-element` defines from
-`lift-0.13.rng`.
+- **Source**: authored by this project — no schema for standalone
+  `.lift-ranges` files exists upstream. Built from the `range`/`range-element`
+  defines of the vendored `lift-0.13.rng` so the content model matches the
+  spec exactly (regenerate with `tests/tools/build_ranges_schema.py`).
+- **License**: MIT (this project's own; see `LICENSE`).

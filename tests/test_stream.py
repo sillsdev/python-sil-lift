@@ -108,7 +108,7 @@ def _working_set_bytes() -> int | None:
 
 
 # The default run uses a ~35 MB file (quick); set SIL_LIFT_PERF=1 for the
-# multi-hundred-MB variant the implementation plan calls for.
+# multi-hundred-MB variant.
 _PERF = os.environ.get("SIL_LIFT_PERF") == "1"
 _ENTRIES = 400_000 if _PERF else 40_000
 

@@ -660,6 +660,18 @@ def canonical_document(
     return b"".join(parts)
 
 
+def _slot_bytes(chunk: bytes) -> bytes:
+    """Fit a re-serialized node into a passthrough matrix slot.
+
+    In :func:`canonical_document` a node's chunk ends with a newline that *is*
+    the separator between chunks. In the passthrough path the surrounding
+    matrix already supplies those separators, so a re-serialized (touched)
+    node's trailing newline would double up into a blank line. Original-byte
+    spans reused verbatim end at ``>`` and are unaffected.
+    """
+    return chunk[:-1] if chunk.endswith(b"\n") else chunk
+
+
 def _root_unchanged(lexicon: Lexicon, source: _SourceInfo) -> bool:
     return (
         lexicon.producer == source.producer
@@ -736,7 +748,7 @@ def render_document(lexicon: Lexicon) -> bytes:
 
     had_header = any(span.tag == "header" for span in source.children)
     if not had_header and lexicon.header:
-        parts.append(b"\n" + header_fn(lexicon.header))
+        parts.append(b"\n" + _slot_bytes(header_fn(lexicon.header)))
 
     entry_index = 0
     for span in source.children:
@@ -744,9 +756,9 @@ def render_document(lexicon: Lexicon) -> bytes:
         if span.tag == "header":
             # Unconditional (even for a now-empty Header): the digest check
             # inside header_fn restores the original bytes when unchanged.
-            parts.append(header_fn(lexicon.header))
+            parts.append(_slot_bytes(header_fn(lexicon.header)))
         elif span.tag == "entry":
-            parts.append(entry_fn(lexicon.entries[entry_index]))
+            parts.append(_slot_bytes(entry_fn(lexicon.entries[entry_index])))
             entry_index += 1
         else:
             parts.append(data[span.start : span.end])
@@ -830,7 +842,7 @@ def render_ranges_document(ranges_file: RangesFile) -> bytes:
     for span in source.children:
         parts.append(data[position : span.start])
         if span.tag == "range":
-            parts.append(range_fn(ranges_file.ranges[range_index]))
+            parts.append(_slot_bytes(range_fn(ranges_file.ranges[range_index])))
             range_index += 1
         else:
             parts.append(data[span.start : span.end])

@@ -14,6 +14,7 @@ for problem in sil_lift.iter_problems("dictionary.lift"):
 sil_lift.validate_file("dictionary.lift")
 
 # In-memory state (serializes first — a documented cost on large lexicons):
+lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
 

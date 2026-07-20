@@ -1,4 +1,5 @@
-"""Local stand-in for CI while the repo has no remote: run all checks.
+"""Run everything CI runs, in one command: lint, format check, type-check, and
+tests under the 90% coverage floor.
 
 Usage: python scripts/check.py
 """
@@ -10,7 +11,14 @@ CHECKS: list[list[str]] = [
     [sys.executable, "-m", "ruff", "check", "."],
     [sys.executable, "-m", "ruff", "format", "--check", "."],
     [sys.executable, "-m", "mypy"],
-    [sys.executable, "-m", "pytest"],
+    [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--cov=sil_lift",
+        "--cov-report=term-missing",
+        "--cov-fail-under=90",
+    ],
 ]
 
 

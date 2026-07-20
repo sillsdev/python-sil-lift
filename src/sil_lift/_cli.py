@@ -1,4 +1,4 @@
-"""The demo CLI (decision-document section D): validate / stats / sort / check-media / export.
+"""The demo CLI: validate / stats / sort / check-media / export.
 
 A LiftTools-style utility exercising every scope pillar end-to-end: validation
 (all three layers), streaming reads (stats, export), the canonical sort + write
@@ -211,7 +211,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     check_media.set_defaults(func=_cmd_check_media)
 
     export = subparsers.add_parser(
-        "export", help="flatten senses to CSV/TSV, one row per sense (streaming)"
+        "export", help="flatten senses to CSV/TSV, one row per leaf sense (streaming)"
     )
     export.add_argument("path", type=Path, help="a .lift file")
     export.add_argument("-o", "--output", type=Path, default=None, help="default: stdout")

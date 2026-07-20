@@ -71,6 +71,12 @@ def canonicalize(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> No
     byte passthrough) — that is the point: two canonicalized files diff
     cleanly. Text content is never whitespace-normalized. The whole document
     is held in memory (sorting requires it; the C# oracle buffers too).
+
+    Only the ``.lift`` file is written: companion ``.lift-ranges`` files are
+    neither read nor rewritten (the source is loaded with
+    ``resolve_ranges=False``). Sort a ranges file separately via
+    :meth:`RangesFile.sort` + :meth:`RangesFile.save`. This differs from
+    :meth:`Lexicon.save`, which writes every tracked companion.
     """
     from ._writer import canonical_document
 

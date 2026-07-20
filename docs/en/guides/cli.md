@@ -8,8 +8,11 @@ sil-lift stats PATH                       entry/sense/language counts (streaming
 sil-lift sort PATH [-o OUT]               canonically sorted, diff-ready copy (default: in place)
 sil-lift check-media PATH                 missing and orphaned media report; exit 1 if missing
 sil-lift export PATH [-o OUT] [--langs L] [--tsv]
-                                           one row per sense (subsenses flattened) to CSV/TSV (streaming)
+                                           one row per leaf sense (subsenses flattened) to CSV/TSV (streaming)
 ```
+
+`sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
+untouched (sort those separately with the `RangesFile` API).
 
 Examples:
 
@@ -21,7 +24,7 @@ warning [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Windows d
 
 $ sil-lift stats sango.lift
 entries:   3507
-senses:    4238
+senses:    4541
 ...
 
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv

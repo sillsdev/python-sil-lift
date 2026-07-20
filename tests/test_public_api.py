@@ -1,32 +1,41 @@
 import inspect
-import typing
 
 import sil_lift
 
 
-def _hint_names(obj: object) -> list[str]:
-    try:
-        hints = typing.get_type_hints(obj)
-    except Exception:
-        return []
-    return [repr(hint) for hint in hints.values()]
+def _annotation_strings(obj: object) -> list[str]:
+    """Raw source annotations for a function or class.
+
+    Static (PEP 563 strings) rather than resolved: ``typing.get_type_hints``
+    raises on the TYPE_CHECKING-only imports several public signatures use
+    (``os``, ``Iterator``, ...), and silently skipping those members — as an
+    earlier ``try/except: return []`` did — let the check pass without ever
+    examining them. lxml only ever enters this codebase as ``from lxml import
+    etree``, so a leak is always visible in the source text as an ``etree.``
+    (or ``lxml``) reference; no resolution is needed to catch it.
+    """
+    return [str(hint) for hint in getattr(obj, "__annotations__", {}).values()]
+
+
+def _leaks_lxml(annotation: str) -> bool:
+    return "lxml" in annotation or "etree." in annotation
 
 
 def test_no_lxml_in_public_annotations() -> None:
     offenders: list[str] = []
     for name in sil_lift.__all__:
         public = getattr(sil_lift, name)
-        for hint in _hint_names(public):
-            if "lxml" in hint:
-                offenders.append(f"{name}: {hint}")
+        offenders += [f"{name}: {a}" for a in _annotation_strings(public) if _leaks_lxml(a)]
         if inspect.isclass(public):
             for member_name, member in inspect.getmembers(public):
-                if member_name.startswith("_") and member_name not in ("__init__",):
+                if member_name.startswith("_") and member_name != "__init__":
                     continue
                 if inspect.isfunction(member):
-                    for hint in _hint_names(member):
-                        if "lxml" in hint:
-                            offenders.append(f"{name}.{member_name}: {hint}")
+                    offenders += [
+                        f"{name}.{member_name}: {a}"
+                        for a in _annotation_strings(member)
+                        if _leaks_lxml(a)
+                    ]
     assert not offenders, f"lxml types leaked into the public API: {offenders}"
 
 

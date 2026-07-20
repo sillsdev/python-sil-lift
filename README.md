@@ -20,9 +20,10 @@ lex.save()                                 # untouched entries byte-identical
 
 Requires Python 3.11+; the only runtime dependency is lxml. Install
 [from PyPI](https://pypi.org/project/sil-lift/): `sil-lift`, or `sil-lift[cli]`
-for the `sil-lift` command (`validate` / `stats` / `sort` / `check-media`).
+for the `sil-lift` command (`validate` / `stats` / `sort` / `check-media` /
+`export`).
 Documentation lives in `docs/en/` (mkdocs-material; build with
-`pip install -e .[docs] && mkdocs build`).
+`pip install -e .[docs] && mkdocs build --strict`).
 
 ## Fidelity guarantees
 

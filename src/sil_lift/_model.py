@@ -266,7 +266,11 @@ class RangesFile:
         return parse_ranges_document(Path(path))
 
     def save(self, path: str | os.PathLike[str] | None = None) -> None:
-        """Write the ``.lift-ranges`` file (byte-identical when unchanged)."""
+        """Write the ``.lift-ranges`` file (byte-identical when unchanged).
+
+        Raises :class:`ValueError` if no target path is available (none was
+        passed and the file was not loaded from disk).
+        """
         from ._writer import render_ranges_document
 
         target = Path(path) if path is not None else self.path
@@ -332,11 +336,13 @@ class Lexicon:
         """Parse a ``.lift`` file (LIFT 0.13 only) into a full object graph.
 
         With ``resolve_ranges`` (the default), companion ``.lift-ranges``
-        files are loaded and tracked in :attr:`ranges_files`: any existing
-        file a header ``range/@href`` points at (falling back to the href's
-        basename next to the ``.lift`` file — FLEx hrefs are usually dangling
-        absolute paths from the exporting machine) plus the conventional
-        ``<name>.lift-ranges`` sibling.
+        files are loaded and tracked in :attr:`ranges_files`. Several
+        candidates are tried and every one that exists is loaded: the
+        conventional ``<name>.lift-ranges`` sibling, and for each header
+        ``range/@href`` both the href resolved as a path relative to the
+        ``.lift`` file and its bare basename in the same directory (FLEx
+        hrefs are usually dangling absolute ``file://C:/...`` paths from the
+        exporting machine, so the basename is what resolves locally).
         """
         from ._reader import parse_document
 
@@ -380,6 +386,9 @@ class Lexicon:
         new ``.lift`` file under their original basenames. Saving under a new
         name in the *same* directory leaves companions at their original
         paths (they are shared with the original document, not copied).
+
+        Raises :class:`ValueError` if no target path is available (none was
+        passed and the lexicon was not loaded from a file).
         """
         from ._writer import render_document
 
@@ -483,7 +492,10 @@ class Lexicon:
         return missing
 
     def find(self, *, id: str | None = None, guid: str | None = None) -> Entry | None:
-        """The first entry matching the given id and/or guid, or None."""
+        """The first entry matching the given id and/or guid, or None.
+
+        Raises :class:`ValueError` if neither ``id`` nor ``guid`` is given.
+        """
         if id is None and guid is None:
             raise ValueError("find() needs id= and/or guid=")
         for entry in self.entries:

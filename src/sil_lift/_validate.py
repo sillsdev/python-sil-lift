@@ -49,6 +49,7 @@ if TYPE_CHECKING:
 __all__ = ["Problem", "iter_problems", "validate_file"]
 
 _SCHEMAS_DIR = Path(__file__).parent / "schemas"
+_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
 @dataclass(slots=True)
@@ -146,7 +147,7 @@ def _schema_problems(
 ) -> tuple[list[tuple[int | None, str | None, str | None]], list[Problem]]:
     """Validate one document; returns (per-entry line/id/guid table, problems)."""
     problems: list[Problem] = []
-    root = etree.fromstring(data)
+    root = etree.fromstring(data, parser=_PARSER)
     _group_children_by_tag(root, is_root=True)
     entry_lines: list[tuple[int | None, str | None, str | None]] = []
     for child in root:
