@@ -10,3 +10,9 @@ Not covered there:
   creation, issue or PR creations, PyPI publishing, or posting anywhere.
 - No destructive actions ever — no force push, branch deletion, or changing repo
   settings.
+- Root-level prose docs (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, this
+  file) are hard-wrapped, so a bare Markdown list marker (`+`, `-`, `*`) can be
+  pushed to the start of a re-wrapped line and render as a stray bullet. Where
+  that can bite — e.g. `sort \+ save` in the changelog — the marker is
+  backslash-escaped on purpose; keep the `\`. `docs/en/` is not hard-wrapped
+  (one line per paragraph), so it uses no such escaping.

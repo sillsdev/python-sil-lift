@@ -580,14 +580,18 @@ def _header_el(header: Header) -> etree._Element:
     el = _element("header", [], header.extra)
     if header.description:
         el.append(_multitext_el("description", header.description))
-    if header.ranges:
-        ranges_el = etree.SubElement(el, "ranges")
+    if header.ranges or header.ranges_extra:
+        ranges_el = _element("ranges", [], header.ranges_extra)
+        el.append(ranges_el)
         for range_ in header.ranges:
             ranges_el.append(_range_el(range_))
-    if header.fields:
-        fields_el = etree.SubElement(el, "fields")
+        _apply_extra_nodes(ranges_el, header.ranges_extra)
+    if header.fields or header.fields_extra:
+        fields_el = _element("fields", [], header.fields_extra)
+        el.append(fields_el)
         for definition in header.fields:
             fields_el.append(_field_definition_el(definition))
+        _apply_extra_nodes(fields_el, header.fields_extra)
     _apply_extra_nodes(el, header.extra)
     return el
 
@@ -655,7 +659,9 @@ def canonical_document(
         position = min(node.index, len(chunks))
         chunks.insert(position, node.xml.encode("utf-8") + b"\n")
     parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', _root_open_bytes(lexicon), b"\n"]
-    parts.extend(chunks)
+    # Each chunk's trailing newline is the inter-chunk separator. Byte-reused
+    # (untouched) spans end at ">", so top them up to avoid gluing neighbors.
+    parts.extend(chunk if chunk.endswith(b"\n") else chunk + b"\n" for chunk in chunks)
     parts.append(b"</lift>\n")
     return b"".join(parts)
 
@@ -784,7 +790,8 @@ def canonical_ranges_document(
     root = _element("lift-ranges", [], ranges_file.extra)
     serialized = etree.tostring(root, encoding="unicode").encode("utf-8")
     parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', serialized[:-2] + b">", b"\n"]
-    parts.extend(chunks)
+    # See canonical_document: top up reused spans so neighbors don't glue.
+    parts.extend(chunk if chunk.endswith(b"\n") else chunk + b"\n" for chunk in chunks)
     parts.append(b"</lift-ranges>\n")
     return b"".join(parts)
 

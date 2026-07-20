@@ -58,12 +58,28 @@ class Range:
 
 @dataclass(slots=True, kw_only=True)
 class Header:
-    """The optional ``<header>``: description, ranges, field definitions."""
+    """The optional ``<header>``: description, ranges, field definitions.
+
+    ``ranges_extra`` / ``fields_extra`` carry out-of-schema residue found on
+    the ``<ranges>`` / ``<fields>`` wrapper elements themselves (unknown
+    attributes, stray nodes). Those wrappers have no model object of their
+    own, so their residue is kept apart from the header's and re-emitted onto
+    the wrapper rather than migrating up onto ``<header>``.
+    """
 
     description: Multitext = field(default_factory=Multitext)
     ranges: list[Range] = field(default_factory=list)
     fields: list[FieldDefinition] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
+    ranges_extra: Extras = field(default_factory=Extras)
+    fields_extra: Extras = field(default_factory=Extras)
 
     def __bool__(self) -> bool:
-        return bool(self.description or self.ranges or self.fields or self.extra)
+        return bool(
+            self.description
+            or self.ranges
+            or self.fields
+            or self.extra
+            or self.ranges_extra
+            or self.fields_extra
+        )

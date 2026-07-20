@@ -130,8 +130,10 @@ def test_all_flex_fields_spot_check() -> None:
         "summary-definition",
         "scientific-name",
     ]
-    # The two comments inside <ranges> are carried as header residue.
-    assert header.extra
+    # The two comments inside <ranges> are carried as the <ranges> wrapper's
+    # own residue, not hoisted onto the header.
+    assert header.ranges_extra
+    assert not header.extra
 
     entry = lexicon.find(guid="0a18bb95-0eb2-422e-bf7e-c1fd90274670")
     assert entry is not None

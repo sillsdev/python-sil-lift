@@ -156,10 +156,14 @@ def parse_root(root: etree._Element, *, path: Path | None = None) -> Lexicon:
     attrs = _split_attrs(root, ("version", "producer"), lexicon.extra)
     lexicon.producer = attrs.get("producer")
 
+    header_seen = False
+
     def handle_header(el: etree._Element) -> None:
-        if lexicon.header:
-            _push_node(lexicon.extra, el)  # duplicate <header> is out-of-schema
+        nonlocal header_seen
+        if header_seen:  # a second <header>, even after an empty first, is out-of-schema
+            _push_node(lexicon.extra, el)
         else:
+            header_seen = True
             lexicon.header = _parse_header(el)
 
     _walk(
@@ -639,18 +643,18 @@ def _parse_header(el: etree._Element) -> Header:
     _split_attrs(el, (), header.extra)
 
     def handle_ranges(ranges_el: etree._Element) -> None:
-        _split_attrs(ranges_el, (), header.extra)
+        _split_attrs(ranges_el, (), header.ranges_extra)
         _walk(
             ranges_el,
-            header.extra,
+            header.ranges_extra,
             {"range": lambda c: header.ranges.append(_parse_range(c))},
         )
 
     def handle_fields(fields_el: etree._Element) -> None:
-        _split_attrs(fields_el, (), header.extra)
+        _split_attrs(fields_el, (), header.fields_extra)
         _walk(
             fields_el,
-            header.extra,
+            header.fields_extra,
             {"field": lambda c: header.fields.append(_parse_field_definition(c))},
         )
 
