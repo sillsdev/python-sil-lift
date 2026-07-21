@@ -10,6 +10,10 @@ Not covered there:
   creation, issue or PR creations, PyPI publishing, or posting anywhere.
 - No destructive actions ever — no force push, branch deletion, or changing repo
   settings.
+- Commit messages describe the commit's diff and stand on their own. Do not
+  reference conversation, tasks, audits, review rounds, or other outside context
+  ("as requested", "fixes audit finding", "per feedback") — a reader with only
+  the diff should understand the message fully.
 - Root-level prose docs (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, this
   file) are hard-wrapped, so a bare Markdown list marker (`+`, `-`, `*`) can be
   pushed to the start of a re-wrapped line and render as a stray bullet. Where
