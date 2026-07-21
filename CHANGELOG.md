@@ -60,7 +60,10 @@ releases may contain breaking changes.
 - The `sil-lift` CLI (stdlib-only, installed via the `[cli]` extra):
   `validate` / `stats` / `sort` / `check-media`, plus `export` — one row per
   leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages
-  auto-detected or set with `--langs`.
+  auto-detected or set with `--langs`. `validate` supports `--format json`
+  (machine-readable findings), `--strict` (warnings become errors), and
+  `--no-check-media` (skip the filesystem media-presence check); its exit
+  codes and JSON schema are a supported interface.
 - Documentation site: task-oriented guides, the fidelity contract, generated
   API reference, localization-ready configuration; includes a worked example
   ("bulk-editing glosses", complete runnable script with verified output) and

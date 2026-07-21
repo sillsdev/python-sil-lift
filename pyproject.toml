@@ -47,7 +47,7 @@ Forum = "https://community.software.sil.org/c/other/"
 sil-lift = "sil_lift._cli:main"
 
 [project.optional-dependencies]
-# The demo CLI uses only the stdlib, so this extra is empty; it exists so
+# The CLI uses only the stdlib, so this extra is empty; it exists so
 # `pip install sil-lift[cli]` stays the documented install for CLI users.
 cli = []
 dev = [

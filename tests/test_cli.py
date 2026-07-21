@@ -1,4 +1,5 @@
 import csv
+import json
 import shutil
 from pathlib import Path
 
@@ -25,6 +26,36 @@ def test_validate_reports_errors_and_exits_1(capsys: pytest.CaptureFixture[str])
 def test_validate_warnings_only_exits_0(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["validate", str(CORPUS_DIR / "negative" / "flex-quirks.lift")]) == 0
     assert "uri-not-rfc" in capsys.readouterr().out
+
+
+def test_validate_json_reports_findings(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "duplicate-guid.lift"
+    assert main(["validate", str(path), "--format", "json"]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["summary"]["errors"] >= 1
+    assert any(problem["code"] == "duplicate-guid" for problem in payload["problems"])
+
+
+def test_validate_json_clean_file(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "ranges" / "test20080407.lift"
+    assert main(["validate", str(path), "--format", "json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {"problems": [], "summary": {"errors": 0, "warnings": 0}}
+
+
+def test_validate_strict_treats_warnings_as_errors(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "flex-quirks.lift"
+    assert main(["validate", str(path)]) == 0  # warnings alone pass by default
+    assert main(["validate", str(path), "--strict"]) == 1
+    assert "strict: warnings treated as errors" in capsys.readouterr().out
+
+
+def test_validate_no_check_media(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "missing-media" / "missing-media.lift"
+    assert main(["validate", str(path)]) == 0
+    assert "[missing-media]" in capsys.readouterr().out
+    assert main(["validate", str(path), "--no-check-media"]) == 0
+    assert "[missing-media]" not in capsys.readouterr().out
 
 
 def test_filename_with_space(capsys: pytest.CaptureFixture[str]) -> None:

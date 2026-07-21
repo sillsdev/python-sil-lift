@@ -1,14 +1,18 @@
-"""The demo CLI: validate / stats / sort / check-media / export.
+"""The ``sil-lift`` command line: validate / stats / sort / check-media / export.
 
 A LiftTools-style utility exercising every scope pillar end-to-end: validation
 (all three layers), streaming reads (stats, export), the canonical sort + write
 path (sort), and the folder/media model (check-media). Deliberately stdlib-only.
+
+``validate`` is a supported interface for automation: its exit codes and
+``--format json`` schema are covered by tests and change only under SemVer.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -26,20 +30,48 @@ if TYPE_CHECKING:
 
     from ._model import Entry, Sense
     from ._text import Text
+    from ._validate import Problem
 
 __all__ = ["main"]
 
 
+def _problem_json(problem: Problem) -> dict[str, object]:
+    return {
+        "level": problem.level,
+        "code": problem.code,
+        "message": problem.message,
+        "file": problem.file.name if problem.file else None,
+        "entry_id": problem.entry_id,
+        "guid": problem.guid,
+        "line": problem.line,
+    }
+
+
 def _cmd_validate(args: argparse.Namespace) -> int:
-    errors = warnings = 0
-    for problem in iter_problems(args.path):
-        print(problem)
-        if problem.level == "error":
-            errors += 1
-        else:
-            warnings += 1
-    print(f"{errors} error(s), {warnings} warning(s)")
-    return 1 if errors else 0
+    problems = [
+        problem
+        for problem in iter_problems(args.path)
+        if not (args.no_check_media and problem.code == "missing-media")
+    ]
+    errors = sum(1 for problem in problems if problem.level == "error")
+    warnings = len(problems) - errors
+    failed = bool(errors) or (args.strict and bool(warnings))
+    if args.format == "json":
+        json.dump(
+            {
+                "problems": [_problem_json(problem) for problem in problems],
+                "summary": {"errors": errors, "warnings": warnings},
+            },
+            sys.stdout,
+            indent=2,
+        )
+        print()
+    else:
+        for problem in problems:
+            print(problem)
+        strict_note = "  (strict: warnings treated as errors)" if args.strict and warnings else ""
+        print(f"{errors} error(s), {warnings} warning(s){strict_note}")
+    return 1 if failed else 0
 
 
 def _iter_senses(entry: Entry) -> list[Sense]:
@@ -193,6 +225,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         "validate", help="schema + semantic validation; exit 1 on errors"
     )
     validate.add_argument("path", type=Path, help="a .lift file")
+    validate.add_argument(
+        "--format", choices=("text", "json"), default="text", help="output format (default: text)"
+    )
+    validate.add_argument(
+        "--strict", action="store_true", help="treat warnings as errors (exit 1 on any warning)"
+    )
+    validate.add_argument(
+        "--no-check-media",
+        action="store_true",
+        help="skip the filesystem media-presence check (suppresses missing-media findings)",
+    )
     validate.set_defaults(func=_cmd_validate)
 
     stats = subparsers.add_parser("stats", help="entry/sense/language counts (streaming)")
