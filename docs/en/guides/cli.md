@@ -20,6 +20,8 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 `sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
 untouched (sort those separately with the `RangesFile` API).
 
+`validate`, `stats`, and `check-media` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes.
+
 Examples:
 
 ```

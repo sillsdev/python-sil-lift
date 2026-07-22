@@ -4,6 +4,15 @@ This guide is for anyone writing a LIFT *exporter* — code in any language that
 
 Writing LIFT is much easier than parsing it: an exporter only emits the subset of constructs its own model produces, and never faces the full spec's optionality. The hard part is the details — the `.lift-ranges` companion, per-writing-system text, stable ids, and XML escaping — and those are exactly what the checks below catch.
 
+## Zipped packages
+
+LIFT is usually moved around as a single `.zip` — FieldWorks and The Combine both import and export that way — so `sil-lift` reads and writes zipped packages directly, in either layout the ecosystem uses: the files at the archive root, or nested under one top-level folder.
+
+- **Read:** `sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual). The `validate`, `stats`, and `check-media` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is. Extraction is hardened against hostile archives — path-traversal members are refused, and the entry count and total uncompressed size (10 GiB) are capped against zip bombs.
+- **Write:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip. `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
+
+The `.lift` and `.lift-ranges` keep their byte-fidelity inside the package; the zip container itself is not byte-reproducible.
+
 ## Validate the output as a conformance gate
 
 Point `sil-lift validate` at the produced `.lift` file. It runs RELAX NG (over both the `.lift` and its `.lift-ranges` companion) plus semantic checks the grammar can't express: dangling `relation`/`variant` references, duplicate GUIDs, range-element parent integrity, trait and grammatical-info values not defined in their range, and header `range/@href` references that resolve to no companion.

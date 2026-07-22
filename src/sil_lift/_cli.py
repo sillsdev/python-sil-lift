@@ -102,10 +102,12 @@ def _iter_senses(entry: Entry) -> list[Sense]:
 
 
 def _cmd_stats(args: argparse.Namespace) -> int:
+    from ._zip import lift_source
+
     entries = senses = examples = media = 0
     langs: set[str] = set()
     traits: Counter[str] = Counter()
-    with open_reader(args.path) as reader:
+    with lift_source(args.path) as lift_path, open_reader(lift_path) as reader:
         for entry in reader:
             entries += 1
             langs.update(entry.lexical_unit.keys())
@@ -163,7 +165,7 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
         print(f"missing  {ref.kind:12s} {ref.href!r} (entry {owner})")
 
     referenced: set[Path] = set()
-    base = Path(args.path).parent
+    base = lexicon.path.parent if lexicon.path is not None else Path(args.path).parent
     for ref in lexicon.media_refs():
         relative = _normalize_href(ref.href)
         if relative is None:  # remote/absolute hrefs can't vouch for local files
@@ -256,7 +258,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     validate = subparsers.add_parser(
         "validate", help="schema + semantic validation; exit 1 on errors"
     )
-    validate.add_argument("path", type=Path, help="a .lift file, or - for stdin")
+    validate.add_argument("path", type=Path, help="a .lift or .zip file, or - for stdin")
     validate.add_argument(
         "--format", choices=("text", "json"), default="text", help="output format (default: text)"
     )
@@ -276,7 +278,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     validate.set_defaults(func=_cmd_validate)
 
     stats = subparsers.add_parser("stats", help="entry/sense/language counts (streaming)")
-    stats.add_argument("path", type=Path, help="a .lift file")
+    stats.add_argument("path", type=Path, help="a .lift or .zip file")
     stats.add_argument(
         "--format", choices=("text", "json"), default="text", help="output format (default: text)"
     )
@@ -290,7 +292,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     check_media = subparsers.add_parser(
         "check-media", help="report missing and orphaned media files"
     )
-    check_media.add_argument("path", type=Path, help="a .lift file")
+    check_media.add_argument("path", type=Path, help="a .lift or .zip file")
     check_media.set_defaults(func=_cmd_check_media)
 
     export = subparsers.add_parser(

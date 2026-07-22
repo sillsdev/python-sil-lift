@@ -22,6 +22,7 @@ from ._text import Annotation, Form, Multitext, Text, Trait
 
 if TYPE_CHECKING:
     import os
+    import tempfile
     from collections.abc import Iterator
     from typing import Literal
 
@@ -321,7 +322,16 @@ def _normalize_href(href: str) -> Path | None:
 class Lexicon:
     """The root handle: a parsed ``.lift`` document and its folder companions."""
 
-    __slots__ = ("_source", "entries", "extra", "header", "path", "producer", "ranges_files")
+    __slots__ = (
+        "_source",
+        "_tempdir",
+        "entries",
+        "extra",
+        "header",
+        "path",
+        "producer",
+        "ranges_files",
+    )
 
     def __init__(
         self,
@@ -339,6 +349,7 @@ class Lexicon:
         self.extra = extra if extra is not None else Extras()
         self.ranges_files: dict[Path, RangesFile] = {}
         self._source: _SourceInfo | None = None  # set by the reader
+        self._tempdir: tempfile.TemporaryDirectory[str] | None = None  # zip extraction, if any
 
     @classmethod
     def load(cls, path: str | os.PathLike[str], *, resolve_ranges: bool = True) -> Lexicon:
@@ -352,10 +363,19 @@ class Lexicon:
         ``.lift`` file and its bare basename in the same directory (FLEx
         hrefs are usually dangling absolute ``file://C:/...`` paths from the
         exporting machine, so the basename is what resolves locally).
+
+        A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
+        to a temporary directory (kept alive for the returned lexicon's
+        lifetime) and the single contained ``.lift`` is loaded.
         """
+        source = Path(path)
+        if source.suffix.lower() == ".zip":
+            from ._zip import load_zip
+
+            return load_zip(source, resolve_ranges=resolve_ranges)
         from ._reader import parse_document
 
-        lexicon = parse_document(Path(path))
+        lexicon = parse_document(source)
         if resolve_ranges:
             lexicon._resolve_ranges()
         return lexicon
@@ -422,6 +442,22 @@ class Lexicon:
             for ranges_file in self.ranges_files.values()
             if ranges_file.path is not None
         }
+
+    def save_zip(self, path: str | os.PathLike[str], *, wrap_folder: str | bool = True) -> None:
+        """Write the lexicon and its folder companions as a zip package.
+
+        The ``.lift`` and ``.lift-ranges`` are (re-)serialized with the usual
+        fidelity (untouched entries byte-identical); any other files from the
+        source package (media, ``WritingSystems/``, ``consent/``, ...) are
+        carried through verbatim. ``wrap_folder`` controls the layout: ``True``
+        (default) nests everything under a folder named after the zip — the
+        convention FieldWorks and The Combine expect on import — ``False``
+        writes the files at the archive root, and a string uses that folder
+        name. The archive container itself is not byte-reproducible.
+        """
+        from ._zip import save_zip
+
+        save_zip(self, Path(path), wrap_folder=wrap_folder)
 
     def sort(self) -> None:
         """Sort into canonical order, in place: entries by (guid, id), header

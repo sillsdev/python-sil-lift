@@ -42,6 +42,12 @@ releases may contain breaking changes.
   `schemas/lift-ranges-0.13.rng` — the first schema for standalone
   ranges documents (spec-faithful, built from the vendored grammar's own
   defines).
+- Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
+  folder-wrapped layouts, junk entries like `__MACOSX` ignored),
+  `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
+  package files through verbatim), and the `validate` / `stats` / `check-media`
+  CLI commands accept a `.zip` path. Extraction rejects path-traversal members
+  and is capped (entry count and a 10 GiB uncompressed total) against zip bombs.
 - Validation: `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning an addressable `Problem` stream
   (file/entry/line). RELAX NG layer with two documented deviations from raw
