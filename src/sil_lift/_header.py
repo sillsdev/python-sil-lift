@@ -55,6 +55,18 @@ class Range:
     elements: list[RangeElement] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
 
+    def add_element(
+        self, id: str, *, parent: str | None = None, guid: str | None = None
+    ) -> RangeElement:
+        """Append a new :class:`RangeElement` to this range and return it.
+
+        The ``label`` / ``abbrev`` / ``description`` multitexts start empty;
+        populate them on the returned element (e.g. ``el.label["en"] = "..."``).
+        """
+        element = RangeElement(id=id, parent=parent, guid=guid)
+        self.elements.append(element)
+        return element
+
 
 @dataclass(slots=True, kw_only=True)
 class Header:

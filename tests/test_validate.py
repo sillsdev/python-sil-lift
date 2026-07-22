@@ -80,6 +80,70 @@ def test_flex_uri_quirks_warn_but_never_error() -> None:
     assert codes(problems) == {("warning", "uri-not-rfc")}
 
 
+def test_dangling_ranges_href_flags_missing_relative_companion(tmp_path: Path) -> None:
+    path = tmp_path / "d.lift"
+    path.write_bytes(
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<lift version="0.13">\n'
+        b"<header><ranges>\n"
+        b'<range id="semantic-domain-ddp4" href="d.lift-ranges"/>\n'
+        b"</ranges></header>\n"
+        b'<entry id="e1" guid="99999999-9999-4444-8888-999999999999">\n'
+        b'<lexical-unit><form lang="en"><text>x</text></form></lexical-unit>\n'
+        b"</entry>\n"
+        b"</lift>\n"
+    )
+    assert ("warning", "dangling-ranges-href") in codes(problems_for(path))
+
+
+def test_dangling_ranges_href_ignores_absolute_flex_href(tmp_path: Path) -> None:
+    # FLEx writes header hrefs as dangling file://C:/ URIs resolved by basename;
+    # those are the uri-not-rfc case, not a dangling companion.
+    path = tmp_path / "d.lift"
+    path.write_bytes(
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<lift version="0.13">\n'
+        b"<header><ranges>\n"
+        b'<range id="grammatical-info" href="file://C:/nope/x.lift-ranges"/>\n'
+        b"</ranges></header>\n"
+        b'<entry id="e1" guid="aaaaaaaa-aaaa-4444-8888-aaaaaaaaaaaa">\n'
+        b'<lexical-unit><form lang="en"><text>x</text></form></lexical-unit>\n'
+        b"</entry>\n"
+        b"</lift>\n"
+    )
+    found = codes(problems_for(path))
+    assert ("warning", "dangling-ranges-href") not in found
+    assert ("warning", "uri-not-rfc") in found
+
+
+def test_require_ids_flags_missing_guid_and_sense_id() -> None:
+    lexicon = sil_lift.Lexicon()
+    entry = sil_lift.Entry(id="e1")  # no guid
+    entry.lexical_unit["en"] = "x"
+    entry.senses.append(sil_lift.Sense())  # no id
+    lexicon.entries.append(entry)
+    assert not any(p.code == "missing-id" for p in lexicon.iter_problems())
+    required = [p for p in lexicon.iter_problems(require_ids=True) if p.code == "missing-id"]
+    assert len(required) == 2
+    assert all(p.level == "error" for p in required)
+
+
+def test_undefined_semantic_domain_value_is_flagged() -> None:
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2")
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="bbbbbbbb-bbbb-4444-8888-bbbbbbbbbbbb")
+    entry.lexical_unit["en"] = "x"
+    sense = sil_lift.Sense(id="s1")
+    sense.traits.append(sil_lift.Trait(name="semantic-domain-ddp4", value="9.9.9"))
+    entry.senses.append(sense)
+    lexicon.entries.append(entry)
+    flagged = [p for p in lexicon.iter_problems() if p.code == "undefined-range-value"]
+    assert len(flagged) == 1
+    assert "9.9.9" in flagged[0].message
+
+
 def test_validate_file_raises_on_first_error() -> None:
     with pytest.raises(LiftValidationError) as info:
         sil_lift.validate_file(NEGATIVE_DIR / "duplicate-guid.lift")

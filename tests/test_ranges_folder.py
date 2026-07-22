@@ -18,6 +18,37 @@ def _copy_pair(src_dir: Path, stem: str, dst: Path) -> Path:
     return dst / f"{stem}.lift"
 
 
+def test_build_lexicon_and_ranges_from_scratch(tmp_path: Path) -> None:
+    lexicon = sil_lift.Lexicon(producer="test")
+    entry = sil_lift.Entry(id="e1", guid="77777777-7777-4444-8888-777777777777")
+    entry.lexical_unit["seh"] = "kanga"
+    sense = sil_lift.Sense(id="s1")
+    sense.glosses.append(sil_lift.Form(lang="en", text=Text(["chicken"])))
+    sense.traits.append(sil_lift.Trait(name="semantic-domain-ddp4", value="1.6.1.2"))
+    entry.senses.append(sense)
+    lexicon.entries.append(entry)
+
+    ranges = RangesFile()
+    domain = ranges.add_range("semantic-domain-ddp4")
+    domain.add_element("1.6.1.2").label["en"] = "Bird"
+    lexicon.add_ranges_file(ranges, href="dict.lift-ranges")
+
+    lexicon.save(tmp_path / "dict.lift")
+    assert (tmp_path / "dict.lift").is_file()
+    assert (tmp_path / "dict.lift-ranges").is_file()
+    # add_ranges_file registered the companion in the header.
+    assert any(
+        r.id == "semantic-domain-ddp4" and r.href == "dict.lift-ranges"
+        for r in lexicon.header.ranges
+    )
+
+    reloaded = sil_lift.load(tmp_path / "dict.lift")
+    assert [r.id for rf in reloaded.ranges_files.values() for r in rf.ranges] == [
+        "semantic-domain-ddp4"
+    ]
+    assert list(reloaded.iter_problems()) == []  # trait value is defined; href resolves
+
+
 def test_sibling_ranges_file_is_discovered_and_tracked() -> None:
     lexicon = sil_lift.load(PAIR_DIR / "test20080407.lift")
     assert len(lexicon.ranges_files) == 1

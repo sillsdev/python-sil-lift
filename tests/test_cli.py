@@ -1,4 +1,5 @@
 import csv
+import io
 import json
 import shutil
 from pathlib import Path
@@ -56,6 +57,48 @@ def test_validate_no_check_media(capsys: pytest.CaptureFixture[str]) -> None:
     assert "[missing-media]" in capsys.readouterr().out
     assert main(["validate", str(path), "--no-check-media"]) == 0
     assert "[missing-media]" not in capsys.readouterr().out
+
+
+def test_validate_require_ids(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    path = tmp_path / "noid.lift"
+    path.write_bytes(
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<lift version="0.13">\n'
+        b'<entry id="e1">\n'  # no guid
+        b'<lexical-unit><form lang="en"><text>x</text></form></lexical-unit>\n'
+        b"</entry>\n"
+        b"</lift>\n"
+    )
+    assert main(["validate", str(path)]) == 0  # ids are optional by default
+    assert main(["validate", str(path), "--require-ids"]) == 1
+    assert "missing-id" in capsys.readouterr().out
+
+
+def test_validate_stdin(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    doc = (
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<lift version="0.13"><entry id="e1" guid="cccccccc-cccc-4444-8888-cccccccccccc">'
+        b'<lexical-unit><form lang="en"><text>x</text></form></lexical-unit></entry></lift>\n'
+    )
+
+    class _Stdin:
+        buffer = io.BytesIO(doc)
+
+    monkeypatch.setattr("sys.stdin", _Stdin())
+    assert main(["validate", "-", "--format", "json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {"problems": [], "summary": {"errors": 0, "warnings": 0}}
+
+
+def test_stats_json(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift"
+    assert main(["stats", str(path), "--format", "json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["entries"] == 1
+    assert payload["senses"] >= 1
+    assert isinstance(payload["languages"], list)
 
 
 def test_filename_with_space(capsys: pytest.CaptureFixture[str]) -> None:

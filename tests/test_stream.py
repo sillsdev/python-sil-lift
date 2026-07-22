@@ -18,6 +18,21 @@ def corpus_id(path: Path) -> str:
     return path.relative_to(CORPUS_DIR).as_posix()
 
 
+def test_open_writer_emits_ranges_companion(tmp_path: Path) -> None:
+    ranges = sil_lift.RangesFile()
+    ranges.add_range("grammatical-info").add_element("Noun")
+    lift_path = tmp_path / "stream.lift"
+    with open_writer(lift_path, producer="test", ranges=ranges) as writer:
+        entry = sil_lift.Entry(id="e1", guid="88888888-8888-4444-8888-888888888888")
+        entry.lexical_unit["en"] = "x"
+        writer.write(entry)
+    assert (tmp_path / "stream.lift-ranges").is_file()
+    reloaded = sil_lift.load(lift_path)
+    assert reloaded.all_ranges()["grammatical-info"].elements[0].id == "Noun"
+    assert any(r.href == "stream.lift-ranges" for r in reloaded.header.ranges)
+    assert list(reloaded.iter_problems()) == []
+
+
 @pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
 def test_streaming_parse_equals_full_parse(path: Path) -> None:
     full = sil_lift.load(path, resolve_ranges=False)

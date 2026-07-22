@@ -14,6 +14,7 @@ import argparse
 import csv
 import json
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -47,12 +48,28 @@ def _problem_json(problem: Problem) -> dict[str, object]:
     }
 
 
-def _cmd_validate(args: argparse.Namespace) -> int:
-    problems = [
+def _collect_problems(args: argparse.Namespace) -> list[Problem]:
+    if str(args.path) == "-":
+        data = sys.stdin.buffer.read()
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_file = Path(tmp) / "stdin.lift"
+            tmp_file.write_bytes(data)
+            # A piped document has no folder context, so companion .lift-ranges
+            # and media can't be resolved; those checks are skipped (path None).
+            lexicon = Lexicon.load(tmp_file, resolve_ranges=False)
+            lexicon.path = None
+            problems = list(lexicon.iter_problems(require_ids=args.require_ids))
+    else:
+        problems = list(iter_problems(args.path, require_ids=args.require_ids))
+    return [
         problem
-        for problem in iter_problems(args.path)
+        for problem in problems
         if not (args.no_check_media and problem.code == "missing-media")
     ]
+
+
+def _cmd_validate(args: argparse.Namespace) -> int:
+    problems = _collect_problems(args)
     errors = sum(1 for problem in problems if problem.level == "error")
     warnings = len(problems) - errors
     failed = bool(errors) or (args.strict and bool(warnings))
@@ -105,14 +122,29 @@ def _cmd_stats(args: argparse.Namespace) -> int:
                 langs.update(g.lang for g in sense.glosses if g.lang)
                 langs.update(sense.definition.keys())
                 traits.update(trait.name for trait in sense.traits)
-    print(f"entries:   {entries}")
-    print(f"senses:    {senses}")
-    print(f"examples:  {examples}")
-    print(f"media refs: {media}")
-    print(f"languages: {', '.join(sorted(langs)) if langs else '(none)'}")
-    if traits:
-        top = ", ".join(f"{name} ({count})" for name, count in traits.most_common(5))
-        print(f"top traits: {top}")
+    if args.format == "json":
+        json.dump(
+            {
+                "entries": entries,
+                "senses": senses,
+                "examples": examples,
+                "media_refs": media,
+                "languages": sorted(langs),
+                "traits": dict(sorted(traits.items())),
+            },
+            sys.stdout,
+            indent=2,
+        )
+        print()
+    else:
+        print(f"entries:   {entries}")
+        print(f"senses:    {senses}")
+        print(f"examples:  {examples}")
+        print(f"media refs: {media}")
+        print(f"languages: {', '.join(sorted(langs)) if langs else '(none)'}")
+        if traits:
+            top = ", ".join(f"{name} ({count})" for name, count in traits.most_common(5))
+            print(f"top traits: {top}")
     return 0
 
 
@@ -224,7 +256,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     validate = subparsers.add_parser(
         "validate", help="schema + semantic validation; exit 1 on errors"
     )
-    validate.add_argument("path", type=Path, help="a .lift file")
+    validate.add_argument("path", type=Path, help="a .lift file, or - for stdin")
     validate.add_argument(
         "--format", choices=("text", "json"), default="text", help="output format (default: text)"
     )
@@ -236,10 +268,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="skip the filesystem media-presence check (suppresses missing-media findings)",
     )
+    validate.add_argument(
+        "--require-ids",
+        action="store_true",
+        help="error on entries missing a guid or senses missing an id",
+    )
     validate.set_defaults(func=_cmd_validate)
 
     stats = subparsers.add_parser("stats", help="entry/sense/language counts (streaming)")
     stats.add_argument("path", type=Path, help="a .lift file")
+    stats.add_argument(
+        "--format", choices=("text", "json"), default="text", help="output format (default: text)"
+    )
     stats.set_defaults(func=_cmd_stats)
 
     sort = subparsers.add_parser("sort", help="write a canonically sorted copy")

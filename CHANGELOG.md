@@ -35,8 +35,11 @@ releases may contain breaking changes.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`), `save()` writes companions together,
-  `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers;
-  authored `schemas/lift-ranges-0.13.rng` — the first schema for standalone
+  `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
+  build-from-scratch helpers `Lexicon.add_ranges_file()` /
+  `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
+  header-references a new companion beside the `.lift`); authored
+  `schemas/lift-ranges-0.13.rng` — the first schema for standalone
   ranges documents (spec-faithful, built from the vendored grammar's own
   defines).
 - Validation: `validate_file()` / `iter_problems()` /
@@ -45,7 +48,8 @@ releases may contain breaking changes.
   libxml2 (href masking with `uri-not-rfc` warnings; tag-grouped validation to
   sidestep libxml2's interleave limitation); authored ranges schema over
   companions; semantic checks: duplicate-guid, dangling-ref, range-parent,
-  undefined-range-value (NFC-normalized), duplicate-form-lang, missing-media.
+  undefined-range-value (NFC-normalized), duplicate-form-lang, missing-media,
+  dangling-ranges-href, and (opt-in via `require_ids`) missing-id.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and
@@ -54,16 +58,22 @@ releases may contain breaking changes.
   without rewriting them. Text whitespace is never normalized.
 - Streaming: `open_reader()` (lazy entry iterator with the parsed header
   available up front) and `open_writer()` (header \+ one canonical chunk per
-  entry; byte-identical to `canonical_document` output by construction), both
+  entry; byte-identical to `canonical_document` output by construction, and
+  optionally writing a `.lift-ranges` companion via `ranges=`), both
   over the same `Entry` types as full-document mode and O(one entry) in
   memory (verified on a ~340 MB generated file).
 - The `sil-lift` CLI (stdlib-only, installed via the `[cli]` extra):
   `validate` / `stats` / `sort` / `check-media`, plus `export` — one row per
   leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages
   auto-detected or set with `--langs`. `validate` supports `--format json`
-  (machine-readable findings), `--strict` (warnings become errors), and
-  `--no-check-media` (skip the filesystem media-presence check); its exit
-  codes and JSON schema are a supported interface.
+  (machine-readable findings), `--strict` (warnings become errors),
+  `--no-check-media` (skip the filesystem media-presence check),
+  `--require-ids` (error on entries/senses missing a stable id), and `-` to
+  read from stdin; `stats` also takes `--format json`. `validate`'s exit codes
+  and JSON schema are a supported interface.
+- Container image and GitHub Action wrapping `sil-lift validate`, so a
+  non-Python CI pipeline can run the conformance check with no local Python
+  toolchain (`Dockerfile`, `action.yml`, `docker-entrypoint.sh`).
 - Documentation site: task-oriented guides, the fidelity contract, generated
   API reference, localization-ready configuration; includes a worked example
   ("bulk-editing glosses", complete runnable script with verified output) and

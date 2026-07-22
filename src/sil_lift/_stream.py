@@ -14,12 +14,13 @@ and the header are.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from lxml import etree
 
 from ._errors import LiftParseError
-from ._header import Header
+from ._header import Header, Range
 from ._reader import SUPPORTED_VERSION, _parse_entry, _parse_header
 
 if TYPE_CHECKING:
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from types import TracebackType
 
-    from ._model import Entry
+    from ._model import Entry, RangesFile
 
 __all__ = ["LiftReader", "LiftWriter", "open_reader", "open_writer"]
 
@@ -152,10 +153,22 @@ class LiftWriter:
         *,
         header: Header | None = None,
         producer: str | None = None,
+        ranges: RangesFile | None = None,
     ) -> None:
         from ._model import Lexicon
         from ._writer import _root_open_bytes, canonical_header_bytes
 
+        self._ranges = ranges
+        self._ranges_path: Path | None = None
+        if ranges is not None:
+            companion = Path(path).with_name(Path(path).name + "-ranges")
+            self._ranges_path = companion
+            header = header if header is not None else Header()
+            referenced = {range_.id for range_ in header.ranges}
+            for range_ in ranges.ranges:
+                if range_.id not in referenced:
+                    header.ranges.append(Range(id=range_.id, href=companion.name))
+                    referenced.add(range_.id)
         self._file = open(path, "wb")  # noqa: SIM115 - lifetime managed by close()
         self._closed = False
         prototype = Lexicon(producer=producer)
@@ -174,6 +187,8 @@ class LiftWriter:
             self._closed = True
             self._file.write(b"</lift>\n")
             self._file.close()
+            if self._ranges is not None and self._ranges_path is not None:
+                self._ranges.save(self._ranges_path)
 
     def __enter__(self) -> LiftWriter:
         return self
@@ -201,6 +216,12 @@ def open_writer(
     *,
     header: Header | None = None,
     producer: str | None = None,
+    ranges: RangesFile | None = None,
 ) -> LiftWriter:
-    """Open a ``.lift`` file for streaming writes (O(one entry) memory)."""
-    return LiftWriter(path, header=header, producer=producer)
+    """Open a ``.lift`` file for streaming writes (O(one entry) memory).
+
+    If ``ranges`` is given, its companion ``.lift-ranges`` is written beside
+    ``path`` on clean close, and matching ``<range href>`` references are added
+    to ``header`` (created if absent) so the document points to the companion.
+    """
+    return LiftWriter(path, header=header, producer=producer, ranges=ranges)

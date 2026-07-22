@@ -285,6 +285,15 @@ class RangesFile:
                 return range_
         return None
 
+    def add_range(self, id: str, *, href: str | None = None, guid: str | None = None) -> Range:
+        """Append a new :class:`Range` to this file and return it.
+
+        Populate its values with :meth:`Range.add_element`.
+        """
+        range_ = Range(id=id, href=href, guid=guid)
+        self.ranges.append(range_)
+        return range_
+
     def sort(self) -> None:
         """Sort ranges and their elements into canonical (id) order."""
         from ._canonical import sort_ranges_file
@@ -398,8 +407,12 @@ class Lexicon:
         original_dir = self.path.parent if self.path is not None else None
         target.write_bytes(render_document(self))
         self.path = target
-        for ranges_file in self.ranges_files.values():
-            if ranges_file.path is not None and target.parent != original_dir:
+        for key, ranges_file in self.ranges_files.items():
+            if ranges_file.path is None:
+                # A from-scratch companion (see add_ranges_file): the dict key
+                # is its intended href — write it beside the saved .lift.
+                ranges_file.save(target.parent / Path(key).name)
+            elif target.parent != original_dir:
                 ranges_file.save(target.parent / ranges_file.path.name)
             else:
                 ranges_file.save()
@@ -423,7 +436,7 @@ class Lexicon:
 
         sort_lexicon(self)
 
-    def iter_problems(self) -> Iterator[Problem]:
+    def iter_problems(self, *, require_ids: bool = False) -> Iterator[Problem]:
         """Validate the in-memory state (schema layers + semantic checks).
 
         The schema layers need serialized bytes: what :meth:`save` would
@@ -431,10 +444,14 @@ class Lexicon:
         untouched loaded document those are the source bytes (line numbers
         match the file on disk); otherwise serialization is a documented
         cost on large lexicons.
+
+        With ``require_ids``, entries missing a ``guid`` and senses missing an
+        ``id`` are reported as ``missing-id`` errors — stricter than LIFT (both
+        are optional there), for workflows that re-import by a stable id.
         """
         from ._validate import iter_lexicon_problems
 
-        return iter_lexicon_problems(self)
+        return iter_lexicon_problems(self, require_ids=require_ids)
 
     def all_ranges(self) -> dict[str, Range]:
         """Inline and external ranges, merged by id.
@@ -451,6 +468,29 @@ class Lexicon:
             if range_.elements or range_.id not in merged:
                 merged[range_.id] = range_
         return merged
+
+    def add_ranges_file(self, ranges_file: RangesFile | None = None, *, href: str) -> RangesFile:
+        """Attach a companion ``.lift-ranges`` document so :meth:`save` writes it.
+
+        For every range already in ``ranges_file`` that the header does not
+        list, a ``<range id=... href=...>`` reference is added to the header so
+        LIFT consumers can find the companion. ``href`` is the reference as
+        written in the header — normally a filename beside the ``.lift`` (e.g.
+        ``"mydict.lift-ranges"``); the companion is written next to the saved
+        ``.lift`` under that basename. Populate the companion before calling
+        (or call again to reference ranges added later).
+
+        Returns the attached (or newly created) :class:`RangesFile`.
+        """
+        if ranges_file is None:
+            ranges_file = RangesFile()
+        referenced = {range_.id for range_ in self.header.ranges}
+        for range_ in ranges_file.ranges:
+            if range_.id not in referenced:
+                self.header.ranges.append(Range(id=range_.id, href=href))
+                referenced.add(range_.id)
+        self.ranges_files[Path(href)] = ranges_file
+        return ranges_file
 
     def media_refs(self) -> Iterator[MediaRef]:
         """Every ``<media>`` and ``<illustration>`` reference, with its owner."""

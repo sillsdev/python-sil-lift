@@ -23,7 +23,8 @@ Three layers, all explicit-call (never implicit on load/save):
    dangling ``relation/@ref`` and ``variant/@ref``, ``range-element/@parent``
    integrity, undefined range values (grammatical-info and range-keyed
    traits), duplicate form languages (the RNG's Schematron rule, which lxml
-   ignores), and missing media files.
+   ignores), missing media files, header ``range/@href`` references that
+   resolve to no companion, and — opt-in — entries/senses missing a stable id.
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ from typing import TYPE_CHECKING, Literal
 from lxml import etree
 
 from ._errors import LiftValidationError
-from ._model import Lexicon
+from ._model import Lexicon, _normalize_href
 from ._text import Multitext
 
 if TYPE_CHECKING:
@@ -58,7 +59,8 @@ class Problem:
 
     level: Literal["error", "warning"]
     code: str  # "schema", "duplicate-guid", "dangling-ref", "range-parent",
-    # "undefined-range-value", "duplicate-form-lang", "missing-media", "uri-not-rfc"
+    # "undefined-range-value", "duplicate-form-lang", "missing-media",
+    # "uri-not-rfc", "dangling-ranges-href", "missing-id"
     message: str
     file: Path | None = None
     entry_id: str | None = None
@@ -73,9 +75,13 @@ class Problem:
         return f"{self.level} [{self.code}] {where}{entry}: {self.message}"
 
 
-def iter_problems(path: str | os.PathLike[str]) -> Iterator[Problem]:
-    """All problems in the document and its tracked companions, lazily."""
-    return Lexicon.load(path).iter_problems()
+def iter_problems(path: str | os.PathLike[str], *, require_ids: bool = False) -> Iterator[Problem]:
+    """All problems in the document and its tracked companions, lazily.
+
+    With ``require_ids``, also report entries/senses missing a stable id
+    (``missing-id`` errors); see :meth:`Lexicon.iter_problems`.
+    """
+    return Lexicon.load(path).iter_problems(require_ids=require_ids)
 
 
 def validate_file(path: str | os.PathLike[str]) -> None:
@@ -85,7 +91,7 @@ def validate_file(path: str | os.PathLike[str]) -> None:
             raise LiftValidationError(problem)
 
 
-def iter_lexicon_problems(lexicon: Lexicon) -> Iterator[Problem]:
+def iter_lexicon_problems(lexicon: Lexicon, *, require_ids: bool = False) -> Iterator[Problem]:
     from ._writer import render_document, render_ranges_document
 
     lift_schema = etree.RelaxNG(etree.parse(_SCHEMAS_DIR / "lift-0.13.rng"))
@@ -103,7 +109,7 @@ def iter_lexicon_problems(lexicon: Lexicon) -> Iterator[Problem]:
         rdata = render_ranges_document(ranges_file)
         _, range_problems = _schema_problems(rdata, ranges_schema, ranges_file.path)
         yield from range_problems
-    yield from _semantic_problems(lexicon, entry_lines)
+    yield from _semantic_problems(lexicon, entry_lines, require_ids=require_ids)
 
 
 # --- schema layer ----------------------------------------------------------------
@@ -241,11 +247,38 @@ def _iter_multitexts(obj: object) -> Iterator[tuple[str, Multitext]]:
 def _semantic_problems(
     lexicon: Lexicon,
     entry_lines: list[tuple[int | None, str | None, str | None]],
+    *,
+    require_ids: bool = False,
 ) -> Iterator[Problem]:
     file = lexicon.path
 
     def at(index: int) -> int | None:
         return entry_lines[index][0] if index < len(entry_lines) else None
+
+    # Missing stable ids (opt-in): a guid on every entry, an id on every sense.
+    # Both are optional in LIFT; required only by workflows that re-import by id.
+    if require_ids:
+        for index, entry in enumerate(lexicon.entries):
+            if entry.guid is None:
+                yield Problem(
+                    "error",
+                    "missing-id",
+                    "entry has no guid (needed for re-import by a stable id)",
+                    file=file,
+                    entry_id=entry.id,
+                    line=at(index),
+                )
+            for sense in _iter_senses(entry):
+                if sense.id is None:
+                    yield Problem(
+                        "error",
+                        "missing-id",
+                        "sense has no id (needed for re-import by a stable id)",
+                        file=file,
+                        entry_id=entry.id,
+                        guid=entry.guid,
+                        line=at(index),
+                    )
 
     # Duplicate GUIDs (C# Validator parity case).
     seen_guids: dict[str, int] = {}
@@ -320,6 +353,30 @@ def _semantic_problems(
                     f"range {range_.id!r}: range-element {element.id!r} has "
                     f"parent {element.parent!r} which is not a sibling id",
                     file=file,
+                )
+
+    # Header <range href> references (relative) that resolve to no companion.
+    # Absolute/file:// hrefs are FLEx's dangling-by-design pattern (resolved by
+    # basename when the companion is colocated) and are not judged here; this
+    # catches an exporter that writes a relative href but not the file.
+    if lexicon.path is not None:
+        base = lexicon.path.parent
+        for range_ in lexicon.header.ranges:
+            if not range_.href or range_.elements:
+                continue
+            relative = _normalize_href(range_.href)
+            if relative is None:
+                continue
+            resolved = all_ranges.get(range_.id)
+            if resolved is not None and resolved.elements:
+                continue  # supplied by a sibling companion instead
+            if not (base / relative).is_file():
+                yield Problem(
+                    "warning",
+                    "dangling-ranges-href",
+                    f"header range {range_.id!r} references {range_.href!r} "
+                    "but no companion file was found",
+                    file=lexicon.path,
                 )
 
     # Undefined range values: grammatical-info against the grammatical-info
