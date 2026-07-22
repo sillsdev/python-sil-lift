@@ -6,6 +6,7 @@ from lxml import etree
 
 import sil_lift
 from sil_lift import LiftParseError, RangesFile, Text
+from sil_lift._model import _normalize_href
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 PAIR_DIR = CORPUS_DIR / "ranges"
@@ -192,3 +193,22 @@ def test_missing_media_flags_broken_ref(tmp_path: Path) -> None:
     (tmp_path / "Moma" / "pictures" / "sdd.png").unlink()
     missing = lexicon.missing_media()
     assert [r.href for r in missing] == ["pictures\\sdd.png"]
+
+
+@pytest.mark.parametrize(
+    ("href", "expected"),
+    [
+        ("audio/one.wav", Path("audio/one.wav")),
+        ("pictures\\cultural law.png", Path("pictures/cultural law.png")),
+        ("C:/dir/pic.png", None),
+        ("C:\\dir\\pic.png", None),
+        ("/abs/pic.png", None),
+        ("//server/share/pic.png", None),
+        ("file://C:/x.png", None),
+        ("http://example.com/x.png", None),
+    ],
+)
+def test_normalize_href(href: str, expected: Path | None) -> None:
+    # WeSay backslash+space stays relative; every absolute form (drive-letter,
+    # POSIX, UNC, file://, remote) is refused regardless of host.
+    assert _normalize_href(href) == expected

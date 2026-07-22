@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TYPE_CHECKING
 
 from ._extras import Extras
@@ -315,8 +315,13 @@ def _normalize_href(href: str) -> Path | None:
     """
     if "://" in href or href.startswith(("http:", "https:", "file:")):
         return None
-    path = Path(href.replace("\\", "/"))
-    return None if path.is_absolute() else path
+    normalized = href.replace("\\", "/")
+    # Absolute under either OS convention, independent of the host: PurePosixPath
+    # catches "/abs", PureWindowsPath catches a drive-letter "C:/..." — each
+    # reports the other's form as relative, misjudging hrefs on the opposite host.
+    if PurePosixPath(normalized).is_absolute() or PureWindowsPath(normalized).is_absolute():
+        return None
+    return Path(normalized)
 
 
 class Lexicon:
