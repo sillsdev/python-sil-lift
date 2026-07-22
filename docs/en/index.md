@@ -9,8 +9,7 @@ A Python library for [LIFT](https://github.com/sillsdev/lift-standard) (Lexicon 
 From [PyPI](https://pypi.org/project/sil-lift/):
 
 ```
-pip install sil-lift        # library
-pip install sil-lift[cli]   # library + the sil-lift command
+pip install sil-lift   # library + the sil-lift command
 ```
 
 Requires Python 3.11+. The only runtime dependency is lxml.

@@ -62,7 +62,7 @@ releases may contain breaking changes.
   optionally writing a `.lift-ranges` companion via `ranges=`), both
   over the same `Entry` types as full-document mode and O(one entry) in
   memory (verified on a ~340 MB generated file).
-- The `sil-lift` CLI (stdlib-only, installed via the `[cli]` extra):
+- The `sil-lift` CLI (stdlib-only, installed with the package):
   `validate` / `stats` / `sort` / `check-media`, plus `export` — one row per
   leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages
   auto-detected or set with `--langs`. `validate` supports `--format json`

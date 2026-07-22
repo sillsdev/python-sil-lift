@@ -1,6 +1,6 @@
 # The command line
 
-`pip install sil-lift[cli]` provides the `sil-lift` command — a supported LiftTools-style tool that ships with the package (and, for `validate`, a worked example of the library API).
+Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported LiftTools-style tool that ships with the package (and, for `validate`, a worked example of the library API).
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media]
