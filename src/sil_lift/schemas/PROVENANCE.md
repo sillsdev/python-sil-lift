@@ -9,9 +9,9 @@
 - **Note**: this is the operative LIFT 0.13 grammar. The same content (modulo
   whitespace/comment ordering) is embedded as `lift.rng` in both the spec repo's
   LiftIO and libpalaso's `SIL.Lift/Validation/` and used by the C# `Validator`.
-- **License**: the lift-standard repo has **no license file** (known upstream
-  gap). SIL-internal use; resolve with upstream before any public release of
-  this package.
+- **License**: MIT — `sillsdev/lift-standard` carries a
+  [LICENSE](https://github.com/sillsdev/lift-standard/blob/master/LICENSE)
+  compatible with this package's own MIT license.
 
 ## lift-ranges-0.13.rng
 

@@ -8,22 +8,22 @@ line-ending normalization is disabled for everything under `tests/corpus/`
 Files under `tests/corpus/` retain their upstream licenses (recorded per
 fixture below) and are **not** covered by this repository's MIT license.
 
-**License review (2026-07-17, re-verified against the live repos)**:
-`lift-standard` and `LiftTweaker` still have no license file; `flashgrab`'s
+**License review (2026-07-22, re-verified against the live repos)**:
+`lift-standard` and `LiftTweaker` carry MIT LICENSE files; `flashgrab`'s
 LICENSE reads "Free and open source, under Anki's license" (Anki is
-AGPL-3.0). All three are SIL-authored repos, so carrying their fixtures in
-this SIL repo with provenance is acceptable, but PyPI release artifacts must
-not redistribute them: the sdist excludes `tests/` (pyproject
-`[tool.hatch.build.targets.sdist]`). Open asks, tracked in the planning
-repo: a LICENSE for lift-standard (raised with the ranges-schema offer),
-license clarification or fixture replacement for LiftTweaker's sample.lift,
-and flashgrab license/attribution cleanup.
+AGPL-3.0). All are SIL-authored repos, so carrying their fixtures in this SIL
+repo with provenance is fine. And the sdist excludes `tests/` (pyproject
+`[tool.hatch.build.targets.sdist]`) so release artifacts ship none of them.
+The only required exclusion is for the flashgrab/Moma fixture, whose LICENSE
+ambiguously defers to Anki's AGPL-3.0 (unsafe to bundle in an MIT release).
+flashgrab license/attribution cleanup is the remaining open ask, tracked at
+https://github.com/sillsdev/flashgrab/issues/20.
 
 ## spec-examples/0.12/ — 19 files
 
 - **Source**: `sillsdev/lift-standard` `examples/*.lift`
 - **Commit**: `39a83be083174a40dff5b7bacac86b4f5e68afe4` (master)
-- **License**: none in repo (see flag above)
+- **License**: MIT (see flag above)
 - All are `<lift version="0.12">`, small (≤205 lines). Includes
   `fields any order.lift` (filename with a space — path-handling edge case).
   The upstream `VerifyExamples.proj` (MSBuild/Jing harness) was not taken —
@@ -41,7 +41,7 @@ that script; committed so tests don't depend on regeneration.
 - **Source**: `sillsdev/lift-standard` `LIFTDotNet/LiftIO.Tests/test20080407.lift`
   \+ `.lift-ranges`
 - **Commit**: `39a83be083174a40dff5b7bacac86b4f5e68afe4`
-- **License**: none in repo (see flag above)
+- **License**: MIT (see flag above)
 - The only known `.lift` \+ external `.lift-ranges` sample pair; primary ranges
   fixture. `version="0.13"`, `producer="hand crafted"`.
 
@@ -77,7 +77,7 @@ that script; committed so tests don't depend on regeneration.
 - **Source**: `sillsdev/LiftTweaker` `sample/sample.lift`
 - **Commit**: `b7857369ccca99884c911515b8ad46cd7ba0155c` (HEAD of default branch
   at fetch time)
-- **License**: none in repo (see flag above)
+- **License**: MIT (see flag above)
 - **Note**: this file is `<lift version="0.12">`
   (`producer="SIL.FLEx 2.4.0.39737"`), so `migrate_corpus.py` also produces
   `misc/sample.0.13.lift` from it.
