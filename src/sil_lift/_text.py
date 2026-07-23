@@ -1,11 +1,11 @@
 """The text model: Span, Text, Form, Multitext, plus Trait and Annotation.
 
-``<text>`` is mixed content with recursively nestable ``<span>`` (data-model
-quirk 11), so ``Text`` is structured — an ordered list of ``str | Span``
-fragments — with ``str(...)`` as the flattening escape hatch. ``Multitext`` is
-the "one localized text per language" collection used all over LIFT; ``gloss``
-is form-shaped rather than multitext-shaped (quirk 3), which is why ``Form`` is
-a public type of its own.
+``<text>`` is mixed content with recursively nestable ``<span>``, so ``Text``
+is structured — an ordered list of ``str | Span`` fragments — with
+``str(...)`` as the flattening escape hatch. ``Multitext`` is the "one
+localized text per language" collection used all over LIFT; ``gloss`` is
+form-shaped rather than multitext-shaped, which is why ``Form`` is a public
+type of its own.
 """
 
 from __future__ import annotations

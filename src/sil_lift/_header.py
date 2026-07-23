@@ -2,8 +2,8 @@
 
 The header ``<field tag=...>`` (a field *definition*) is a structurally
 different element from the entry-level ``<field type=...>`` usage variant
-(data-model quirk 1) — hence ``FieldDefinition`` here vs ``Field`` in
-``_model``. None of these elements are extensible.
+— hence ``FieldDefinition`` here vs ``Field`` in ``_model``. None of these
+elements are extensible.
 """
 
 from __future__ import annotations

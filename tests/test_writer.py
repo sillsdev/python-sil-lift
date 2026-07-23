@@ -20,9 +20,9 @@ def _normalize(el: etree._Element) -> None:
     """Make interleave-equivalent documents compare equal.
 
     Outside mixed content: drop ignorable whitespace, then stable-sort children
-    by tag — the RNG uses interleave everywhere (quirk 2), so cross-type sibling
-    order is not semantically significant, while relative order within one tag
-    (a repeated list) is preserved by the stable sort.
+    by tag — the RNG uses interleave everywhere, so cross-type sibling order is
+    not semantically significant, while relative order within one tag (a
+    repeated list) is preserved by the stable sort.
     """
     if el.tag in ("text", "span"):
         return  # everything inside mixed content is significant

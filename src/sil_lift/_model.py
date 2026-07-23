@@ -1,8 +1,8 @@
 """Entry-side model: Entry, Sense, and everything below them, plus Lexicon.
 
 Shapes follow the LIFT 0.13 RNG inventory exactly. Extensibility is a
-three-way split (data-model quirk 4): the eight fully-extensible elements
-derive from ``_Extensible``; the usage ``<field>`` gets the field-less variant
+three-way split: the eight fully-extensible elements derive from
+``_Extensible``; the usage ``<field>`` gets the field-less variant
 ``_ExtensibleNoFields`` (no field-in-field recursion); ``GrammaticalInfo`` is
 the outlier with bare traits only. Typed attributes that fail to parse
 (malformed dates/integers in real-world files) are preserved verbatim in the
@@ -78,7 +78,7 @@ class Field(_ExtensibleNoFields):
 
 @dataclass(slots=True)
 class GrammaticalInfo:
-    """A ``<grammatical-info value=...>``; carries traits only (quirk 4 outlier)."""
+    """A ``<grammatical-info value=...>``; the extensibility outlier — traits only, no fields."""
 
     value: str
     traits: list[Trait] = field(default_factory=list)
@@ -133,7 +133,7 @@ class Relation(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Etymology(_Extensible):
-    """An ``<etymology type=... source=...>``; glosses are form-shaped (quirk 3)."""
+    """An ``<etymology type=... source=...>``; glosses are form-shaped, not multitext-shaped."""
 
     type: str
     source: str
@@ -197,7 +197,7 @@ class Sense(_Extensible):
     subsenses: list[Sense] = field(default_factory=list)
 
     def gloss(self, lang: str) -> Text | None:
-        """The gloss text in ``lang``, or None (first match; quirk-3 helper)."""
+        """The gloss text in ``lang``, or None (first match; glosses are form-shaped)."""
         for gloss_form in self.glosses:
             if gloss_form.lang == lang:
                 return gloss_form.text

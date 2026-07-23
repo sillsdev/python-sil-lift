@@ -6,8 +6,8 @@ attributes/elements, comments, PIs, stray text, malformed typed attributes).
 The only refusals are non-XML input, a non-``<lift>`` root, and a version
 other than 0.13.
 
-Interleave everywhere (data-model quirk 2) means child order is never assumed:
-every parser dispatches children by tag, whatever their order.
+The RNG uses interleave everywhere, so child order is never assumed: every
+parser dispatches children by tag, whatever their order.
 """
 
 from __future__ import annotations
@@ -285,7 +285,7 @@ def _parse_span(el: etree._Element) -> Span:
 
 
 def _parse_form(el: etree._Element) -> Form:
-    """A <form> or (form-shaped, quirk 3) <gloss>."""
+    """A <form> or (form-shaped) <gloss>."""
     form = Form(None)
     attrs = _split_attrs(el, ("lang",), form.extra)
     form.lang = attrs.get("lang")
