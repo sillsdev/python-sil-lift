@@ -210,41 +210,46 @@ def _text_or_empty(text: Text | None) -> str:
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
-    if args.langs:
-        langs: list[str] = [lang.strip() for lang in args.langs.split(",") if lang.strip()]
-    else:
-        detected: set[str] = set()
-        with open_reader(args.path) as reader:
-            for entry in reader:
-                for sense in _iter_leaf_senses(entry.senses):
-                    detected.update(form.lang for form in sense.glosses if form.lang is not None)
-                    detected.update(sense.definition.keys())
-        langs = sorted(detected)
+    from ._zip import lift_source
 
-    header = ["entry_id", "entry_guid", "sense_id", "lexeme", "pos"]
-    for lang in langs:
-        header.extend([f"gloss_{lang}", f"definition_{lang}"])
+    with lift_source(args.path) as lift_path:
+        if args.langs:
+            langs: list[str] = [lang.strip() for lang in args.langs.split(",") if lang.strip()]
+        else:
+            detected: set[str] = set()
+            with open_reader(lift_path) as reader:
+                for entry in reader:
+                    for sense in _iter_leaf_senses(entry.senses):
+                        detected.update(g.lang for g in sense.glosses if g.lang is not None)
+                        detected.update(sense.definition.keys())
+            langs = sorted(detected)
 
-    out_file: TextIO = (
-        sys.stdout if args.output is None else args.output.open("w", encoding="utf-8", newline="")
-    )
-    try:
-        writer = csv.writer(out_file, delimiter="\t" if args.tsv else ",")
-        writer.writerow(header)
-        with open_reader(args.path) as reader:
-            for entry in reader:
-                forms = entry.lexical_unit.forms
-                lexeme = str(forms[0].text) if forms else ""
-                for sense in _iter_leaf_senses(entry.senses):
-                    pos = sense.grammatical_info.value if sense.grammatical_info else ""
-                    row = [entry.id or "", entry.guid or "", sense.id or "", lexeme, pos]
-                    for lang in langs:
-                        row.append(_text_or_empty(sense.gloss(lang)))
-                        row.append(_text_or_empty(sense.definition.get(lang)))
-                    writer.writerow(row)
-    finally:
-        if args.output is not None:
-            out_file.close()
+        header = ["entry_id", "entry_guid", "sense_id", "lexeme", "pos"]
+        for lang in langs:
+            header.extend([f"gloss_{lang}", f"definition_{lang}"])
+
+        out_file: TextIO
+        if args.output is None:
+            out_file = sys.stdout
+        else:
+            out_file = args.output.open("w", encoding="utf-8", newline="")
+        try:
+            writer = csv.writer(out_file, delimiter="\t" if args.tsv else ",")
+            writer.writerow(header)
+            with open_reader(lift_path) as reader:
+                for entry in reader:
+                    forms = entry.lexical_unit.forms
+                    lexeme = str(forms[0].text) if forms else ""
+                    for sense in _iter_leaf_senses(entry.senses):
+                        pos = sense.grammatical_info.value if sense.grammatical_info else ""
+                        row = [entry.id or "", entry.guid or "", sense.id or "", lexeme, pos]
+                        for lang in langs:
+                            row.append(_text_or_empty(sense.gloss(lang)))
+                            row.append(_text_or_empty(sense.definition.get(lang)))
+                        writer.writerow(row)
+        finally:
+            if args.output is not None:
+                out_file.close()
     return 0
 
 
@@ -298,7 +303,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     export = subparsers.add_parser(
         "export", help="flatten senses to CSV/TSV, one row per leaf sense (streaming)"
     )
-    export.add_argument("path", type=Path, help="a .lift file")
+    export.add_argument("path", type=Path, help="a .lift or .zip file")
     export.add_argument("-o", "--output", type=Path, default=None, help="default: stdout")
     export.add_argument(
         "--langs", default=None, help="comma-separated analysis languages (default: auto-detect)"

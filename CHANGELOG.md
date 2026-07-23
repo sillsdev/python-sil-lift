@@ -45,9 +45,10 @@ releases may contain breaking changes.
 - Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
-  package files through verbatim), and the `validate` / `stats` / `check-media`
-  CLI commands accept a `.zip` path. Extraction rejects path-traversal members
-  and is capped (entry count and a 10 GiB uncompressed total) against zip bombs.
+  package files through verbatim); `validate`, `stats`, `check-media`, and
+  `export` accept a `.zip` path on the CLI. Extraction rejects path-traversal
+  members and is capped (entry count and a 10 GiB uncompressed total) against
+  zip bombs.
 - Validation: `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning an addressable `Problem` stream
   (file/entry/line). RELAX NG layer with two documented deviations from raw
@@ -81,7 +82,8 @@ releases may contain breaking changes.
   non-Python CI pipeline can run the conformance check with no local Python
   toolchain (`Dockerfile`, `action.yml`, `docker-entrypoint.sh`).
 - Documentation site: task-oriented guides, the fidelity contract, generated
-  API reference, localization-ready configuration; includes a worked example
-  ("bulk-editing glosses", complete runnable script with verified output) and
+  API reference, localization-ready configuration; includes worked examples
+  ("bulk-editing glosses" and "building a LIFT export from scratch", complete
+  runnable scripts with verified output) and
   a "Differences from the C# libraries" page summarizing where sil-lift
   deviates from SIL.Lift/LiftSorter/Chorus behavior and why.

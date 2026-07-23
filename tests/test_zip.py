@@ -121,6 +121,16 @@ def test_cli_accepts_zip(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     assert "0 missing" in capsys.readouterr().out
 
 
+def test_cli_export_accepts_zip(tmp_path: Path) -> None:
+    full = CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift"
+    package = _make_zip(tmp_path / "pkg.zip", {"full-entry.lift": full}, wrap="Pkg")
+    out = tmp_path / "out.csv"
+    assert main(["export", str(package), "-o", str(out)]) == 0
+    rows = out.read_text(encoding="utf-8").splitlines()
+    assert rows[0].startswith("entry_id,")
+    assert any("abat" in row for row in rows[1:])  # the entry id in full-entry.lift
+
+
 def test_save_zip_roundtrip_wrapped(tmp_path: Path) -> None:
     lex = sil_lift.load(_make_zip(tmp_path / "src.zip", PAIR, wrap="Src"))
     out = tmp_path / "out.zip"

@@ -55,6 +55,7 @@ nav:
   - Ranges and media: guides/folder-media.md
   - Command line: guides/cli.md
   - Producing conformant LIFT: guides/lift-export-interop.md
+  - "Worked example: building a LIFT export": guides/build-export.md
   - "Worked example: bulk-editing glosses": guides/bulk-edit-glosses.md
 - Fidelity guarantees: fidelity.md
 - Differences from the C# libraries: csharp-differences.md
