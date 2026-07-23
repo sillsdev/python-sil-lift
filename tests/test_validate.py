@@ -188,7 +188,10 @@ def test_flex_lift_is_schema_clean_but_companion_is_not() -> None:
     ]
     assert lift_errors == []  # href-masking + tag-grouping make the .lift clean
     assert ranges_errors, "FLEx trait/field in range-element (see PROVENANCE.md)"
-    assert {p.code for p in ranges_errors} == {"schema"}
+    # duplicate-guid: FLEx aliases its POS possibility list under both
+    # "grammatical-info" and "from-part-of-speech" range ids, reusing the
+    # same range-element guids under each (see PROVENANCE.md).
+    assert {p.code for p in ranges_errors} == {"schema", "duplicate-guid"}
 
 
 def test_sango_real_defects_are_found() -> None:
@@ -201,6 +204,10 @@ def test_sango_real_defects_are_found() -> None:
     assert by_code.get("range-parent") == 2
     assert by_code.get("undefined-range-value") == 1
     assert by_code.get("schema", 0) > 0  # companion's trait/field extensions
+    # 37 real duplicate guids: FLEx aliases its POS list under both
+    # "grammatical-info" and "from-part-of-speech" (same range-element guids
+    # under each), and similarly for "Publications"/"do-not-publish-in".
+    assert by_code.get("duplicate-guid") == 37
     assert all(
         p.file is not None and p.file.suffix == ".lift-ranges"
         for p in problems
@@ -257,6 +264,62 @@ def test_duplicate_form_lang_found_in_nested_multitext() -> None:
     lexicon.entries.append(entry)
     problems = [p for p in lexicon.iter_problems() if p.code == "duplicate-form-lang"]
     assert any(p.message.startswith("forms has more than one form") for p in problems)
+
+
+def test_undefined_range_value_found_in_nested_relation_trait() -> None:
+    # Regression: a trait nested inside a <relation> (real FLEx pattern: the
+    # is-primary/complex-form-type traits under a component-lexeme relation,
+    # see PROVENANCE.md) must be checked too, not just entry- and sense-direct
+    # traits.
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    ranges.add_range("complex-form-type").add_element("Compound")
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="77777777-7777-4444-8888-777777777777")
+    entry.lexical_unit["en"] = "e1"
+    relation = sil_lift.Relation(type="_component-lexeme", ref="e1")
+    relation.traits.append(sil_lift.Trait(name="complex-form-type", value="Idiom"))
+    entry.relations.append(relation)
+    lexicon.entries.append(entry)
+    flagged = [p for p in lexicon.iter_problems() if p.code == "undefined-range-value"]
+    assert len(flagged) == 1
+    assert "Idiom" in flagged[0].message
+
+
+def test_undefined_range_value_found_on_reversal_grammatical_info() -> None:
+    # Regression: grammatical-info on a <reversal> (and its main chain) must
+    # be checked too, not just a sense's own grammatical-info.
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    ranges.add_range("grammatical-info").add_element("Noun")
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="aaaaaaaa-1111-4444-8888-aaaaaaaaaaaa")
+    entry.lexical_unit["en"] = "e1"
+    sense = sil_lift.Sense(id="s1")
+    sense.reversals.append(sil_lift.Reversal(grammatical_info=sil_lift.GrammaticalInfo("Verb")))
+    entry.senses.append(sense)
+    lexicon.entries.append(entry)
+    flagged = [p for p in lexicon.iter_problems() if p.code == "undefined-range-value"]
+    assert len(flagged) == 1
+    assert "Verb" in flagged[0].message
+
+
+def test_duplicate_guid_across_range_elements() -> None:
+    # Regression: a guid reused across range-elements (real FLEx pattern:
+    # aliasing one possibility list under two range ids, see PROVENANCE.md)
+    # must be caught too, not just duplicate entry guids.
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    shared_guid = "88888888-8888-4444-8888-888888888888"
+    ranges.add_range("grammatical-info").add_element("Noun", guid=shared_guid)
+    ranges.add_range("from-part-of-speech").add_element("Noun", guid=shared_guid)
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="99999999-9999-4444-8888-999999999999")
+    entry.lexical_unit["en"] = "e1"
+    lexicon.entries.append(entry)
+    flagged = [p for p in lexicon.iter_problems() if p.code == "duplicate-guid"]
+    assert len(flagged) == 1
+    assert shared_guid in flagged[0].message
 
 
 def test_in_memory_lexicon_validation() -> None:

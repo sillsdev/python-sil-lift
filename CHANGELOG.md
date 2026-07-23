@@ -54,9 +54,13 @@ releases may contain breaking changes.
   (file/entry/line). RELAX NG layer with two documented deviations from raw
   libxml2 (href masking with `uri-not-rfc` warnings; tag-grouped validation to
   sidestep libxml2's interleave limitation); authored ranges schema over
-  companions; semantic checks: duplicate-guid, dangling-ref, range-parent,
-  undefined-range-value (NFC-normalized), duplicate-form-lang, missing-media,
-  dangling-ranges-href, and (opt-in via `require_ids`) missing-id.
+  companions; semantic checks: duplicate-guid (entries, and
+  ranges/range-elements within their own document — matching the C#
+  `Validator`'s document-wide guid scan), dangling-ref, range-parent,
+  undefined-range-value (every grammatical-info and range-keyed trait
+  reachable from an entry, however nested \+ NFC-normalized),
+  duplicate-form-lang, missing-media, dangling-ranges-href, and (opt-in via
+  `require_ids`) missing-id.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and

@@ -138,6 +138,20 @@ hrefs, which pass). `tests/test_corpus.py` locks in both lists.
    `ranges/test20080407.lift-ranges` validates. Carried losslessly in
    `Extras`; same implication as the anyURI quirk.
 
+## Known semantic ``duplicate-guid`` findings in real fixtures
+
+Both real FLEx `.lift-ranges` companions (`flex/AllFLExFields/AllFLExFields.lift-ranges`,
+`large/sango/sango.lift-ranges`) genuinely reuse the same `guid` under two
+different range names: FLEx aliases its part-of-speech possibility list under
+both `grammatical-info` and `from-part-of-speech` (identical range-element ids
+and guids under each), and separately aliases a custom list under both
+`Publications`/`do-not-publish-in` (same range guid). This is a real defect by
+LIFT's own rules — the RNG never declares `guid` unique, but the C# `Validator`
+(`GetDuplicateGuidErrors`) scans every element's `guid` attribute in a document
+with one `HashSet` and would flag this too — so sil-lift's `duplicate-guid`
+check reports it as an error, matching that behavior. `tests/test_validate.py`
+locks in the exact counts found (5 in AllFLExFields, 37 in Sango).
+
 ## generated/ — synthetic large files (not committed)
 
 Produced by `tests/tools/generate_large.py` for streaming/perf tests;

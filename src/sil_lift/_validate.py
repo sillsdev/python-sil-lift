@@ -20,12 +20,14 @@ Three layers, all explicit-call (never implicit on load/save):
      left untouched.
 2. The project-authored ``lift-ranges-0.13.rng`` over each tracked
    ``.lift-ranges`` companion.
-3. Semantic checks the grammar cannot express: duplicate entry GUIDs,
-   dangling ``relation/@ref`` and ``variant/@ref``, ``range-element/@parent``
-   integrity, undefined range values (grammatical-info and range-keyed
-   traits), duplicate form languages (the RNG's Schematron rule, which lxml
-   ignores), missing media files, header ``range/@href`` references that
-   resolve to no companion, and — opt-in — entries/senses missing a stable id.
+3. Semantic checks the grammar cannot express: duplicate GUIDs (entries, and
+   ranges/range-elements within their own document), dangling ``relation/@ref``
+   and ``variant/@ref``, ``range-element/@parent`` integrity, undefined range
+   values (every grammatical-info and range-keyed trait anywhere in the entry,
+   however deeply nested), duplicate form languages (the RNG's Schematron
+   rule, which lxml ignores), missing media files, header ``range/@href``
+   references that resolve to no companion, and — opt-in — entries/senses
+   missing a stable id.
 """
 
 from __future__ import annotations
@@ -38,8 +40,8 @@ from typing import TYPE_CHECKING, Literal
 from lxml import etree
 
 from ._errors import LiftValidationError
-from ._model import Lexicon, _normalize_href
-from ._text import Multitext
+from ._model import GrammaticalInfo, Lexicon, _normalize_href
+from ._text import Multitext, Trait
 
 if TYPE_CHECKING:
     import os
@@ -245,6 +247,44 @@ def _iter_multitexts(obj: object) -> Iterator[tuple[str, Multitext]]:
         yield from _iter_multitexts(value)
 
 
+def _iter_traits(obj: object) -> Iterator[Trait]:
+    """Every ``Trait`` reachable from ``obj``, generic over the model shape.
+
+    Traits are not just entry/sense-direct: real FLEx exports nest them inside
+    ``<relation>`` (``is-primary``, ``complex-form-type``), ``<variant>``
+    (``morph-type``), ``<pronunciation>``, and other extensible elements —
+    walking the dataclass tree (mirrors ``_iter_multitexts``) catches all of
+    them instead of only the two levels a hand-written traversal would name.
+    """
+    if isinstance(obj, Trait):
+        yield obj
+        return
+    if isinstance(obj, list):
+        for item in obj:
+            yield from _iter_traits(item)
+        return
+    if not is_dataclass(obj) or isinstance(obj, type):
+        return
+    for f in fields(obj):
+        yield from _iter_traits(getattr(obj, f.name))
+
+
+def _iter_grammatical_infos(obj: object) -> Iterator[GrammaticalInfo]:
+    """Every ``GrammaticalInfo`` reachable from ``obj`` (sense, reversal, and
+    reversal ``main`` chains all carry one)."""
+    if isinstance(obj, GrammaticalInfo):
+        yield obj
+        return
+    if isinstance(obj, list):
+        for item in obj:
+            yield from _iter_grammatical_infos(item)
+        return
+    if not is_dataclass(obj) or isinstance(obj, type):
+        return
+    for f in fields(obj):
+        yield from _iter_grammatical_infos(getattr(obj, f.name))
+
+
 def _semantic_problems(
     lexicon: Lexicon,
     entry_lines: list[tuple[int | None, str | None, str | None]],
@@ -281,23 +321,58 @@ def _semantic_problems(
                         line=at(index),
                     )
 
-    # Duplicate GUIDs (C# Validator parity case).
-    seen_guids: dict[str, int] = {}
-    for index, entry in enumerate(lexicon.entries):
-        if entry.guid is None:
-            continue
-        if entry.guid in seen_guids:
-            yield Problem(
-                "error",
-                "duplicate-guid",
-                f"guid {entry.guid} already used by entry index {seen_guids[entry.guid]}",
-                file=file,
-                entry_id=entry.id,
-                guid=entry.guid,
-                line=at(index),
-            )
-        else:
-            seen_guids[entry.guid] = index
+    # Duplicate GUIDs (C# Validator parity case): Validator.GetDuplicateGuidErrors
+    # scans every element's guid attribute in the document being validated, not
+    # just entries -- the RNG also allows one on <range> and <range-element>.
+    # Scope is per rendered document, matching that per-file scan: the .lift
+    # (entries plus any inline header ranges/range-elements) is one scope, and
+    # each .lift-ranges companion (its own ranges/range-elements) is another.
+    def _range_guids(
+        ranges: list[Range],
+    ) -> Iterator[tuple[str, str, str | None, int | None]]:
+        for range_ in ranges:
+            if range_.guid is not None:
+                yield f"range {range_.id!r}", range_.guid, None, None
+            for element in range_.elements:
+                if element.guid is not None:
+                    yield (
+                        f"range-element {element.id!r} (range {range_.id!r})",
+                        element.guid,
+                        None,
+                        None,
+                    )
+
+    def _duplicate_guid_problems(
+        pairs: Iterator[tuple[str, str, str | None, int | None]], doc_file: Path | None
+    ) -> Iterator[Problem]:
+        first_seen: dict[str, str] = {}
+        for label, guid, entry_id, line in pairs:
+            if guid in first_seen:
+                yield Problem(
+                    "error",
+                    "duplicate-guid",
+                    f"guid {guid} already used by {first_seen[guid]}",
+                    file=doc_file,
+                    entry_id=entry_id,
+                    guid=guid,
+                    line=line,
+                )
+            else:
+                first_seen[guid] = label
+
+    def _entry_guids() -> Iterator[tuple[str, str, str | None, int | None]]:
+        for index, entry in enumerate(lexicon.entries):
+            if entry.guid is not None:
+                label = f"entry {entry.id!r}" if entry.id else f"entry #{index}"
+                yield label, entry.guid, entry.id, at(index)
+
+    def _main_doc_guids() -> Iterator[tuple[str, str, str | None, int | None]]:
+        yield from _entry_guids()
+        yield from _range_guids(lexicon.header.ranges)
+
+    yield from _duplicate_guid_problems(_main_doc_guids(), file)
+    for ranges_file in lexicon.ranges_files.values():
+        yield from _duplicate_guid_problems(_range_guids(ranges_file.ranges), ranges_file.path)
 
     # Dangling refs: relation/@ref and variant/@ref may target an entry id,
     # an entry guid, or a sense id (FLEx does all three).
@@ -380,11 +455,16 @@ def _semantic_problems(
                     file=lexicon.path,
                 )
 
-    # Undefined range values: grammatical-info against the grammatical-info
-    # range; traits whose name matches a known range. Only ranges that
-    # actually enumerate elements can vouch for values; empty values skipped
-    # (FLEx writes them). Comparison is NFC-normalized: FLEx writes the .lift
-    # in NFC but the companion .lift-ranges in NFD within the same export.
+    # Undefined range values: every grammatical-info (sense, reversal, and
+    # reversal main chains) against the grammatical-info range; every trait
+    # anywhere in the entry whose name matches a known range — not just
+    # entry- and sense-direct ones, since real FLEx exports nest traits like
+    # is-primary/complex-form-type inside <relation> and morph-type inside
+    # <variant> (_iter_traits/_iter_grammatical_infos walk the whole entry).
+    # Only ranges that actually enumerate elements can vouch for values;
+    # empty values skipped (FLEx writes them). Comparison is NFC-normalized:
+    # FLEx writes the .lift in NFC but the companion .lift-ranges in NFD
+    # within the same export.
     def nfc(value: str) -> str:
         return unicodedata.normalize("NFC", value)
 
@@ -397,15 +477,10 @@ def _semantic_problems(
     grammatical_values = defined("grammatical-info")
     for index, entry in enumerate(lexicon.entries):
         checks: list[tuple[str, str, set[str]]] = []  # (label, value, allowed)
-        for sense in _iter_senses(entry):
-            info = sense.grammatical_info
-            if info is not None and info.value and grammatical_values is not None:
+        for info in _iter_grammatical_infos(entry):
+            if info.value and grammatical_values is not None:
                 checks.append(("grammatical-info", info.value, grammatical_values))
-            for trait in sense.traits:
-                allowed = defined(trait.name)
-                if allowed is not None and trait.value:
-                    checks.append((f"trait {trait.name!r}", trait.value, allowed))
-        for trait in entry.traits:
+        for trait in _iter_traits(entry):
             allowed = defined(trait.name)
             if allowed is not None and trait.value:
                 checks.append((f"trait {trait.name!r}", trait.value, allowed))
