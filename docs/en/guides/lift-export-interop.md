@@ -8,7 +8,7 @@ Writing LIFT is much easier than parsing it: an exporter only emits the subset o
 
 LIFT is usually moved around as a single `.zip` — FieldWorks and The Combine both import and export that way — so `sil-lift` reads and writes zipped packages directly, in either layout the ecosystem uses: the files at the archive root, or nested under one top-level folder.
 
-- **Read:** `sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual). The `validate`, `stats`, and `check-media` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is. Extraction is hardened against hostile archives — path-traversal members are refused, and the entry count and total uncompressed size (10 GiB) are capped against zip bombs.
+- **Read:** `sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual). The `validate`, `stats`, `check-media`, and `export` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is. Extraction is hardened against hostile archives — path-traversal members are refused, and the entry count and total uncompressed size (10 GiB) are capped against zip bombs.
 - **Write:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip. `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
 
 The `.lift` and `.lift-ranges` keep their byte-fidelity inside the package; the zip container itself is not byte-reproducible.

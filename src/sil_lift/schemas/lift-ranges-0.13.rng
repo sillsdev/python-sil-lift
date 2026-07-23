@@ -3,10 +3,10 @@
   RELAX NG grammar for standalone .lift-ranges documents (LIFT 0.13).
 
   Authored by the sil-lift project: the LIFT 0.13 grammar has no root element
-  for a ranges-only document, yet FieldWorks/WeSay write them routinely. The
-  <define> blocks below are copied verbatim from lift-0.13.rng (see
-  PROVENANCE.md in this directory) so the content model is exactly the spec's;
-  only the <lift-ranges> root is new.
+  for a ranges-only document, yet FieldWorks and The Combine write them
+  routinely. The <define> blocks below are copied verbatim from lift-0.13.rng
+  (see PROVENANCE.md in this directory) so the content model is exactly the
+  spec's; only the <lift-ranges> root is new.
 -->
 <grammar datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
          xmlns="http://relaxng.org/ns/structure/1.0"

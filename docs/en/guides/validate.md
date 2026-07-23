@@ -26,7 +26,7 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion.
 3. **Semantic checks** the grammar cannot express: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
-## Real-world FLEx output
+## Real-world FieldWorks (FLEx) output
 
 FieldWorks systematically writes some content that strict tooling rejects. Here is sil-lift's policy, so that real lexicons validate usefully:
 

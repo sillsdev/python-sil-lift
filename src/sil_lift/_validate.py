@@ -6,10 +6,11 @@ Three layers, all explicit-call (never implicit on load/save):
    deviations from raw libxml2 behavior:
 
    - ``href`` attributes are masked before validation. libxml2's ``anyURI``
-     check rejects the ``file://C:/...`` URIs that FLEx systematically writes
-     (the C# validator's engine never enforced anyURI), which would flag
-     virtually every real lexicon. Instead, sil-lift runs its own URI
-     plausibility check and reports offenders as *warnings* (``uri-not-rfc``).
+     check rejects the ``file://C:/...`` URIs that FieldWorks (FLEx)
+     systematically writes (the C# validator's engine never enforced anyURI),
+     which would flag virtually every real lexicon. Instead, sil-lift runs its
+     own URI plausibility check and reports offenders as *warnings*
+     (``uri-not-rfc``).
    - children are grouped by tag before validation. libxml2's interleave
      support rejects legally-interleaved documents once an element type
      appears in more than one run (e.g. ``field, note, field, note`` inside a

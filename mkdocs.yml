@@ -28,6 +28,12 @@ plugins:
         paths: [ src ]
 - search
 
+markdown_extensions:
+- admonition
+- toc:
+    permalink: "🔗"
+    permalink_title: "Link to this section"
+
 extra:
   social:
   - icon: fontawesome/solid/globe
