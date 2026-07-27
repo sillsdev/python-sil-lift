@@ -18,8 +18,8 @@ Three layers, all explicit-call (never implicit on load/save):
      semantics-preserving here: every content model in the LIFT grammar is
      interleave-based except the root's (header before entries), which is
      left untouched.
-2. The project-authored ``lift-ranges-0.13.rng`` over each tracked
-   ``.lift-ranges`` companion.
+2. The vendored ``lift-ranges-0.13.rng`` over each tracked ``.lift-ranges``
+   companion.
 3. Semantic checks the grammar cannot express: duplicate GUIDs (entries, and
    ranges/range-elements within their own document), dangling ``relation/@ref``
    and ``variant/@ref``, ``range-element/@parent`` integrity, undefined range

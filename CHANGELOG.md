@@ -38,10 +38,9 @@ releases may contain breaking changes.
   `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
   build-from-scratch helpers `Lexicon.add_ranges_file()` /
   `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
-  header-references a new companion beside the `.lift`); authored
+  header-references a new companion beside the `.lift`); vendored
   `schemas/lift-ranges-0.13.rng` — the first schema for standalone
-  ranges documents (spec-faithful, built from the vendored grammar's own
-  defines).
+  ranges documents.
 - Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
@@ -53,7 +52,7 @@ releases may contain breaking changes.
   `Lexicon.iter_problems()` returning an addressable `Problem` stream
   (file/entry/line). RELAX NG layer with two documented deviations from raw
   libxml2 (href masking with `uri-not-rfc` warnings; tag-grouped validation to
-  sidestep libxml2's interleave limitation); authored ranges schema over
+  sidestep libxml2's interleave limitation); vendored ranges schema over
   companions; semantic checks: duplicate-guid (entries, and
   ranges/range-elements within their own document — matching the C#
   `Validator`'s document-wide guid scan), dangling-ref, range-parent,

@@ -157,7 +157,7 @@ def test_ranges_file_version_guard() -> None:
         RangesFile.load(PAIR_DIR / "test20080407.lift")  # a .lift is not a ranges doc
 
 
-def test_authored_ranges_schema_is_loadable_and_spec_faithful() -> None:
+def test_ranges_schema_is_loadable_and_spec_faithful() -> None:
     schema_path = Path(sil_lift.__file__).parent / "schemas" / "lift-ranges-0.13.rng"
     schema = etree.RelaxNG(etree.parse(schema_path))
     assert schema.validate(etree.parse(PAIR_DIR / "test20080407.lift-ranges"))
