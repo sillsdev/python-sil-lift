@@ -14,6 +14,7 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 
 - the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
 - the source contains a DOCTYPE, or
+- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
 - the source was built in memory rather than loaded from a file.
 
 ## Saving an edited document
@@ -26,3 +27,4 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 
 - Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
 - Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
+- A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.

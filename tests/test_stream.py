@@ -33,6 +33,26 @@ def test_open_writer_emits_ranges_companion(tmp_path: Path) -> None:
     assert list(reloaded.iter_problems()) == []
 
 
+def test_open_writer_leaves_a_supplied_header_alone(tmp_path: Path) -> None:
+    source = sil_lift.load(CORPUS_DIR / "ranges" / "test20080407.lift")
+    (ranges,) = source.ranges_files.values()
+    ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2")
+    before = [(r.id, r.href) for r in source.header.ranges]
+    assert "semantic-domain-ddp4" not in [r.id for r in source.header.ranges]
+
+    with open_writer(tmp_path / "stream.lift", header=source.header, ranges=ranges) as writer:
+        for entry in source.entries:
+            writer.write(entry)
+
+    # The new reference belongs to the written document, not to the source's
+    # header — that companion sits beside stream.lift, not beside the original.
+    assert [(r.id, r.href) for r in source.header.ranges] == before
+    written = sil_lift.load(tmp_path / "stream.lift", resolve_ranges=False)
+    assert ("semantic-domain-ddp4", "stream.lift-ranges") in [
+        (r.id, r.href) for r in written.header.ranges
+    ]
+
+
 @pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
 def test_streaming_parse_equals_full_parse(path: Path) -> None:
     full = sil_lift.load(path, resolve_ranges=False)

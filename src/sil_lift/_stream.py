@@ -14,6 +14,7 @@ and the header are.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -163,7 +164,10 @@ class LiftWriter:
         if ranges is not None:
             companion = Path(path).with_name(Path(path).name + "-ranges")
             self._ranges_path = companion
-            header = header if header is not None else Header()
+            # The references describe *this* document, so they go on a copy: a
+            # caller-supplied header (typically reader.header) is often still in
+            # use for the source lexicon, which has no such companion beside it.
+            header = replace(header, ranges=list(header.ranges)) if header is not None else Header()
             referenced = {range_.id for range_ in header.ranges}
             for range_ in ranges.ranges:
                 if range_.id not in referenced:

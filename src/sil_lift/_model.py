@@ -324,6 +324,21 @@ def _normalize_href(href: str) -> Path | None:
     return Path(normalized)
 
 
+def _same_dir(left: Path, right: Path | None) -> bool:
+    """Whether two paths denote the same directory, spelling aside.
+
+    ``Path`` equality is textual, so a relative target and an absolute load
+    path compare unequal even when they name one directory; resolving first
+    also collapses ``..`` and symlinks.
+    """
+    if right is None:
+        return False
+    try:
+        return left.resolve() == right.resolve()
+    except OSError:
+        return left == right
+
+
 class Lexicon:
     """The root handle: a parsed ``.lift`` document and its folder companions."""
 
@@ -432,12 +447,13 @@ class Lexicon:
         original_dir = self.path.parent if self.path is not None else None
         target.write_bytes(render_document(self))
         self.path = target
+        relocating = not _same_dir(target.parent, original_dir)
         for key, ranges_file in self.ranges_files.items():
             if ranges_file.path is None:
                 # A from-scratch companion (see add_ranges_file): the dict key
                 # is its intended href — write it beside the saved .lift.
                 ranges_file.save(target.parent / Path(key).name)
-            elif target.parent != original_dir:
+            elif relocating:
                 ranges_file.save(target.parent / ranges_file.path.name)
             else:
                 ranges_file.save()

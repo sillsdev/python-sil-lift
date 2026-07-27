@@ -89,6 +89,36 @@ def test_save_to_new_directory_carries_companions(tmp_path: Path) -> None:
     assert set(lexicon.ranges_files) == {(target_dir / "test20080407.lift-ranges").resolve()}
 
 
+def test_save_to_the_same_directory_spelled_differently_keeps_companions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A relative target naming the load directory is not a relocation.
+
+    The companion lives in a subfolder, so a spurious relocation would fork it:
+    the edit would land beside the .lift while the header href still points at
+    the now-stale original.
+    """
+    subfolder = tmp_path / "sub"
+    subfolder.mkdir()
+    (tmp_path / "dict.lift").write_bytes(
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<lift version="0.13"><header><ranges>'
+        b'<range id="grammatical-info" href="sub/shared.lift-ranges"/>'
+        b"</ranges></header></lift>\n"
+    )
+    shutil.copy(PAIR_DIR / "test20080407.lift-ranges", subfolder / "shared.lift-ranges")
+
+    lexicon = sil_lift.load(tmp_path / "dict.lift")
+    (ranges_file,) = lexicon.ranges_files.values()
+    ranges_file.ranges[0].elements[0].label["en"] = Text(["edited"])
+    monkeypatch.chdir(tmp_path)
+    lexicon.save("dict.lift")
+
+    assert not (tmp_path / "shared.lift-ranges").exists()
+    assert b"edited" in (subfolder / "shared.lift-ranges").read_bytes()
+    assert set(lexicon.ranges_files) == {(subfolder / "shared.lift-ranges").resolve()}
+
+
 def test_ranges_edit_saves_back_to_the_right_file(tmp_path: Path) -> None:
     lift_path = _copy_pair(SANGO_DIR, "sango", tmp_path)
     lexicon = sil_lift.load(lift_path)
