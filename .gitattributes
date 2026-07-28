@@ -1,0 +1,13 @@
+# Normalize line endings for source files.
+* text=auto
+
+# Shell scripts must keep LF endings so they run in the Linux container even
+# when checked out on Windows (a CRLF shebang breaks the entrypoint).
+*.sh text eol=lf
+
+# Fidelity-critical payloads: corpus fixtures and vendored schemas/XSLTs must be
+# stored byte-for-byte as fetched — git must never touch their line endings
+# (byte-identity round-trip tests depend on this).
+tests/corpus/** -text
+src/sil_lift/schemas/*.rng -text
+tests/tools/xslt/* -text

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): a range-element's parent attribute
+     references a non-existent sibling id ("Nooun" vs "Noun").
+     Expected: error range-parent. Schema-valid otherwise. -->
+<lift version="0.13">
+<header>
+<ranges>
+<range id="grammatical-info">
+<range-element id="Noun"/>
+<range-element id="ProperNoun" parent="Nooun"/>
+</range>
+</ranges>
+</header>
+<entry id="one">
+<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+</entry>
+</lift>

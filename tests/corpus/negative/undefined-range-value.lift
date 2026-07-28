@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): a grammatical-info value and a
+     range-keyed trait value that the (inline) ranges do not define.
+     Expected: two warnings undefined-range-value on entry "one";
+     entry "two" uses defined values and must be clean. -->
+<lift version="0.13">
+<header>
+<ranges>
+<range id="grammatical-info">
+<range-element id="Noun"/>
+</range>
+<range id="dialect">
+<range-element id="north"/>
+</range>
+</ranges>
+</header>
+<entry id="one">
+<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+<trait name="dialect" value="south"/>
+<sense>
+<grammatical-info value="Klingon"/>
+</sense>
+</entry>
+<entry id="two">
+<lexical-unit><form lang="en"><text>two</text></form></lexical-unit>
+<trait name="dialect" value="north"/>
+<sense>
+<grammatical-info value="Noun"/>
+</sense>
+</entry>
+</lift>

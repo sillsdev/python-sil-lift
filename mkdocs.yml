@@ -1,0 +1,68 @@
+site_name: sil-lift
+site_description: >-
+  Read, write, and validate LIFT (Lexicon Interchange Format) 0.13 lexicons.
+site_url: https://sillsdev.github.io/python-sil-lift/
+repo_url: https://github.com/sillsdev/python-sil-lift
+edit_uri: edit/main/docs/
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+  - content.action.edit
+  - content.code.copy
+  - navigation.sections
+
+plugins:
+- i18n:
+    docs_structure: folder
+    fallback_to_default: true
+    languages:
+    - locale: en
+      name: English
+      default: true
+      build: true
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [ src ]
+- search
+
+markdown_extensions:
+- admonition
+- toc:
+    permalink: "🔗"
+    permalink_title: "Link to this section"
+
+extra:
+  social:
+  - icon: fontawesome/solid/globe
+    link: https://software.sil.org/
+    name: SIL Language Software
+  - icon: fontawesome/brands/github
+    link: https://github.com/sillsdev
+    name: sillsdev on GitHub
+  - icon: fontawesome/brands/discourse
+    link: https://community.software.sil.org/c/other/
+    name: SIL software community forum
+  - icon: fontawesome/brands/vimeo
+    link: https://vimeo.com/lingtransoft
+    name: SIL Language Technology on Vimeo
+  - icon: fontawesome/brands/linkedin
+    link: https://www.linkedin.com/showcase/sil-language-technology/
+    name: SIL Language Technology on LinkedIn
+
+nav:
+- Home: index.md
+- Guides:
+  - Read, edit, write: guides/read-edit-write.md
+  - Validate: guides/validate.md
+  - Large files: guides/large-files.md
+  - Ranges and media: guides/folder-media.md
+  - Command line: guides/cli.md
+  - Producing conformant LIFT: guides/lift-export-interop.md
+  - "Worked example: building a LIFT export": guides/build-export.md
+  - "Worked example: bulk-editing glosses": guides/bulk-edit-glosses.md
+- Fidelity guarantees: fidelity.md
+- Differences from the C# libraries: csharp-differences.md
+- API reference: reference.md

@@ -1,0 +1,27 @@
+name: Container
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Build image
+        run: docker build -t sil-lift:ci .
+      - name: Smoke test
+        run: |
+          tmp="$(mktemp -d)"
+          cat > "$tmp/smoke.lift" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <lift version="0.13"><entry id="e1"><lexical-unit><form lang="en"><text>x</text></form></lexical-unit></entry></lift>
+          EOF
+          cd "$tmp"
+          docker run --rm -v "$PWD:/work" -w /work sil-lift:ci validate smoke.lift --format json

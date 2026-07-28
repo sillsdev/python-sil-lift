@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+  <!--
+  \lx brush
+  \ps n
+  \ge bristly_instrument
+  \de bristly instrument used for cleaning, arranging or applying 
+  a liquid to something
+  \se hairbrush
+  \ps n
+  \de kind of brush typically with stiff one inch long bristles
+  loosely spaced arranged perpendicularly to the handle
+  for rearranging hair
+  \se paintbrush
+  \ps n
+  \de kind of brush of varying sizes and varying lengths and
+  textures of bristles arranged as an extension of the handle used
+  to apply paint and similar materials
+  -->
+  <entry id="brush">
+    <lexical-unit>
+      <form lang="en">
+        <text>brush</text>
+      </form>
+    </lexical-unit>
+    <sense id="brush_">
+      <grammatical-info value="n"/>
+      <gloss lang="en">
+        <text>bristly instrument</text>
+      </gloss>
+      <definition>
+        <form lang="en">
+          <text>
+            bristly instrument used for cleaning, arranging or
+            applying a liquid to something
+          </text>
+        </form>
+      </definition>
+      <relation type="subentry" ref="hairbrush"/>
+      <relation type="subentry" ref="paintbrush"/>
+    </sense>
+  </entry>
+  <entry id="hairbrush">
+    <lexical-unit>
+      <form lang="en">
+        <text>hairbrush</text>
+      </form>
+    </lexical-unit>
+    <sense id="hairbrush_">
+      <grammatical-info value="n"/>
+      <definition>
+        <form lang="en">
+          <text>
+            kind of brush typically with stiff one inch long
+            bristles loosely spaced arranged perpendicularly to the
+            handle for rearranging hair
+          </text>
+        </form>
+      </definition>
+    </sense>
+  </entry>
+  <entry id="paintbrush">
+    <lexical-unit>
+      <form lang="en">
+        <text>paintbrush</text>
+      </form>
+    </lexical-unit>
+    <sense id="paintbrush_">
+      <grammatical-info value="n"/>
+      <definition>
+        <form lang="en">
+          <text>
+            kind of brush of varying sizes and varying lengths
+            and textures of bristles arranged as an extension of the
+            handle used to apply paint and similar materials
+          </text>
+        </form>
+      </definition>
+    </sense>
+  </entry>
+</lift>

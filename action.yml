@@ -1,0 +1,27 @@
+name: "sil-lift validate"
+description: >-
+  Validate a LIFT (Lexicon Interchange Format) lexicon file with sil-lift --
+  no Python toolchain required.
+inputs:
+  path:
+    description: "Path to the .lift file to validate, relative to the workspace."
+    required: true
+  format:
+    description: "Output format: text or json."
+    required: false
+    default: "text"
+  strict:
+    description: "Treat warnings as errors (exit 1 if any are found)."
+    required: false
+    default: "false"
+  no-check-media:
+    description: "Skip the filesystem media-presence check."
+    required: false
+    default: "false"
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  entrypoint: "/docker-entrypoint.sh"
+branding:
+  icon: "check-circle"
+  color: "green"

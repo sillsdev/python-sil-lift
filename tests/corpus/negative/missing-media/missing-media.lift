@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): media and illustration hrefs whose
+     files do not exist in this folder. Expected: two warnings missing-media. -->
+<lift version="0.13">
+<entry id="one">
+<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+<pronunciation>
+<form lang="en"><text>wan</text></form>
+<media href="none.wav"/>
+</pronunciation>
+<sense id="s1">
+<illustration href="gone.png"/>
+</sense>
+</entry>
+</lift>

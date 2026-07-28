@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<lift version="0.12">
+  <entry id="srapa">
+    <lexical-unit>
+      <form lang="zxx-Latn">
+        <text>srapa</text>
+        <annotation name="flag" value="true"/>
+      </form>
+    </lexical-unit>
+    <sense id="srapa_">
+      <grammatical-info value="vt"/>
+      <gloss lang="en">
+        <annotation name="confidence" value="high"/>
+        <text>slap</text>
+        <annotation name="flag" value="true"/>
+      </gloss>
+      <definition>
+        <form lang="en">
+          <text>slap with open hand</text>
+        </form>
+      </definition>
+    </sense>
+  </entry>
+</lift>

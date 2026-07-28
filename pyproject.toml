@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sil-lift"
+dynamic = ["version"]
+description = "Read, write, and validate LIFT (Lexicon Interchange Format) 0.13 lexicon files"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "SIL Global" }]
+keywords = [
+  "LIFT",
+  "lexicon",
+  "lexicography",
+  "linguistics",
+  "dictionary",
+  "FieldWorks",
+  "FLEx",
+  "SIL",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Text Processing :: Linguistic",
+  "Typing :: Typed",
+]
+dependencies = ["lxml>=5.0"]
+
+[project.urls]
+Documentation = "https://sillsdev.github.io/python-sil-lift/"
+Repository = "https://github.com/sillsdev/python-sil-lift"
+Changelog = "https://github.com/sillsdev/python-sil-lift/blob/main/CHANGELOG.md"
+Issues = "https://github.com/sillsdev/python-sil-lift/issues"
+Forum = "https://community.software.sil.org/c/other/"
+
+[project.scripts]
+sil-lift = "sil_lift._cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6",
+  "lxml-stubs>=0.5",
+  "pytest>=8",
+  "pytest-cov>=5",
+  # Pin mypy, ruff: new releases change behavior and break CI; bump deliberately.
+  "mypy==2.3.0",
+  "ruff==0.15.21",
+]
+docs = [
+  "mkdocs-material>=9",
+  "mkdocs-static-i18n>=1.2",
+  "mkdocstrings[python]>=0.27",
+]
+
+[tool.hatch.version]
+path = "src/sil_lift/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+# The test corpus contains third-party fixtures whose upstream licensing is
+# not distribution-clean (see tests/corpus/PROVENANCE.md); release artifacts
+# must not redistribute them. Develop from the git repo to run the tests.
+exclude = ["/tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sil_lift"]
+
+[tool.ruff]
+line-length = 100
+src = ["scripts", "src", "tests"]
+
+[tool.ruff.lint]
+select = ["B", "C4", "E", "F", "I", "RUF", "SIM", "UP", "W"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["scripts", "src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

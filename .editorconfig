@@ -1,0 +1,33 @@
+# https://editorconfig.org — VS Code needs the EditorConfig extension;
+# JetBrains/Vim honor this natively. Python style itself is owned by ruff.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{md,toml,yml,yaml}]
+indent_size = 2
+indent_style = space
+
+[*.md]
+max_line_length = 80
+# Trailing whitespace is meaningful in Markdown (hard line breaks).
+trim_trailing_whitespace = false
+
+# MkDocs source tree.
+[docs/**.md]
+# List sub-items require 4-space indentation.
+indent_size = 4
+# Hard-wrapped prose gets in the way of Crowdin translation.
+max_line_length = unset
+
+# Byte-exact payloads (mirrors the .gitattributes exemptions): editors must
+# never "fix" these — the fidelity tests depend on the exact bytes.
+[{src/sil_lift/schemas/**,tests/corpus/**,tests/tools/xslt/**}]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
