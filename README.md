@@ -1,7 +1,7 @@
 # sil-lift
 
 A Python library for [LIFT](https://github.com/sillsdev/lift-standard) (Lexicon
-Interchange Format) 0.13: lossless read/write of the LIFT folder (`.lift` \+
+Interchange FormaT) 0.13: lossless read/write of the LIFT folder (`.lift` \+
 `.lift-ranges` \+ media references), RELAX NG and semantic validation, and
 canonical sorting — with streaming APIs for large lexicons.
 
