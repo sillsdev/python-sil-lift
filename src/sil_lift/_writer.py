@@ -136,21 +136,20 @@ def _fmt_opt_int(value: int | None) -> str | None:
     return None if value is None else str(value)
 
 
+def _merge_extra_attrs(el: etree._Element, extra: Extras) -> None:
+    """Add residue attributes, never overwriting one the element already carries."""
+    for name, value in extra._attrs.items():
+        if el.get(name) is None:
+            el.set(name, value)
+
+
 def _element(tag: str, attrs: Iterable[tuple[str, str | None]], extra: Extras) -> etree._Element:
     el = etree.Element(tag)
     for name, value in attrs:
         if value is not None:
             el.set(name, value)
-    for name, value in extra._attrs.items():
-        if el.get(name) is None:  # a model field always wins over stale residue
-            el.set(name, value)
+    _merge_extra_attrs(el, extra)  # last, so stale residue can't shadow a model field
     return el
-
-
-def _merge_extra_attrs(el: etree._Element, extra: Extras) -> None:
-    for name, value in extra._attrs.items():
-        if el.get(name) is None:
-            el.set(name, value)
 
 
 def _fragment(node: _ExtraNode) -> etree._Element:
