@@ -180,6 +180,21 @@ def _apply_extra_nodes(el: etree._Element, extra: Extras) -> None:
             el.insert(min(node.index, len(el)), _fragment(node))
 
 
+def _apply_inlined_extras(el: etree._Element, inner: Extras, outer: Extras) -> None:
+    """Finish an element whose Multitext content model is inlined into it.
+
+    The nested ``Multitext`` gets no element of its own, so its residue lands on
+    the host's element alongside the host's own. A parse only ever fills ``outer``
+    (the reader hands the whole element to one ``Extras``); ``inner`` carries what
+    code put on the nested model, and loses attribute collisions to whatever
+    ``_element`` already set. Call after the last child append — node indices are
+    clamped to the child count.
+    """
+    _merge_extra_attrs(el, inner)
+    _apply_extra_nodes(el, inner)
+    _apply_extra_nodes(el, outer)
+
+
 def _append_fragments(el: etree._Element, fragments: list[str | Span]) -> None:
     for fragment in fragments:
         if isinstance(fragment, str):
@@ -243,9 +258,7 @@ def _annotation_el(annotation: Annotation) -> etree._Element:
         annotation.extra,
     )
     _append_forms(el, annotation.content)
-    _merge_extra_attrs(el, annotation.content.extra)
-    _apply_extra_nodes(el, annotation.content.extra)
-    _apply_extra_nodes(el, annotation.extra)
+    _apply_inlined_extras(el, annotation.content.extra, annotation.extra)
     return el
 
 
@@ -272,9 +285,7 @@ def _field_el(field: Field) -> etree._Element:
         el.append(_annotation_el(annotation))
     for trait in field.traits:
         el.append(_trait_el(trait))
-    _merge_extra_attrs(el, field.content.extra)
-    _apply_extra_nodes(el, field.content.extra)
-    _apply_extra_nodes(el, field.extra)
+    _apply_inlined_extras(el, field.content.extra, field.extra)
     return el
 
 
@@ -312,9 +323,7 @@ def _url_ref_el(tag: str, ref: URLRef) -> etree._Element:
 def _translation_el(translation: Translation) -> etree._Element:
     el = _element("translation", [("type", translation.type)], translation.extra)
     _append_forms(el, translation.forms)
-    _merge_extra_attrs(el, translation.forms.extra)
-    _apply_extra_nodes(el, translation.forms.extra)
-    _apply_extra_nodes(el, translation.extra)
+    _apply_inlined_extras(el, translation.forms.extra, translation.extra)
     return el
 
 
@@ -330,9 +339,7 @@ def _note_el(note: Note) -> etree._Element:
     )
     _append_forms(el, note.forms)
     _append_extensible(el, note.annotations, note.traits, note.fields)
-    _merge_extra_attrs(el, note.forms.extra)
-    _apply_extra_nodes(el, note.forms.extra)
-    _apply_extra_nodes(el, note.extra)
+    _apply_inlined_extras(el, note.forms.extra, note.extra)
     return el
 
 
@@ -352,9 +359,7 @@ def _example_el(example: Example) -> etree._Element:
     for note in example.notes:
         el.append(_note_el(note))
     _append_extensible(el, example.annotations, example.traits, example.fields)
-    _merge_extra_attrs(el, example.forms.extra)
-    _apply_extra_nodes(el, example.forms.extra)
-    _apply_extra_nodes(el, example.extra)
+    _apply_inlined_extras(el, example.forms.extra, example.extra)
     return el
 
 
@@ -392,9 +397,7 @@ def _etymology_el(etymology: Etymology) -> etree._Element:
     for gloss in etymology.glosses:
         el.append(_form_el("gloss", gloss))
     _append_extensible(el, etymology.annotations, etymology.traits, etymology.fields)
-    _merge_extra_attrs(el, etymology.forms.extra)
-    _apply_extra_nodes(el, etymology.forms.extra)
-    _apply_extra_nodes(el, etymology.extra)
+    _apply_inlined_extras(el, etymology.forms.extra, etymology.extra)
     return el
 
 
@@ -405,9 +408,7 @@ def _reversal_main_el(main: ReversalMain) -> etree._Element:
         el.append(_reversal_main_el(main.main))
     if main.grammatical_info is not None:
         el.append(_grammatical_info_el(main.grammatical_info))
-    _merge_extra_attrs(el, main.forms.extra)
-    _apply_extra_nodes(el, main.forms.extra)
-    _apply_extra_nodes(el, main.extra)
+    _apply_inlined_extras(el, main.forms.extra, main.extra)
     return el
 
 
@@ -418,9 +419,7 @@ def _reversal_el(reversal: Reversal) -> etree._Element:
         el.append(_reversal_main_el(reversal.main))
     if reversal.grammatical_info is not None:
         el.append(_grammatical_info_el(reversal.grammatical_info))
-    _merge_extra_attrs(el, reversal.forms.extra)
-    _apply_extra_nodes(el, reversal.forms.extra)
-    _apply_extra_nodes(el, reversal.extra)
+    _apply_inlined_extras(el, reversal.forms.extra, reversal.extra)
     return el
 
 
@@ -437,9 +436,7 @@ def _pronunciation_el(pronunciation: Pronunciation) -> etree._Element:
     for media in pronunciation.media:
         el.append(_url_ref_el("media", media))
     _append_extensible(el, pronunciation.annotations, pronunciation.traits, pronunciation.fields)
-    _merge_extra_attrs(el, pronunciation.forms.extra)
-    _apply_extra_nodes(el, pronunciation.forms.extra)
-    _apply_extra_nodes(el, pronunciation.extra)
+    _apply_inlined_extras(el, pronunciation.forms.extra, pronunciation.extra)
     return el
 
 
@@ -459,9 +456,7 @@ def _variant_el(variant: Variant) -> etree._Element:
     for relation in variant.relations:
         el.append(_relation_el(relation))
     _append_extensible(el, variant.annotations, variant.traits, variant.fields)
-    _merge_extra_attrs(el, variant.forms.extra)
-    _apply_extra_nodes(el, variant.forms.extra)
-    _apply_extra_nodes(el, variant.extra)
+    _apply_inlined_extras(el, variant.forms.extra, variant.extra)
     return el
 
 
@@ -536,9 +531,7 @@ def _entry_el(entry: Entry) -> etree._Element:
 def _field_definition_el(definition: FieldDefinition) -> etree._Element:
     el = _element("field", [("tag", definition.tag)], definition.extra)
     _append_forms(el, definition.content)
-    _merge_extra_attrs(el, definition.content.extra)
-    _apply_extra_nodes(el, definition.content.extra)
-    _apply_extra_nodes(el, definition.extra)
+    _apply_inlined_extras(el, definition.content.extra, definition.extra)
     return el
 
 
