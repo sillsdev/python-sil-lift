@@ -1,20 +1,20 @@
-# The LIFT folder: ranges and media
+# A pasta LIFT: gamas e suportes
 
-A LIFT lexicon is usually a _folder_: the `.lift` file, one or more `.lift-ranges` companions, and `audio/` / `pictures/` media.
+Um léxico LIFT é normalmente uma _pasta_: o ficheiro `.lift`, um ou mais ficheiros complementares `.lift-ranges` e os ficheiros multimédia nas pastas `audio/` e `pictures/`.
 
-## Ranges
+## Intervalos
 
 ```python
-lex = sil_lift.load("dictionary.lift")      # companions tracked automatically
+lex = sil_lift.load("dictionary.lift")      # companheiros rastreados automaticamente
 
 lex.ranges_files                            # {Path(...): RangesFile}
-lex.all_ranges()                            # merged {id: Range} view
+lex.all_ranges()                            # vista {id: Range} combinada
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-Companion discovery handles the real world: a `range/@href` that points at an existing file is used; FieldWorks' dangling absolute `file://C:/...` hrefs fall back to the href's basename next to the `.lift`; and the conventional `<name>.lift-ranges` sibling is picked up even when nothing references it.
+A descoberta de ficheiros associados lida com o mundo real: é utilizado um `range/@href` que aponta para um ficheiro existente; Os hrefs absolutos «file://C:/...» do FieldWorks que não têm referência recuam para o nome base do href junto ao «.lift»; e o irmão convencional «<name>.lift-ranges» é selecionado mesmo quando nada o referencia.
 
-`lex.save()` writes the `.lift` and every tracked companion together. Edits to a `RangesFile` save back to _its_ file; untouched ranges keep their exact bytes. Standalone use:
+A função `lex.save()` grava o ficheiro `.lift` e todas as funções complementares monitorizadas em conjunto. As alterações feitas num `RangesFile` são guardadas no _seu_ ficheiro; os intervalos que não foram alterados mantêm os seus bytes exatos. Utilização autónoma:
 
 ```python
 ranges = sil_lift.RangesFile.load("dictionary.lift-ranges")
@@ -23,19 +23,19 @@ ranges.sort()
 ranges.save()
 ```
 
-Pass `resolve_ranges=False` to `load()` to skip companion discovery.
+Passe `resolve_ranges=False` à função `load()` para ignorar a deteção de componentes associados.
 
-## Media
+## Meios de comunicação
 
 ```python
-for ref in lex.media_refs():        # every <media> and <illustration>
+for ref in lex.media_refs():        # todos os <media> e <illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # refs whose files don't exist
+lex.missing_media()                 # referências cujos ficheiros não existem
 ```
 
-Resolution follows the conventional layout: a relative href is checked as given (backslashes normalized — WeSay writes `pictures\photo with space.png`) and under `audio/` (for pronunciation media) or `pictures/` (for illustrations). Remote/absolute hrefs can't be checked and are skipped.
+A resolução segue o esquema convencional: um link «href» relativo é verificado tal como fornecido (barras invertidas normalizadas — o WeSay escreve «pictures\photo with space.png») e na pasta «audio/» (para ficheiros de pronúncia) ou «pictures/» (para ilustrações). Os links «href» remotos/absolutos não podem ser verificados e são ignorados.
 
-## Other folder contents
+## Outros conteúdos da pasta
 
-A LIFT folder often holds files sil-lift doesn't model — writing-system LDML under `WritingSystems/`, The Combine's speaker consent audio/image files under `consent/`, and the like; `load()`/`save()` leave these untouched, and [`Lexicon.save_zip()`](lift-export-interop.md) carries them through verbatim when packaging the folder.
+Uma pasta LIFT contém frequentemente ficheiros que o sil-lift não modela — o sistema de escrita LDML em `WritingSystems/`, os ficheiros de áudio/imagem relativos ao consentimento dos oradores do Combine em `consent/`, e outros semelhantes; As funções `load()`/`save()` não alteram estes ficheiros, e [`Lexicon.save_zip()`](lift-export-interop.md) transfere-os na íntegra ao empacotar a pasta.
