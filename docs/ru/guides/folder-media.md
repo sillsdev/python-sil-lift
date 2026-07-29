@@ -1,20 +1,20 @@
-# The LIFT folder: ranges and media
+# Папка LIFT: диапазоны и носители
 
-A LIFT lexicon is usually a _folder_: the `.lift` file, one or more `.lift-ranges` companions, and `audio/` / `pictures/` media.
+Лексикон LIFT обычно представляет собой _папку_: файл `.lift`, один или несколько сопутствующих файлов `.lift-ranges`, а также мультимедийные файлы в папках `audio/` и `pictures/`.
 
-## Ranges
+## Диапазоны
 
 ```python
-lex = sil_lift.load("dictionary.lift")      # companions tracked automatically
+lex = sil_lift.load("dictionary.lift")      # сопутствующие файлы отслеживаются автоматически
 
 lex.ranges_files                            # {Path(...): RangesFile}
-lex.all_ranges()                            # merged {id: Range} view
+lex.all_ranges()                            # объединенное представление {id: Range}
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-Companion discovery handles the real world: a `range/@href` that points at an existing file is used; FieldWorks' dangling absolute `file://C:/...` hrefs fall back to the href's basename next to the `.lift`; and the conventional `<name>.lift-ranges` sibling is picked up even when nothing references it.
+Механизм обнаружения сопутствующих файлов учитывает особенности реального мира: используется атрибут `range/@href`, указывающий на существующий файл; незавершенные абсолютные ссылки `file://C:/...` в FieldWorks перенаправляются на базовое имя ссылки рядом с расширением `.lift`; а стандартный соседний файл `<name>.lift-ranges` подбирается даже в том случае, если на него ничто не ссылается.
 
-`lex.save()` writes the `.lift` and every tracked companion together. Edits to a `RangesFile` save back to _its_ file; untouched ranges keep their exact bytes. Standalone use:
+Функция `lex.save()` записывает файл `.lift` и все отслеживаемые сопутствующие файлы одновременно. Изменения, внесенные в файл `RangesFile`, сохраняются обратно в _этот_ файл; неизмененные диапазоны сохраняют свои точные байты. Использование в автономном режиме:
 
 ```python
 ranges = sil_lift.RangesFile.load("dictionary.lift-ranges")
@@ -23,19 +23,19 @@ ranges.sort()
 ranges.save()
 ```
 
-Pass `resolve_ranges=False` to `load()` to skip companion discovery.
+Передайте параметр `resolve_ranges=False` в функцию `load()`, чтобы пропустить поиск сопутствующих объектов.
 
-## Media
+## СМИ
 
 ```python
-for ref in lex.media_refs():        # every <media> and <illustration>
-    print(ref.kind, ref.href, ref.entry_id)
+for ref in lex.media_refs():        # все ссылки типа « <media> » и « <illustration>
+    »     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # refs whose files don't exist
+lex.missing_media()                 # ссылки, файлы которых отсутствуют
 ```
 
-Resolution follows the conventional layout: a relative href is checked as given (backslashes normalized — WeSay writes `pictures\photo with space.png`) and under `audio/` (for pronunciation media) or `pictures/` (for illustrations). Remote/absolute hrefs can't be checked and are skipped.
+Определение следует стандартной схеме: относительный ссылочный адрес проверяется в том виде, в котором он указан (обратные косые черты нормализуются — WeSay записывает `pictures\photo with space.png`), и находится в каталоге `audio/` (для аудиофайлов с произношением) или `pictures/` (для иллюстраций). Удаленные/абсолютные ссылки не поддаются проверке и пропускаются.
 
-## Other folder contents
+## Другое содержимое папки
 
-A LIFT folder often holds files sil-lift doesn't model — writing-system LDML under `WritingSystems/`, The Combine's speaker consent audio/image files under `consent/`, and the like; `load()`/`save()` leave these untouched, and [`Lexicon.save_zip()`](lift-export-interop.md) carries them through verbatim when packaging the folder.
+В папке LIFT часто хранятся файлы, которые sil-lift не моделирует — LDML для систем письма в каталоге `WritingSystems/`, аудио- и изобразительные файлы с согласием говорящих из проекта «The Combine» в каталоге `consent/` и т. п.; Функции `load()`/`save()` оставляют их без изменений, а [`Lexicon.save_zip()`](lift-export-interop.md) переносит их без изменений при упаковке папки.
