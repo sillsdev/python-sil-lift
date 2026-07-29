@@ -1,8 +1,8 @@
-# Worked example: bulk-editing glosses
+# Mfano uliofanyiwa kazi: kuhariri kwa wingi tafsiri fupi
 
-A common maintenance task: normalize spelling across every English gloss in a lexicon (British → American, or vice versa) without disturbing anything else in the file. This walks through one script that loads, edits, validates, and saves — showing the editing API and the fidelity guarantee working together.
+Kazi ya kawaida ya matengenezo: kurekebisha tahajia ili iwe sawa katika kila fasili ya Kiingereza kwenye kamusi (kutoka Kiingereza cha Uingereza hadi Kiingereza cha Marekani, au kinyume chake) bila kuathiri chochote kingine katika faili. Hii inaelezea hatua kwa hatua skripti moja inayopakia, kuhariri, kuthibitisha, na kuhifadhi — ikionyesha API ya uhariri na dhamana ya uaminifu zikifanya kazi pamoja.
 
-## The script
+## Maandishi
 
 ```python
 import sys
@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """Yatoa kila hisia, ikiwa ni pamoja na hisia ndogo (kwa kujirudia)."""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -45,26 +45,26 @@ lex.save()
 print(f"edited {edited_glosses} gloss(es) across {len(touched_entries)} entry(ies)")
 ```
 
-A few things worth noting:
+Mambo machache ya kuzingatia:
 
-- `Sense.subsenses` is itself a `list[Sense]`, so `iter_senses` recurses into it — a bulk edit that only walked `entry.senses` would silently skip any gloss nested under a subsense.
-- `gloss.text` is a `Text`, not a plain string: `str(gloss.text)` flattens it for matching, and the replacement is written back with `sil_lift.Text([new])` rather than mutating the string in place.
-- Validating in memory (`lex.iter_problems()`) serializes the edited state first, so it correctly reflects the edit before anything is written to disk. Aborting on any `"error"`-level `Problem` — warnings are left for the caller to judge — means a bad edit never reaches `save()`.
+- `Sense.subsenses` ni `list[Sense]` yenyewe, kwa hivyo `iter_senses` inarudia ndani yake — uhariri wa jumla ambao ungepitia tu `entry.senses` ungeacha kimya kimya fasili yoyote iliyoko chini ya subsense.
+- `gloss.text` ni `Text`, si mfululizo wa kawaida: `str(gloss.text)` huifanya iwe mfululizo wa kawaida kwa ajili ya kulinganisha, na mbadala huandikwa tena kwa kutumia `sil_lift.Text([new])` badala ya kubadilisha mfululizo mahali pake.
+- Uhakiki katika kumbukumbu (`lex.iter_problems()`) huweka kwanza hali iliyohaririwa kwa mpangilio, hivyo inaonyesha kwa usahihi mabadiliko kabla ya chochote kuandikwa kwenye diski. Kukata shughuli kwa `Problem` yoyote ya kiwango cha `"error"` — maonyo huachwa kwa mtu anayeita ili ahukumu — kunamaanisha kuwa uhariri mbaya hauwahi kufikia `save()`.
 
-Glosses aren't the only thing worth touching this way. The same `Multitext` mapping surface applies to definitions and every other multilingual field on an entry or sense:
+Si glosi pekee ndizo zinazostahili kuguswa kwa njia hii. Uso uleule wa ramani wa `Multitext` unatumika kwa ufafanuzi na kila uwanja mwingine wa lugha nyingi kwenye kipengee au maana:
 
 ```python
-sense.definition["en"] = "the color of a thing"
+maana.fasili["en"] = "rangi ya kitu"
 ```
 
-## Running it
+## Kuendesha
 
-Run against a small lexicon with a gloss and a subsense gloss that both say "colour":
+Fanya utafutaji dhidi ya kamusi ndogo yenye fasili na fasili ya aina ndogo, zote zikisema "rangi":
 
 ```
-edited 2 gloss(es) across 1 entry(ies)
+Imehaririwa: tafsiri 2 katika kipengee 1
 ```
 
-## The fidelity payoff
+## Faida ya uaminifu
 
-The guarantee is per _entry_: an entry whose model didn't change comes back out **byte-identical** to how it was read in, and only the entries you actually touched are re-serialized. In the run above, one entry had glosses edited — every other entry in the file kept its exact bytes. (Note the granularity: editing any part of an entry re-serializes that whole entry, including its untouched sibling senses.) Editing one gloss in a 50,000-entry lexicon therefore produces a diff touching one entry, not a reformatted file. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+Dhamana ni kwa kila _entry_: entry ambayo mfano wake haukubadilika hurudi **byte-identical** kama ilivyosomwa, na ni tu entries ulizogusa ndizo zinazotengenezwa tena. Katika mfululizo hapo juu, kipengee kimoja kilikuwa na tafsiri zilizohaririwa — kila kipengee kingine katika faili kilidumisha baiti zake hasa. (Kumbuka kiwango cha undani: kuhariri sehemu yoyote ya kumbukumbu kunasababisha kumbukumbu yote kusimbwa upya kwa mpangilio, ikiwemo hisia zake ndugu ambazo hazijaguswa.) Kurekebisha fasili moja katika kamusi yenye maingizo 50,000 kwa hivyo hutoa tofauti inayogusa kiingizo kimoja, si faili iliyopangwa upya. Tazama [Dhamana za Fidelity](../fidelity.md) kwa mkataba sahihi.
