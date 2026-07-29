@@ -13,32 +13,32 @@ LIFT обычно передаётся в виде одного файла `.zip
 
 Файлы `.lift` и `.lift-ranges` сохраняют точность воспроизведения на уровне байтов внутри пакета; сам контейнер zip не обеспечивает точность воспроизведения на уровне байтов.
 
-## Validate the output as a conformance gate
+## Проверить выходные данные в качестве контрольного критерия соответствия
 
-Point `sil-lift validate` at the produced `.lift` file. It runs RELAX NG (over both the `.lift` and its `.lift-ranges` companion) plus semantic checks the grammar can't express: dangling `relation`/`variant` references, duplicate GUIDs, range-element parent integrity, trait and grammatical-info values not defined in their range, and header `range/@href` references that resolve to no companion.
+Укажите команде `sil-lift validate` путь к сгенерированному файлу `.lift`. Он выполняет проверку с помощью RELAX NG (как над `.lift`, так и над его сопутствующим элементом `.lift-ranges`), а также семантические проверки, которые не могут быть выражены с помощью грамматики: незавершенные ссылки на `relation`/`variant`, дубликаты GUID, целостность родительских элементов диапазона, значения черт и грамматической информации, не определённые в их диапазоне, а также ссылки в заголовке `range/@href`, которые не указывают на сопутствующий элемент.
 
-For CI, fail on anything and emit machine-readable findings:
+Для CI: в случае любой ошибки выдавать результаты в машиночитаемом формате:
 
 ```
 sil-lift validate export.lift --strict --no-check-media --format json
 ```
 
-- `--strict` makes warnings (not just errors) fail the run.
-- `--no-check-media` skips the filesystem media-presence check, whose `missing-media` findings are noise when the audio/photo files aren't colocated with the `.lift` in CI.
-- `--format json` prints a single JSON object (`{"problems": [...], "summary": {...}}`) instead of human text; its exit codes and schema are a supported, SemVer-covered interface (see [the command line guide](cli.md)).
-- `--require-ids` additionally errors on entries missing a `guid` or senses missing an `id` — useful when a later re-import must update rather than duplicate.
+- Параметр `--strict` приводит к сбою выполнения даже при появлении предупреждений (а не только ошибок).
+- `--no-check-media` пропускает проверку наличия медиафайлов в файловой системе, поскольку результаты проверки `missing-media` являются ложными срабатываниями, если аудио- и фотофайлы не находятся в одном каталоге с файлом `.lift` в CI.
+- `--format json` выводит один объект JSON (`{"problems": [...], "summary": {...}}`) вместо текста, понятного человеку; его коды завершения и схема представляют собой поддерживаемый интерфейс, на который распространяется спецификация SemVer (см. [руководство по командной строке](cli.md)).
+- `--require-ids` дополнительно выдает ошибку при обнаружении записей, в которых отсутствует `guid`, или при обнаружении элементов, в которых отсутствует `id` — это полезно, когда при последующем повторном импорте необходимо обновить данные, а не дублировать их.
 
-Guard against silent data loss (the failure mode that makes flat CSV export lossy) by asserting counts with `stats --format json` against your source model:
+Защититесь от незаметной потери данных (типа сбоя, приводящего к потере информации при экспорте в плоский формат CSV), проверив статистику с помощью команды `stats --format json` для вашей исходной модели:
 
 ```
 sil-lift stats export.lift --format json
 ```
 
-It reports `entries`, `senses`, `examples`, `media_refs`, `languages`, and per-name `traits` counts.
+В нём приводятся данные о количестве «записей», «значений», «примеров», «ссылок на мультимедиа», «языков», а также «характеристик» для каждого названия.
 
-### Running the gate without a Python toolchain
+### Запуск gate без инструментария Python
 
-A TypeScript or C# project's CI can run the same check without installing Python, via the bundled GitHub Action:
+В рамках непрерывной интеграции (CI) проекта на TypeScript или C# эту же проверку можно выполнить без установки Python с помощью встроенного GitHub Action:
 
 ```yaml
 - uses: sillsdev/python-sil-lift@v0.1.0
@@ -49,16 +49,16 @@ A TypeScript or C# project's CI can run the same check without installing Python
     format: json
 ```
 
-or the container image, built from the repo's `Dockerfile`:
+или образ контейнера, скомпилированный на основе файла `Dockerfile` из репозитория:
 
 ```
 docker build -t sil-lift .
 docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 ```
 
-## The `.lift-ranges` companion
+## Сопутствующий элемент `.lift-ranges`
 
-Controlled vocabularies — parts of speech, semantic domains, and any other trait-keyed value set — live in a sibling `.lift-ranges` file, referenced from the `<header>`:
+Контролируемые словари — части речи, семантические домены и любые другие наборы значений, организованные по признакам — хранятся в отдельном файле `.lift-ranges`, на который есть ссылка в файле `<header>`:
 
 ```xml
 <header>
@@ -69,40 +69,40 @@ Controlled vocabularies — parts of speech, semantic domains, and any other tra
 </header>
 ```
 
-The companion carries each range's full definition. Values are `<range-element>`s; `parent` builds a hierarchy; `label` / `abbrev` / `description` are multitexts:
+В справочнике приводится полное определение каждого диапазона. Значения представляют собой `<range-element>`; `parent` формирует иерархию; `label` / `abbrev` / `description` являются мультитекстами:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <lift-ranges>
   <range id="grammatical-info">
     <range-element id="Noun">
-      <label><form lang="en"><text>noun</text></form></label>
-      <abbrev><form lang="en"><text>n</text></form></abbrev>
+      <label><form lang="en"><text>существительное</text></form></label>
+      <abbrev><form lang="en"><text>существительное</text></form></abbrev>
     </range-element>
   </range>
   <range id="semantic-domain-ddp4">
     <range-element id="1.6.1.2">
-      <label><form lang="en"><text>Bird</text></form></label>
+      <label><form lang="en"><text>Птица</text></form></label>
     </range-element>
   </range>
 </lift-ranges>
 ```
 
-An entry then refers to a value by id: a sense's part of speech is `<grammatical-info value="Noun"/>`, and a semantic domain is `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` warns (`undefined-range-value`) when a value isn't defined in its range and errors (`range-parent`) when a `parent` isn't a sibling id — so emit the ranges your data actually uses. See also [Ranges and media](folder-media.md).
+Затем в записи происходит ссылка на значение по идентификатору: часть речи значения — `<grammatical-info value="Noun"/>`, а семантическая область — `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. Команда `sil-lift validate` выдает предупреждение (`undefined-range-value`), если значение не определено в соответствующем диапазоне, и ошибку (`range-parent`), если `parent` не является идентификатором элемента одного уровня — поэтому указывайте диапазоны, которые фактически используются в ваших данных. См. также [Диапазоны и носители](folder-media.md).
 
-If you build the export in Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, and `Range.add_element()` construct the companion and add the header references for you; `open_writer(..., ranges=...)` does the same on the streaming path.
+Если вы создаете экспорт на Python, функции `Lexicon.add_ranges_file()`, `RangesFile.add_range()` и `Range.add_element()` автоматически формируют сопутствующий объект и добавляют ссылки на заголовки; `open_writer(..., ranges=...)` выполняет то же самое для потокового пути.
 
-## Text and multitext
+## Текст и несколько текстов
 
-Every human-language string in LIFT is a _multitext_: one `<form>` per writing system, each wrapping a `<text>`:
+Каждая строка на одном из человеческих языков в LIFT представляет собой _мультитекст_: по одному `<form>` для каждой системы письма, каждая из которых содержит `<text>`:
 
 ```xml
 <lexical-unit>
   <form lang="seh"><text>kanga</text></form>
-  <form lang="pt"><text>galinha</text></form>
+  <form lang="pt"><text>курица</text></form>
 </lexical-unit>
 ```
 
-A model that keys strings by language code (a `MultiString`, a `Record<code, string>`, a `dict[str, str]`) maps onto this one-to-one: one entry per key becomes one `<form lang="…">`. At most one form per language is allowed in a single multitext — `sil-lift` warns `duplicate-form-lang` otherwise.
+Модель, в которой строки индексируются по коду языка (тип `MultiString`, `Record<code, string>`, `dict[str, str]`), отображается на эту модель в соотношении «один к одному»: каждая запись по ключу преобразуется в один объект `<form lang="…">`. В одном мультитексте допускается не более одной формы на каждый язык — в противном случае `sil-lift` выдает предупреждение `duplicate-form-lang`.
 
-XML escaping is the one genuinely correctness-sensitive part. In element text, `&`, `<`, and `>` must be escaped (`&amp;`, `&lt;`, `&gt;`); in attribute values, the quote character too. `sil-lift`'s writer applies exactly these rules and never alters whitespace inside `<text>` — it adds no indentation there, because that would corrupt the lexical data. If you aim to match its output, reuse a real XML serializer's escaping (not a hand-rolled replace that forgets `&`) and leave `<text>` content byte-for-byte as your source has it.
+Экранирование XML — это единственная часть, в которой действительно важно соблюдать точность. В тексте элемента символы `&`, `<`, and `>` должны быть экранированы (`&amp;`, `&lt;`, `&gt;`); в значениях атрибутов также необходимо экранировать символ кавычки. Программа `sil-lift` строго следует этим правилам и никогда не изменяет пробелы внутри `<text>` — она не добавляет там отступов, поскольку это привело бы к повреждению лексических данных. Если вы хотите добиться такого же результата, используйте экранирование, предусмотренное настоящим XML-сериализатором (а не самодельную замену, в которой упускается символ `&`), и оставьте содержимое `<text>` без изменений, байт за байтом, так как оно есть в исходном коде.
