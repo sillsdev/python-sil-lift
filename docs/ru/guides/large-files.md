@@ -1,13 +1,13 @@
-# Large files (streaming)
+# Крупные файлы (потоковая передача)
 
-`load()` builds the whole object graph. For multi-hundred-MB lexicons, the streaming API processes one entry at a time in bounded memory — the same `Entry` type, so code written against one mode works in the other.
+Функция `load()` создаёт весь граф объектов. В случае лексиконов объёмом в несколько сотен МБ потоковый API обрабатывает по одной записи за раз в ограниченном объёме памяти — при этом используется тот же тип `Entry`, поэтому код, написанный для одного режима, работает и в другом.
 
 ```python
 import sil_lift
 
 with sil_lift.open_reader("big.lift") as reader:
-    header = reader.header            # parsed up front (precedes entries)
-    for entry in reader:              # lazy Iterator[Entry]
+    header = reader.header            # проанализировано заранее (расположено перед записями)
+    for entry in reader:              # ленивый итератор Iterator[Entry]
         ...
 ```
 
@@ -16,12 +16,12 @@ with sil_lift.open_reader("big.lift") as reader, sil_lift.open_writer(
     "out.lift", header=reader.header, producer="my-script"
 ) as writer:
     for entry in reader:
-        if not entry.date_deleted:    # e.g. drop tombstones
+        if not entry.date_deleted:    # например, удалить «могильные камни»
             writer.write(entry)
 ```
 
-Notes:
+Примечания:
 
-- The writer's output is exactly what the full-document canonical serializer would produce for the same content — the two modes never drift apart.
-- Streaming mode has no byte-passthrough layer: output is always canonical. Root-level residue — comments between entries and out-of-schema attributes on `<lift>` — is not carried; entries and the header are complete, residue included.
-- If the body of an `open_writer` block raises, the file is left visibly unterminated (no closing `</lift>`) — a half-written lexicon must not look complete.
+- Результат работы этого модуля полностью соответствует тому, что выдал бы канонический сериализатор полного документа для того же самого контента — эти два режима никогда не расходятся.
+- В режиме потоковой передачи отсутствует уровень пропуска байтов: выходные данные всегда имеют канонический вид. Остаточные данные корневого уровня — комментарии между записями и атрибуты, выходящие за пределы схемы, в файле `<lift>` — не передаются; записи и заголовок передаются в полном виде, включая остаточные данные.
+- Если в теле блока `open_writer` происходит исключение, файл остается видимо незавершенным (без закрывающего `</lift>`) — частично записанный лексикон не должен выглядеть завершенным.
