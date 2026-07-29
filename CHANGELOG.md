@@ -18,16 +18,6 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
-### Added
-
-- `Lexicon.changed_entries()` reports the entries whose serialized content
-  differs from the document as loaded, using the digest machinery the writer
-  already keeps for byte-fidelity passthrough. An entry's digest covers its
-  whole subtree, so an edit at any depth reports the entry containing it,
-  while an identical rewrite or a `sort()` reports nothing. Comparison is
-  always against the loaded document, never against the most recent
-  `save()`. Entry content only: header and ranges changes are not reported.
-
 ## [0.1.0] - 2026-07-TBD
 
 ### Added
@@ -42,6 +32,13 @@ releases may contain breaking changes.
   re-serialize canonically with all out-of-schema content preserved. Fidelity
   contract documented in `docs/en/fidelity.md` and enforced by corpus
   byte-identity tests plus Hypothesis round-trip properties.
+- `Lexicon.changed_entries()` reports the entries whose serialized content
+  differs from the document as loaded, reading the same parse-time digests.
+  An entry's digest covers its whole subtree, so an edit at any depth reports
+  the entry containing it, while an identical rewrite or a `sort()` reports
+  nothing. Comparison is always against the loaded document, never against
+  the most recent `save()`. Entry content only: header and ranges changes are
+  not reported.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`), `save()` writes companions together,
