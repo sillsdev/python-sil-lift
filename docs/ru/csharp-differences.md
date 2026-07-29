@@ -4,49 +4,49 @@ sil-lift в общих чертах аналогичен инструмента�
 
 ## Область применения
 
-| Возможности                         | Библиотеки C#                                    | sil-lift                                                                                |
-| ----------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| Версии LIFT                         | 0,10–0,13 (с учётом миграции) | **Только версия 0.13**; более старые версии отклоняются с явной ошибкой |
-| Переход на новую версию             | `Migrator` (цепочка XSLT)     | нет — использовать XSLT-файлы из пакета lift-standard для разовых обновлений            |
-| 3-стороннее слияние / синхронизация | Chorus                                           | out of scope                                                                            |
-| Validation                          | RELAX NG only (`Validator`)   | RELAX NG + ranges schema + semantic checks                                              |
-| Streaming                           | internal entry-granularity parsing               | public `open_reader` / `open_writer` API                                                |
+| Возможности                         | Библиотеки C#                                                         | sil-lift                                                                                |
+| ----------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Версии LIFT                         | 0,10–0,13 (с учётом миграции)                      | **Только версия 0.13**; более старые версии отклоняются с явной ошибкой |
+| Переход на новую версию             | `Migrator` (цепочка XSLT)                          | нет — использовать XSLT-файлы из пакета lift-standard для разовых обновлений            |
+| 3-стороннее слияние / синхронизация | Припев                                                                | выходит за рамки                                                                        |
+| Валидация                           | Только RELAX NG (`Validator`)                      | RELAX NG + проверки схемы и семантики                                                   |
+| Потоковое вещание                   | внутренний синтаксический анализ с гранулярностью на уровне элементов | публичный API `open_reader` / `open_writer`                                             |
 
-## API shape
+## Формат API
 
-`SIL.Lift`'s parser is callback-driven (`ILexiconMerger`): it pushes parse events at a consumer. sil-lift instead returns a plain object graph — typed dataclasses for every LIFT element — because Python scripters want objects, not callbacks. `SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but as an application model it represents only the constructs those apps use — so re-serializing through it can't preserve out-of-model content the way sil-lift's residue capture and byte fidelity do (see below). The streaming API yields the _same_ `Entry` type, so there is no capability-reduced twin model.
+Парсер `SIL.Lift` работает на основе обратных вызовов (`ILexiconMerger`): он передаёт события разбора потребителю. Вместо этого sil-lift возвращает простой граф объектов — типизированные классы данных для каждого элемента LIFT — поскольку разработчики скриптов на Python нуждаются в объектах, а не в обратных вызовах. `SIL.DictionaryServices` действительно накладывает объектную модель `LexEntry`/`LexSense` на `SIL.Lift`, но как прикладная модель она представляет только те конструкции, которые используют эти приложения — поэтому повторная сериализация через неё не может сохранить контент, выходящий за пределы модели, так же, как это делают функции захвата остатков и точной передачи байтов в sil-lift (см. ниже). API потоковой обработки возвращает _тот же самый_ тип `Entry`, поэтому не существует модели-близнеца с ограниченными возможностями.
 
-## Round-trip fidelity
+## Точность воспроизведения в обоих направлениях
 
-The strongest deliberate difference. Saving with `SIL.Lift` re-serializes the whole document. sil-lift guarantees:
+Самое явное намеренное отличие. При сохранении с помощью `SIL.Lift` происходит повторная сериализация всего документа. Компания «Sil-Lift» гарантирует:
 
-- an unchanged document saves **byte-identically**, and
-- untouched entries keep their exact source bytes even when other entries change (Chorus-grade byte chunking, applied automatically).
+- неизменённый документ сохраняется **с идентичным количеством байтов**, и
+- Неизмененные записи сохраняют свои исходные байты в точности, даже если другие записи изменяются (байтовое разбиение уровня Chorus, применяется автоматически).
 
-See [Fidelity guarantees](fidelity.md).
+См. [Гарантии Fidelity](fidelity.md).
 
-## Validation
+## Валидация
 
-The C# `Validator` runs one RELAX NG pass and reports the first errors as strings. sil-lift reports a structured, entry/line-addressed `Problem` stream, and its schema layer knowingly diverges in three places:
+Валидатор `Validator` на языке C# выполняет один проход по RELAX NG и возвращает первые ошибки в виде строк. sil-lift предоставляет структурированный по записям и строкам поток `Problem`, и его схема сознательно отличается в трёх местах:
 
-- **Invalid URIs are warnings, not errors.** The C# RELAX NG engine never enforced the `anyURI` datatype, so FieldWorks (FLEx) has been writing `file://C:/...` hrefs into real lexicons for years. Rejecting those files would flag virtually every FLEx export.
-- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by both C# and raw lxml validation.
-- **Cross-file comparisons are Unicode-normalized**, because FLEx writes the `.lift` in NFC and the companion `.lift-ranges` in NFD.
+- **Недопустимые URI являются предупреждениями, а не ошибками.** Движок C# RELAX NG никогда не обеспечивал соблюдение типа данных `anyURI`, поэтому FieldWorks (FLEx) на протяжении многих лет записывает ссылки `file://C:/...` в реальные лексиконы. Отказ от этих файлов привёл бы к отметке практически каждого экспорта из FLEx.
+- **Применяются правила Schematron** (в качестве семантических проверок): дублирующиеся языки форм и аналогичные совместные ограничения в грамматике LIFT без предупреждения игнорировались как при валидации на C#, так и при валидации с помощью исходного lxml.
+- **Сравнения между файлами нормализованы в соответствии со стандартом Unicode**, поскольку FLEx записывает файл `.lift` в формате NFC, а сопутствующий файл `.lift-ranges` — в формате NFD.
 
-sil-lift also validates the `.lift-ranges` companions of a loaded lexicon against a schema for standalone ranges documents (vendored from `lift-standard` alongside the base LIFT grammar) — every tracked external ranges file is checked whenever the `.lift` is validated — with no such schema (or check) in the C# world. (There is no entry point for validating a `.lift-ranges` file on its own, detached from a `.lift`.)
+sil-lift также проверяет соответствие файлов `.lift-ranges`, сопутствующих загруженному лексикону, схеме для автономных документов диапазонов (поставляемой из `lift-standard` вместе с базовой грамматикой LIFT) — каждый отслеживаемый внешний файл диапазонов проверяется при каждой валидации `.lift` — в то время как в среде C# такой схемы (или проверки) нет. (Не существует отдельной точки входа для проверки файла `.lift-ranges`, не связанного с файлом `.lift`.)
 
-## Canonical sorting
+## Каноническая сортировка
 
-`Lexicon.sort()` mirrors `LiftSorter`'s core rules (entries by case-insensitive guid; ranges and range-elements by id; header field definitions by tag; senses kept in file order; whitespace inside `<text>` never touched), with three differences:
+`Lexicon.sort()` повторяет основные правила `LiftSorter` (записи сортируются по GUID без учета регистра; диапазоны и элементы диапазонов — по ID; определения полей заголовка — по тегам; значения слов сохраняются в том же порядке, что и в файле; пробелы внутри `<text>` никогда не изменяются), за исключением трёх отличий:
 
-- entries without a guid sort deterministically by id (`LiftSorter` assumes a guid is present);
-- ordering is locale-independent (plain case-folded code points, not .NET invariant-culture collation);
-- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key — grouping is already deterministic, and reordering them only adds diff noise.
+- записи без GUID сортируются детерминированно по ID (класс `LiftSorter` предполагает наличие GUID);
+- порядок сортировки не зависит от локали (используются кодовые точки без учета регистра, а не сортировка с инвариантной культурой в .NET);
+- Списки одного типа, такие как заметки, связи и формы, сохраняют порядок, в котором они были в документе, а не пересортировываются по ключу — группировка и так является детерминированной, а их переупорядочение лишь увеличивает объем данных сравнения.
 
-The spec repo's `canonicalizeLift.xsl` is not used at all: it collapses whitespace inside lexical text (destructive) and its generated ids differ on every run.
+Файл `canonicalizeLift.xsl` из репозитория спецификаций вообще не используется: он сжимает пробелы внутри лексического текста (деструктивно), а сгенерированные им идентификаторы при каждом запуске отличаются друг от друга.
 
-## Not carried over
+## Не перенесено
 
-- WeSay-specific conveniences (dashboard/config handling around LIFT files).
-- `SynchronicMerger` (Chorus update merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
-- LDML writing-system parsing: files in `WritingSystems/` are treated as opaque folder content.
+- Удобства, характерные для WeSay (работа с панелью управления и настройками, связанными с файлами LIFT).
+- `SynchronicMerger` (объединение обновлений Chorus) — идея разбиения на байтовые блоки сохраняется в уровне точности, а сам процесс объединения — нет.
+- Анализ систем письма LDML: файлы в папке `WritingSystems/` рассматриваются как непрозрачное содержимое папки.
