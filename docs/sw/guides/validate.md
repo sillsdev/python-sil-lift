@@ -1,36 +1,36 @@
-# Validate
+# Thibitisha
 
-Validation is always explicit — loading and saving never validate implicitly.
+Uthibitishaji daima ni wazi — kupakia na kuhifadhi kamwe havithibitishi kwa njia fiche.
 
 ```python
 import sil_lift
 
-# Exhaustive: a lazy stream of Problems (schema + semantic layers).
+# Exhaustive: mtiririko wa vigezo (schema + tabaka za semantiki).
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
-    # error [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches ...
+    # kosa [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' inalingana ...
 
-# Fail-fast: raises LiftValidationError on the first error-level problem.
+# Fail-fast: inasababisha LiftValidationError kwenye tatizo la kwanza la kiwango cha kosa.
 sil_lift.validate_file("dictionary.lift")
 
-# In-memory state (serializes first — a documented cost on large lexicons):
+# Hali ya kumbukumbu (inayosafirishwa kwanza — gharama iliyoorodheshwa kwa kamusi kubwa):
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
 
-Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `message`, and an address: `file`, `entry_id`, `guid`, `line`.
+Kila `Problem` ina `level` (`"error"`/`"warning"`), `code` thabiti, `message`, na anwani: `file`, `entry_id`, `guid`, `line`.
 
-## The layers
+## Tabaka
 
-1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard).
-2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion.
-3. **Semantic checks** the grammar cannot express: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
+1. **RELAX NG** dhidi ya sarufi ya LIFT 0.13 (iliyotolewa na lift-standard).
+2. **Rangi za schema** — `lift-ranges-0.13.rng` ya mradi huu — juu ya kila kiambatisho cha `.lift-ranges` kinachofuatiliwa.
+3. **Ukaguzi wa semantiki** ambao sarufi haiwezi kuonyesha: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
-## Real-world FieldWorks (FLEx) output
+## Matokeo halisi ya FieldWorks (FLEx)
 
-FieldWorks systematically writes some content that strict tooling rejects. Here is sil-lift's policy, so that real lexicons validate usefully:
+FieldWorks kwa utaratibu huandika baadhi ya maudhui ambayo zana kali hupinga. Hapa kuna sera ya sil-lift, ili kamusi halisi ziwe na manufaa:
 
-- `file://C:/...` hrefs (invalid URIs) are reported as **warnings** (`uri-not-rfc`), not schema errors — the C# validator never rejected them.
-- Legally interleaved children (e.g. `field, note, field, note` in a sense) are **not** flagged, working around a false positive in libxml2.
-- Range values are compared under Unicode NFC normalization — FLEx writes the `.lift` in NFC but the `.lift-ranges` in NFD within the same export.
-- FLEx's `trait`/`field` extensions inside `range-element` **are** reported (schema errors against the ranges schema): they are genuine spec deviations.
+- Viungo vya `file://C:/...` (URI zisizofaa) huripotiwa kama **maonyo** (`uri-not-rfc`), si makosa ya skema — mhakiki wa C# haujawahi kuzikataa.
+- Watoto waliopangwa kisheria (kwa mfano `field, note, field, note`) hawapati alama, hivyo kuepuka matokeo ya uongo chanya katika libxml2.
+- Thamani za masafa zinalinganishwa chini ya usawa wa Unicode NFC — FLEx huandika `.lift` katika NFC lakini `.lift-ranges` katika NFD ndani ya usafirishaji uleule.
+- Nyongeza za `trait`/`field` za FLEx ndani ya `range-element` zinaripotiwa (makosa ya schema dhidi ya schema ya rangi): ni upotovu halisi wa vipimo.
