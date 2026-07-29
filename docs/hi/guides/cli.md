@@ -1,35 +1,34 @@
-# The command line
+# कमांड लाइन
 
-Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported LiftTools-style tool that ships with the package (and, for `validate`, a worked example of the library API).
+पैकेज (`pip install sil-lift`) इंस्टॉल करने पर `sil-lift` कमांड भी इंस्टॉल हो जाता है — यह एक समर्थित LiftTools-शैली का टूल है जो पैकेज के साथ आता है (और `validate` के लिए लाइब्रेरी API का एक कार्यात्मक उदाहरण)।
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
-                                           all problems, entry/line-addressed; exit 1 on errors
+                                           सभी समस्याएँ, प्रविष्टि/पंक्ति-पते; त्रुटियों पर 1 से बाहर निकलें
 sil-lift stats PATH [--format {text,json}]
-                                           entry/sense/language counts (streaming; any size)
-sil-lift sort PATH [-o OUT]               canonically sorted, diff-ready copy (default: in place)
-sil-lift check-media PATH                 missing and orphaned media report; exit 1 if missing
+                                           प्रविष्टि/अर्थ/भाषा की गिनती (स्ट्रीमिंग; कोई भी आकार)
+sil-lift sort PATH [-o OUT]               मानक रूप से क्रमबद्ध, diff-तैयार प्रतिलिपि (डिफ़ॉल्ट: उसी स्थान पर)
+sil-lift check-media PATH                 गुम और अनाथ मीडिया रिपोर्ट; यदि गुम हो तो 1 पर निकास
 sil-lift export PATH [-o OUT] [--langs L] [--tsv]
-                                           one row per leaf sense (subsenses flattened) to CSV/TSV (streaming)
+                                           प्रत्येक लीफ़ सेंस के लिए एक पंक्ति (सबसेंस समतल) CSV/TSV में (स्ट्रीमिंग)
 ```
 
-`--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below. `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on a clean bill of health rather than errors alone. `--no-check-media` skips the filesystem media-presence check (suppressing `missing-media` findings), which is useful when validating a freshly generated export whose audio/photo files live elsewhere and aren't colocated on disk. `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id. Passing `-` as the path reads the document from stdin (a piped document has no folder, so its companion `.lift-ranges` and media are not resolved). `stats` likewise takes `--format json`, emitting the counts as a single JSON object.
+`--format json` CI/ऑटोमेशन के उपयोग के लिए stdout पर एक ही JSON ऑब्जेक्ट लिखता है (और कुछ नहीं); नीचे दिए गए उदाहरण में स्कीमा देखें। `--strict` चेतावनियों को त्रुटियों के रूप में मानता है, और कोई भी चेतावनी मिलने पर 1 पर बाहर निकल जाता है — इसका उपयोग केवल त्रुटियों के आधार पर नहीं, बल्कि एक स्वच्छ रिपोर्ट के आधार पर बिल्ड को नियंत्रित करने के लिए करें। `--no-check-media` फ़ाइलसिस्टम मीडिया-उपस्थिति जाँच को छोड़ देता है (`missing-media` निष्कर्षों को दबाते हुए), जो तब उपयोगी होता है जब किसी ताज़ा उत्पन्न निर्यात का सत्यापन किया जा रहा हो, जिसकी ऑडियो/फ़ोटो फ़ाइलें कहीं और स्थित हैं और डिस्क पर एक साथ नहीं हैं। `--require-ids` अतिरिक्त रूप से किसी भी ऐसी प्रविष्टि पर विफल होता है जिसमें `guid` न हो या किसी सेंस में `id` न हो — यह LIFT की तुलना में अधिक सख्त है, उन वर्कफ़्लो के लिए जो एक स्थिर id द्वारा पुनः आयात करते हैं। पथ के रूप में `-` पास करने पर दस्तावेज़ stdin से पढ़ा जाता है (एक पाइप्ड दस्तावेज़ का कोई फ़ोल्डर नहीं होता, इसलिए इसका साथी `.lift-ranges` और मीडिया हल नहीं होते)। `stats` भी `--format json` लेता है, और गिनतियों को एक ही JSON ऑब्जेक्ट के रूप में उत्पन्न करता है।
 
 !!! note
-    `validate`'s exit codes and `--format json` schema are a supported automation interface: both are covered by tests and change only under SemVer.
+    `validate` के एग्जिट कोड और `--format json` स्कीमा एक समर्थित ऑटोमेशन इंटरफ़ेस हैं: दोनों टेस्ट द्वारा कवर किए गए हैं और केवल SemVer के तहत ही बदलते हैं।
 
-`sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
-untouched (sort those separately with the `RangesFile` API).
+`sort` केवल `.lift` फ़ाइल को ही पुनः लिखता है; साथी `.lift-ranges` फ़ाइलें अछूती रह जाती हैं (उन्हें `RangesFile` API के साथ अलग से क्रमबद्ध करें)।
 
-`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes.
+`validate`, `stats`, `check-media`, और `export` एक ज़िप किए गए LIFT पैकेज को भी स्वीकार करते हैं (दोनों लेआउट में एक `.zip` — आर्काइव रूट में फ़ाइलें, या एक टॉप-लेवल फ़ोल्डर के अंदर); इसे एक अस्थायी निर्देशिका में निकाला जाता है और कमांड समाप्त होने पर हटा दिया जाता है।
 
-Examples:
+उदाहरण:
 
 ```
 $ sil-lift validate dictionary.lift
-error [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches no entry id/guid or sense id
-warning [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)
-1 error(s), 1 warning(s)
+त्रुटि [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' किसी भी एंट्री आईडी/GUID या सेंस आईडी से मेल नहीं खाता
+चेतावनी [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: URI प्राधिकरण के रूप में Windows ड्राइव अक्षर का उपयोग (FLEx-शैली file://C:/)
+1 त्रुटि(एँ), 1 चेतावनी(एँ)
 
 $ sil-lift validate dictionary.lift --format json
 {
@@ -46,7 +45,7 @@ $ sil-lift validate dictionary.lift --format json
     {
       "level": "warning",
       "code": "uri-not-rfc",
-      "message": "<range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)",
+      "message": "<range href='file://C:/...'>: Windows ड्राइव अक्षर को URI प्राधिकरण के रूप में उपयोग किया गया (FLEx-शैली file://C:/)",
       "file": "dictionary.lift",
       "entry_id": null,
       "guid": null,
@@ -67,4 +66,4 @@ senses:    4541
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`), `2` unreadable input.
+एग्जिट कोड: `0` सफलता (चेतावनियाँ अनुमत हैं, जब तक `--strict` न हो), `1` निष्कर्ष (मान्यकरण त्रुटियाँ / मीडिया अनुपस्थित / `--strict` के तहत चेतावनियाँ), `2` अपठनीय इनपुट।
