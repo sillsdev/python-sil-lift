@@ -1,6 +1,6 @@
-# Read, edit, write
+# Soma, hariri, andika
 
-## Loading
+## Inapakia
 
 ```python
 import sil_lift
@@ -8,23 +8,23 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` accepts any well-formed LIFT **0.13** document — including schema-invalid real-world files. Anything the model doesn't define (unknown elements/attributes, comments) is carried losslessly in each node's opaque `extra` bucket. Other LIFT versions raise `LiftParseError` naming the version.
+`load()` hukubali hati yoyote ya LIFT **0.13** iliyopangwa vizuri — ikiwa ni pamoja na faili halisi zisizoendana na skema. Chochote ambacho mfano haujatambua (vipengele/sifa zisizojulikana, maoni) huhifadhiwa bila kupoteza katika kikapu kisichoeleweka cha `extra` cha kila node. Toleo zingine za LIFT hutoa `LiftParseError` ikitaja toleo.
 
-## The model
+## Mfano
 
-Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on. Multilingual text is a `Multitext`, which behaves like a mapping from language code to `Text`:
+Kila kipengele cha LIFT ni dataclass iliyotengwa aina: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, na kadhalika. Maandishi ya lugha nyingi ni `Multitext`, ambayo hufanya kazi kama uhusiano kutoka kwa msimbo wa lugha hadi `Text`:
 
 ```python
 entry = lex.find(id="abat")
 
 str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # plain strings are coerced
-"en" in entry.citation                  # False
+entry.lexical_unit["en"] = "grove"      # nyuzi rahisi zinageuzwa
+"en" in entry.citation                  # Si kweli
 ```
 
-`Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
+`Text` imepangwa — orodha iliyopangwa ya vipande vya `str` na `Span` — kwa sababu `<text>` inaweza kuwa na markup ya `<span>` iliyojificha ndani yake. `str(text)` inageuza kuwa maandishi ya kawaida; vipande vinabaki na alama za uandishi ili kuruhusu kurudi nyuma.
 
-Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus a helper:
+Glosses ni _form-shaped_ katika LIFT (kila `<gloss>` lina lugha yake mwenyewe), hivyo sense ina `glosses: list[Form]` pamoja na kisaidizi:
 
 ```python
 sense = entry.senses[0]
@@ -32,16 +32,16 @@ sense.gloss("en")                       # Text | None
 entry.gloss_langs()                     # {"en", "id"}
 ```
 
-## Saving
+## Akiba
 
 ```python
-lex.save()                # back to where it was loaded from
+lex.save()                # kurudi mahali ilipopakiwa kutoka
 lex.save("elsewhere.lift")
 ```
 
-Entries you didn't modify are written back **byte-identical**; a document you didn't modify at all is byte-identical from the first byte to the last. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+Maingizo ambayo hukuyabadilisha yamerudishwa **sawa kwa baiti**; hati ambayo hukuyabadilisha kabisa ni sawa kwa baiti kuanzia baiti ya kwanza hadi ya mwisho. Tazama [Dhamana za Fidelity](../fidelity.md) kwa mkataba sahihi.
 
-## Building from scratch
+## Kujenga kutoka mwanzo
 
 ```python
 lex = sil_lift.Lexicon(producer="my-script 1.0")
@@ -54,13 +54,13 @@ lex.entries.append(entry)
 lex.save("new.lift")
 ```
 
-## Canonical sorting
+## Upangaji rasmi
 
 ```python
-lex.sort()      # entries by (guid, id); ranges/field defs by id/tag
-lex.save()      # untouched entries keep their exact bytes, in the new order
+lex.sort()      # maingizo kwa (guid, id); vipimo/ufafanuzi wa uwanja kwa id/tag
+lex.save()      # maingizo yasiyoguswa yanabaki na baiti zao halisi, katika mpangilio mpya
 
-sil_lift.canonicalize("in.lift", "out.lift")   # fully re-serialized, diff-ready
+sil_lift.canonicalize("in.lift", "out.lift")   # imepangwa tena kikamilifu, tayari kwa tofauti
 ```
 
-See also: [Worked example: bulk-editing glosses](bulk-edit-glosses.md).
+Tazama pia: [Mfano uliofanyiwa kazi: kuhariri kwa wingi tafsiri fupi](bulk-edit-glosses.md).
