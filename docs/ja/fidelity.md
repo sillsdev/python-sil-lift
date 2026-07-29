@@ -1,30 +1,30 @@
-# Fidelity guarantees
+# フィデリティの保証
 
-LIFT is an _interchange_ format: the cardinal rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
+LIFTは_相互運用_フォーマットです。その鉄則は、**理解できないものは決して削除しない**ということです。 `sil-lift`の契約。これは、実行のたびにテストスイートによって検証されます（コーパスファイルおよびプロパティベースの生成）。
 
-## Reading
+## 読書
 
-Any well-formed LIFT 0.13 document loads — schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` bucket: unknown attributes and elements, XML comments and processing instructions, stray text, and malformed typed attributes (a bad date stays as the original string in `Extras`; the typed field is `None`).
+正しく構成された LIFT 0.13 ドキュメントであれば、スキーマに違反するコンテンツが含まれていても読み込まれます。 モデルで定義されていないものはすべて、最も近いノードの不透明な `Extras` バケットに格納されます。これには、未知の属性や要素、XML コメントや処理命令、不要なテキスト、および形式不備の型付き属性などが含まれます（不正な日付は、`Extras` 内に元の文字列のまま残され、型付きフィールドは `None` となります）。
 
-## Saving an unchanged document
+## 変更のない文書を保存する
 
-`load()` → `save()` with no edits writes **byte-identical output** — no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. There is currently no normalization list: identity is exact.
+編集を行わずに `load()` → `save()` を実行すると、**バイト単位で同一の出力**が生成されます。つまり、再フォーマット、再エスケープ、順序の変更は行われず、バイト順マークやXML宣言も含まれます。 現在、正規化リストは存在しません。恒等式は厳密です。
 
-Exceptions (the writer falls back to full canonical serialization, which is semantically complete but not byte-preserving):
+例外（ライターは完全なカノニカルシリアライゼーションにフォールバックします。これは意味的には完全ですが、バイト単位の整合性は保たれません）：
 
-- the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
-- the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
-- the source was built in memory rather than loaded from a file.
+- ソースのエンコーディングがASCII互換ではない（UTF-8/US-ASCIIではない）、または
+- ソースにDOCTYPEが含まれているか、または
+- バイトスキャナとパーサーの間で、ドキュメントの最上位構造に関する認識が一致しない――例えば、仕様外の2つ目の `<header>` などである。パーサーはこれを1回だけ保持するが（スキャナは意図的に慎重であり、少しでも疑わしい場合はソースバイトを一切取得しない）、あるいは
+- ソースはファイルから読み込まれるのではなく、メモリ上で構築されました。
 
-## Saving an edited document
+## 編集したドキュメントの保存
 
-- **Untouched entries are emitted verbatim from their original bytes.** An entry counts as touched if any part of its model object changed since parse (detected by canonical-serialization snapshot, not a dirty flag).
-- **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
-- Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
+- **変更されていないエントリは、元のバイト列そのままが出力されます。** エントリのモデルオブジェクトのいずれかの部分が parse 以降に変更された場合、そのエントリは変更済みとみなされます（これは、ダーティフラグではなく、正規シリアライゼーションのスナップショットによって検出されます）。
+- **変更されたエントリは、標準的な形式で完全に再シリアライズされます**：UTF-8、混合コンテンツの_外部_での2スペースのインデント（`<text>`および`<span>`内部の空白は一切変更されません）、要素ごとの文書化された子要素のグループ化（例：エントリ： 語彙単位、引用、発音、異形、意味、注釈、関係、語源、注釈、特徴、分野）、固定された属性順序、ISO-8601形式の日付（UTCの場合は`Z`）。 すべての残余データは再出力され、その位置は元の子インデックスに戻され、新しい子リストにクリップされます（これは近似処理であり、変更されていないエントリについてのみ、正確なバイト位置が保証されます）。
+- エントリの追加、削除、または順序変更を行うと、ドキュメント構造は再シリアル化されますが、変更されていないエントリのバイトデータはすべてそのまま出力されます。
 
-## Known approximations (touched nodes only)
+## 既知の近似値（接触したノードのみ）
 
-- Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
-- Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
-- A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
+- `<text>` の実行の `内部` にあるコメントは保持されますが、正確な文字オフセットの位置ではなく、その実行のすぐ隣に持ち上げられます。
+- 編集対象の要素内におけるクロス型の子要素の順序は、正規のグループ化に正規化されます（LIFTスキーマの `interleave` により、この順序は意味的に無意味となります）。
+- 存在はするが、フォームも残留物も一切含まないマルチテキスト要素（例：`<definition></definition>`）は、再出力されません。 このモデルでは、これらのフィールドを常に存在する `Multitext` として表現しています（`lexical-unit`、`citation`、`definition`、関係の `usage`、およびヘッダーの `label` / `abbrev` / `description`）として常に存在する `Multitext` として表現しているため、解析後は空の `Multitext` と存在しない `Multitext` を区別することができません。 意味的な情報は一切失われません。
