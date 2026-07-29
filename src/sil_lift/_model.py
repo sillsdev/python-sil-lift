@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from ._writer import _RangesSourceInfo, _SourceInfo
 
 __all__ = [
+    "Changes",
     "Entry",
     "Etymology",
     "Example",
@@ -39,6 +40,7 @@ __all__ = [
     "MediaRef",
     "Note",
     "Pronunciation",
+    "RangesChanges",
     "RangesFile",
     "Relation",
     "Reversal",
@@ -243,6 +245,71 @@ class MediaRef:
     sense_id: str | None = None  # set for illustrations (they live on senses)
 
 
+@dataclass(slots=True)
+class RangesChanges:
+    """What differs between a companion ``.lift-ranges`` and the file it was read from.
+
+    ``baseline`` is False when no byte snapshot was captured (a companion built
+    from scratch, or a source the passthrough layer declined to scan). Nothing
+    can be compared then, so ``ranges`` lists everything and the object is
+    truthy: the file will be written in full.
+    """
+
+    ranges: list[Range]  # content differs from the source
+    added: list[Range]
+    removed: list[Range]
+    reordered: bool  # same ranges, different order
+    root: bool  # root attributes or root-level residue
+    baseline: bool
+
+    def __bool__(self) -> bool:
+        return (
+            not self.baseline
+            or bool(self.ranges or self.added or self.removed)
+            or self.reordered
+            or self.root
+        )
+
+
+@dataclass(slots=True)
+class Changes:
+    """Everything that differs between a lexicon and the document it was loaded from.
+
+    Truthy exactly when :meth:`Lexicon.save` would not reproduce the source
+    bytes, which makes it the correct guard for skipping a write —
+    :meth:`Lexicon.changed_entries` alone is not, since it covers only entry
+    content.
+
+    ``baseline`` is False when no byte snapshot was captured, in which case
+    ``entries`` lists every entry, ``added`` and ``removed`` are empty (nothing
+    is known either way), and the object is truthy.
+    """
+
+    entries: list[Entry]  # content differs from the source
+    added: list[Entry]
+    removed: list[Entry]
+    reordered: bool  # same entries, different order
+    header: bool
+    root: bool  # producer, root attributes, or root-level residue
+    ranges: dict[Path, RangesChanges]  # keyed by companion; ranges span several files
+    baseline: bool
+
+    def __bool__(self) -> bool:
+        return (
+            not self.baseline
+            or bool(self.entries or self.added or self.removed)
+            or self.reordered
+            or self.header
+            or self.root
+            or any(self.ranges.values())
+        )
+
+
+def _reordered(current: list[int], original: list[int]) -> bool:
+    """Same members in a different sequence (identities, so duplicates count)."""
+    return current != original and sorted(current) == sorted(original)
+
+
 class RangesFile:
     """A standalone ``.lift-ranges`` document (root ``<lift-ranges>``)."""
 
@@ -300,6 +367,48 @@ class RangesFile:
         from ._canonical import sort_ranges_file
 
         sort_ranges_file(self)
+
+    def changes(self) -> RangesChanges:
+        """Everything that differs between this companion and the file it was read from.
+
+        Truthy exactly when :meth:`save` would not reproduce the source bytes.
+        Costs one canonical serialization pass over the ranges.
+        """
+        from ._writer import range_digest
+
+        source = self._source
+        if source is None:
+            return RangesChanges(
+                ranges=list(self.ranges),
+                added=[],
+                removed=[],
+                reordered=False,
+                root=False,
+                baseline=False,
+            )
+        digests = {id(record.range): record.digest for record in source.range_records}
+        present = {id(range_) for range_ in self.ranges}
+        return RangesChanges(
+            ranges=[
+                range_
+                for range_ in self.ranges
+                if (digest := digests.get(id(range_))) is not None
+                and range_digest(range_) != digest
+            ],
+            added=[range_ for range_ in self.ranges if id(range_) not in digests],
+            removed=[
+                record.range for record in source.range_records if id(record.range) not in present
+            ],
+            reordered=_reordered(
+                [id(range_) for range_ in self.ranges],
+                [id(record.range) for record in source.range_records],
+            ),
+            root=(
+                dict(self.extra._attrs) != source.root_extra_attrs
+                or self.extra._nodes != source.root_extra_snapshot._nodes
+            ),
+            baseline=True,
+        )
 
     def __repr__(self) -> str:
         source = f", path={str(self.path)!r}" if self.path else ""
@@ -494,29 +603,28 @@ class Lexicon:
         sort_lexicon(self)
 
     def changed_entries(self) -> list[Entry]:
-        """Entries whose serialized content differs from the loaded document.
+        """Entries present at load whose content now differs from the loaded document.
 
         An entry's digest covers its whole subtree, so an edit at any depth —
         a gloss on a nested subsense included — reports the containing entry.
         Writing back an identical value reports nothing, and neither does
-        reordering (see :meth:`sort`). Entries added since loading are
-        reported.
+        reordering (see :meth:`sort`).
+
+        Content changes only. Entries added since loading are reported by
+        :meth:`added_entries` and removed ones by :meth:`removed_entries`; for
+        everything that makes :meth:`save` differ from the source — including
+        the header, the ranges companions, and the root element — use
+        :meth:`changes`. An empty result here does not mean the document would
+        round-trip byte-identically.
+
+        The comparison is always against the document as loaded, never against
+        the most recent :meth:`save`, so an entry stays reported once changed.
 
         Every entry is reported when there is no byte baseline to compare
         against — a lexicon built from scratch, and equally one whose source
         the passthrough layer declined to scan (an encoding that is not
         ASCII-compatible, or a scanner/parser disagreement). Both re-serialize
-        in full on :meth:`save`, so in both cases those entries genuinely are
-        rewritten.
-
-        The comparison is always against the document as loaded, never against
-        the most recent :meth:`save`, so an entry stays reported once changed.
-
-        Entry content only — not a document-level dirty check. Header and
-        ranges edits are not reported and both change what :meth:`save`
-        writes, so an empty result does not mean the document would
-        round-trip byte-identically. Neither are removals: this reports
-        entries currently in the lexicon.
+        in full on :meth:`save`, so those entries genuinely are rewritten.
 
         Costs one canonical serialization pass over the entries.
         """
@@ -529,8 +637,84 @@ class Lexicon:
         return [
             entry
             for entry in self.entries
-            if (digest := digests.get(id(entry))) is None or entry_digest(entry) != digest
+            if (digest := digests.get(id(entry))) is not None and entry_digest(entry) != digest
         ]
+
+    def added_entries(self) -> list[Entry]:
+        """Entries in the lexicon that were not in the loaded document.
+
+        Empty when there is no byte baseline: nothing is known to be new, since
+        nothing is known to have been there before. Needs no serialization.
+        """
+        source = self._source
+        if source is None:
+            return []
+        known = {id(record.entry) for record in source.entry_records}
+        return [entry for entry in self.entries if id(entry) not in known]
+
+    def removed_entries(self) -> list[Entry]:
+        """Entries from the loaded document that are no longer in the lexicon.
+
+        The entry objects survive because the parse-time records hold them, so
+        a removed entry is returned intact rather than merely counted. Empty
+        when there is no byte baseline. Needs no serialization.
+        """
+        source = self._source
+        if source is None:
+            return []
+        present = {id(entry) for entry in self.entries}
+        return [record.entry for record in source.entry_records if id(record.entry) not in present]
+
+    def _header_changed(self) -> bool:
+        from ._writer import header_digest
+
+        source = self._source
+        if source is None or source.header_digest is None:
+            # No header in the source: only a non-empty one now is a change,
+            # matching what render_document emits.
+            return bool(self.header)
+        return header_digest(self.header) != source.header_digest
+
+    def _root_changed(self) -> bool:
+        source = self._source
+        if source is None:
+            return False
+        return (
+            self.producer != source.producer
+            or dict(self.extra._attrs) != source.root_extra_attrs
+            or self.extra._nodes != source.root_extra_snapshot._nodes
+        )
+
+    def changes(self) -> Changes:
+        """Everything that differs between this lexicon and the document it was loaded from.
+
+        Truthy exactly when :meth:`save` would not reproduce the source bytes,
+        which makes it the correct guard for skipping a write::
+
+            if not lex.changes():
+                return
+
+        The most expensive query here: it serializes the entries, the header,
+        and every tracked companion's ranges. When only one part is wanted,
+        :meth:`changed_entries`, :meth:`added_entries`, and
+        :meth:`removed_entries` answer individually, and the latter two need no
+        serialization at all.
+        """
+        return Changes(
+            entries=self.changed_entries(),
+            added=self.added_entries(),
+            removed=self.removed_entries(),
+            reordered=_reordered(
+                [id(entry) for entry in self.entries],
+                [id(record.entry) for record in self._source.entry_records]
+                if self._source is not None
+                else [],
+            ),
+            header=self._header_changed(),
+            root=self._root_changed(),
+            ranges={path: file.changes() for path, file in self.ranges_files.items()},
+            baseline=self._source is not None,
+        )
 
     def iter_problems(self, *, require_ids: bool = False) -> Iterator[Problem]:
         """Validate the in-memory state (schema layers + semantic checks).

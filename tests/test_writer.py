@@ -1,3 +1,4 @@
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import pytest
@@ -201,14 +202,14 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
     assert _semantic_bytes(result) != b""  # well-formed enough to canonicalize
 
 
-def _ids(entries: list[sil_lift.Entry]) -> list[int]:
-    """Compare reported entries by identity.
+def _ids(items: Sequence[object]) -> list[int]:
+    """Compare reported nodes by identity.
 
-    ``Entry`` is a non-frozen dataclass, so it has a generated content-based
-    ``__eq__`` — two distinct entries with equal content compare equal. These
-    tests care which object was reported, so they compare identity.
+    ``Entry`` and ``Range`` are non-frozen dataclasses, so they have generated
+    content-based ``__eq__`` — two distinct nodes with equal content compare
+    equal. These tests care which object was reported, so they compare identity.
     """
-    return [id(entry) for entry in entries]
+    return [id(item) for item in items]
 
 
 @pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
@@ -253,15 +254,28 @@ def test_changed_entries_reports_only_the_edited_entry() -> None:
     assert _ids(lexicon.changed_entries()) == [id(target)]
 
 
-def test_changed_entries_reports_entries_with_no_parse_time_record() -> None:
-    """Appended entries, and every entry of a lexicon that was never loaded."""
+def test_added_entries_owns_appended_entries_and_changed_entries_does_not() -> None:
+    """The three entry queries do not overlap: an addition is not a content change."""
     lexicon = sil_lift.load(CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift")
     added = sil_lift.Entry(id="brand-new")
     lexicon.entries.append(added)
-    assert _ids(lexicon.changed_entries()) == [id(added)]
 
-    scratch = sil_lift.Lexicon(entries=[sil_lift.Entry(id="a"), sil_lift.Entry(id="b")])
-    assert _ids(scratch.changed_entries()) == _ids(scratch.entries)
+    assert _ids(lexicon.added_entries()) == [id(added)]
+    assert lexicon.changed_entries() == []
+    assert lexicon.removed_entries() == []
+
+
+def test_removed_entries_returns_the_removed_object_itself() -> None:
+    """The parse-time records retain the entry, so a deletion is recoverable."""
+    lexicon = sil_lift.load(CORPUS_DIR / "misc" / "sample.0.13.lift")
+    victim = lexicon.entries[3]
+    del lexicon.entries[3]
+
+    removed = lexicon.removed_entries()
+    assert _ids(removed) == [id(victim)]
+    assert removed[0] is victim  # intact, not merely named
+    assert lexicon.changed_entries() == []
+    assert lexicon.added_entries() == []
 
 
 def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> None:
@@ -291,8 +305,135 @@ def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path:
     assert lexicon._source is None
     assert _ids(lexicon.changed_entries()) == _ids(lexicon.entries)
 
+    # Nothing is known to be new or gone, so neither is claimed; the composite
+    # says why, and stays truthy because the file will be rewritten in full.
+    assert lexicon.added_entries() == []
+    assert lexicon.removed_entries() == []
+    changes = lexicon.changes()
+    assert changes.baseline is False
+    assert changes
+
     # Not a false positive: save() cannot reproduce the source bytes here, so
     # reporting every entry matches what the writer actually does.
     out = tmp_path / "out.lift"
     lexicon.save(out)
     assert out.read_bytes() != utf16.read_bytes()
+
+
+def _signals(changes: sil_lift.Changes) -> set[str]:
+    """Which fields of a Changes actually report something."""
+    reported = {
+        "entries": bool(changes.entries),
+        "added": bool(changes.added),
+        "removed": bool(changes.removed),
+        "reordered": changes.reordered,
+        "header": changes.header,
+        "root": changes.root,
+        "ranges": any(changes.ranges.values()),
+    }
+    return {name for name, flagged in reported.items() if flagged}
+
+
+@pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
+def test_changes_is_falsy_exactly_when_the_render_reproduces_the_source(path: Path) -> None:
+    """The contract that makes changes() a correct write guard.
+
+    The dangerous direction is a falsy result beside differing output, which
+    would be a silently wrong "nothing to write".
+    """
+    from sil_lift._writer import render_document, render_ranges_document
+
+    lexicon = sil_lift.load(path)
+    assert not lexicon.changes()
+    assert render_document(lexicon) == path.read_bytes()
+    for ranges_file in lexicon.ranges_files.values():
+        assert ranges_file.path is not None
+        assert not ranges_file.changes()
+        assert render_ranges_document(ranges_file) == ranges_file.path.read_bytes()
+
+
+def _edit_entry(lexicon: sil_lift.Lexicon) -> None:
+    lexicon.entries[0].lexical_unit["en"] = "edited"
+
+
+def _append_entry(lexicon: sil_lift.Lexicon) -> None:
+    lexicon.entries.append(sil_lift.Entry(id="appended"))
+
+
+def _remove_entry(lexicon: sil_lift.Lexicon) -> None:
+    del lexicon.entries[0]
+
+
+def _reverse_entries(lexicon: sil_lift.Lexicon) -> None:
+    lexicon.entries.reverse()
+
+
+def _edit_header(lexicon: sil_lift.Lexicon) -> None:
+    lexicon.header.description["en"] = "edited"
+
+
+def _change_producer(lexicon: sil_lift.Lexicon) -> None:
+    lexicon.producer = "a different producer"
+
+
+def _add_root_residue(lexicon: sil_lift.Lexicon) -> None:
+    lexicon.extra._attrs["x-marker"] = "1"
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected"),
+    [
+        (_edit_entry, {"entries"}),
+        (_append_entry, {"added"}),
+        (_remove_entry, {"removed"}),
+        (_reverse_entries, {"reordered"}),
+        (_edit_header, {"header"}),
+        (_change_producer, {"root"}),
+        (_add_root_residue, {"root"}),
+    ],
+    ids=lambda value: value.__name__.lstrip("_") if callable(value) else str(sorted(value)),
+)
+def test_changes_isolates_each_document_level_condition(
+    mutate: Callable[[sil_lift.Lexicon], None], expected: set[str]
+) -> None:
+    """Each condition is detected, and reported by that field alone."""
+    from sil_lift._writer import render_document
+
+    path = CORPUS_DIR / "misc" / "sample.0.13.lift"
+    lexicon = sil_lift.load(path)
+    mutate(lexicon)
+
+    changes = lexicon.changes()
+    assert changes
+    assert _signals(changes) == expected
+    assert render_document(lexicon) != path.read_bytes()
+
+
+def test_changes_reports_a_companion_edit_the_lift_itself_does_not_show() -> None:
+    """The case an entry-scoped query cannot see: only the companion changed."""
+    from sil_lift._writer import render_document
+
+    path = CORPUS_DIR / "flex" / "AllFLExFields" / "AllFLExFields.lift"
+    lexicon = sil_lift.load(path)
+    assert lexicon.ranges_files
+    ranges_file = next(iter(lexicon.ranges_files.values()))
+    ranges_file.ranges[0].description["en"] = "edited"
+
+    changes = lexicon.changes()
+    assert changes
+    assert _signals(changes) == {"ranges"}
+    assert lexicon.changed_entries() == []  # the .lift is untouched
+    assert render_document(lexicon) == path.read_bytes()
+    assert [len(c.ranges) for c in changes.ranges.values()] == [1]
+
+
+def test_ranges_file_changes_has_no_baseline_when_built_from_scratch() -> None:
+    ranges_file = sil_lift.RangesFile()
+    ranges_file.add_range("etymology")
+
+    changes = ranges_file.changes()
+    assert changes.baseline is False
+    assert changes
+    assert _ids(changes.ranges) == _ids(ranges_file.ranges)
+    assert changes.added == []
+    assert changes.removed == []

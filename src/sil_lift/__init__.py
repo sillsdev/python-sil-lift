@@ -13,6 +13,7 @@ from ._errors import LiftError, LiftParseError, LiftValidationError
 from ._extras import Extras
 from ._header import FieldDefinition, Header, Range, RangeElement
 from ._model import (
+    Changes,
     Entry,
     Etymology,
     Example,
@@ -22,6 +23,7 @@ from ._model import (
     MediaRef,
     Note,
     Pronunciation,
+    RangesChanges,
     RangesFile,
     Relation,
     Reversal,
@@ -42,6 +44,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "Annotation",
+    "Changes",
     "Entry",
     "Etymology",
     "Example",
@@ -64,6 +67,7 @@ __all__ = [
     "Pronunciation",
     "Range",
     "RangeElement",
+    "RangesChanges",
     "RangesFile",
     "Relation",
     "Reversal",
