@@ -90,18 +90,18 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   </lexical-unit>
   <pronunciation>
     <form lang="en">
-      <text>Intervenante : Ana</text>
+      <text>Speaker: Ana</text>
     </form>
     <media href="audio/nkhuku.wav"/>
   </pronunciation>
   <sense id="kanga_s1">
     <grammatical-info value="Noun"/>
     <gloss lang="en">
-      <text>poulet</text>
+      <text>chicken</text>
     </gloss>
     <definition>
       <form lang="en">
-        <text>volaille élevée pour ses œufs et sa viande</text>
+        <text>a domestic fowl kept for its eggs and meat</text>
       </form>
     </definition>
     <example>
@@ -110,14 +110,14 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
       </form>
       <translation>
         <form lang="en">
-          <text>Je veux un poulet.</text>
+          <text>I want a chicken.</text>
         </form>
       </translation>
     </example>
     <illustration href="pictures/hen.jpg">
       <label>
         <form lang="en">
-          <text>Une poule</text>
+          <text>A hen</text>
         </form>
       </label>
     </illustration>
@@ -137,7 +137,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="Noun">
     <label>
       <form lang="en">
-        <text>nom</text>
+        <text>noun</text>
       </form>
     </label>
   </range-element>
@@ -146,7 +146,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="1.6.1.2">
     <label>
       <form lang="en">
-        <text>Oiseau</text>
+        <text>Bird</text>
       </form>
     </label>
   </range-element>
