@@ -1,30 +1,30 @@
-# Fidelity guarantees
+# 富达保证
 
-LIFT is an _interchange_ format: the cardinal rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
+LIFT 是一种_交换_格式：其首要原则是**绝不舍弃你不理解的内容**。 `sil-lift` 的契约，在每次运行时均由测试套件进行验证（包括语料库文件以及基于属性的生成）：
 
-## Reading
+## 阅读
 
-Any well-formed LIFT 0.13 document loads — schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` bucket: unknown attributes and elements, XML comments and processing instructions, stray text, and malformed typed attributes (a bad date stays as the original string in `Extras`; the typed field is `None`).
+任何格式正确的 LIFT 0.13 文档都能加载——即使其中包含不符合模式的内容。 模型未定义的内容将存放在最近节点的不透明 `Extras` 桶中：未知属性和元素、XML 注释和处理指令、散落的文本，以及格式错误的类型化属性（错误的日期将作为原始字符串保存在 `Extras` 中；其类型化字段为 `None`）。
 
-## Saving an unchanged document
+## 保存未作修改的文档
 
-`load()` → `save()` with no edits writes **byte-identical output** — no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. There is currently no normalization list: identity is exact.
+`load()` → `save()`（未进行任何编辑）将生成**字节完全相同的输出**——不进行重新格式化、不进行重新转义、不重新排序，并包含字节序标记和XML声明。 目前没有规范化列表：恒等式是精确的。
 
-Exceptions (the writer falls back to full canonical serialization, which is semantically complete but not byte-preserving):
+例外情况（写入器将回退到完整的规范序列化，这种序列化在语义上完整，但无法保留字节顺序）：
 
-- the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
-- the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
-- the source was built in memory rather than loaded from a file.
+- 源编码与 ASCII 不兼容（非 UTF-8/US-ASCII），或者
+- 源文件中包含 DOCTYPE 声明，或者
+- 字节扫描器和解析器对文档的顶级结构存在分歧——例如，出现了一个不符合规范的第二个 `<header>`，解析器只保留一次（扫描器则采取了刻意谨慎的态度：一旦产生怀疑，就完全不捕获源代码字节），或者
+- 源代码是在内存中构建的，而不是从文件中加载的。
 
-## Saving an edited document
+## 保存已编辑的文档
 
-- **Untouched entries are emitted verbatim from their original bytes.** An entry counts as touched if any part of its model object changed since parse (detected by canonical-serialization snapshot, not a dirty flag).
-- **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
-- Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
+- \*\*未被修改的条目将按其原始字节内容原样输出。\*\*如果条目的模型对象自解析以来有任何部分发生变化（通过规范序列化快照检测，而非通过“已修改”标志），则该条目被视为已被修改。
+- **被修改的条目将按照规范进行完全重新序列化**：UTF-8 编码，混合内容_外部_采用双空格缩进（`<text>` 和 `<span>` 内部的空格绝不更改），每个元素均按文档规定进行子元素分组（例如条目： 词汇单元、引用、发音、变体、词义、注释、关联、词源、标注、特征、领域），固定的属性顺序，日期采用 ISO-8601 格式（`Z` 表示 UTC）。 所有残留项都会被重新发出；其位置将恢复到原始子索引处，并限定在新的子列表范围内（这是一种近似处理——只有未被修改的条目才能保证精确的字节位置）。
+- 添加、删除或重新排序条目会重新序列化文档结构，但仍会原样输出每个未更改条目的字节。
 
-## Known approximations (touched nodes only)
+## 已知的近似值（仅限已访问节点）
 
-- Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
-- Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
-- A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
+- 在 `<text>` 运行块`内部`的注释会被保留，但会被提升到运行块旁边，而不是保留在它们的精确字符偏移量位置。
+- 在已编辑元素内的交叉型子元素顺序会被规范化为规范分组（LIFT 模式中的 `interleave` 使得该顺序在语义上不具意义）。
+- 一个虽然存在但不包含任何内容（既无形式，也无残留）的多文本元素——例如 `<definition></definition>` ——不会被重新输出。 该模型将这些字段表示为始终存在的 `Multitext`（包括 `lexical-unit`、`citation`、`definition`、关系的 `usage` 以及 `label` / `abbrev` / `description`，这些字段分别位于 URL 引用、范围、范围元素以及标题中），因此解析后，空字段与缺失字段无法区分。 没有任何语义上的损失。
