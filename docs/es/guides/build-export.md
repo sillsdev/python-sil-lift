@@ -85,23 +85,23 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
       <text>nkhuku</text>
     </form>
     <form lang="pt">
-      <text>gallina</text>
+      <text>galinha</text>
     </form>
   </lexical-unit>
   <pronunciation>
     <form lang="en">
-      <text>Hablante: Ana</text>
+      <text>Speaker: Ana</text>
     </form>
     <media href="audio/nkhuku.wav"/>
   </pronunciation>
   <sense id="kanga_s1">
     <grammatical-info value="Noun"/>
     <gloss lang="en">
-      <text>gallina</text>
+      <text>chicken</text>
     </gloss>
     <definition>
       <form lang="en">
-        <text>ave doméstica criada por sus huevos y su carne</text>
+        <text>a domestic fowl kept for its eggs and meat</text>
       </form>
     </definition>
     <example>
@@ -110,14 +110,14 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
       </form>
       <translation>
         <form lang="en">
-          <text>Quiero un pollo.</text>
+          <text>I want a chicken.</text>
         </form>
       </translation>
     </example>
     <illustration href="pictures/hen.jpg">
       <label>
         <form lang="en">
-          <text>Una gallina</text>
+          <text>A hen</text>
         </form>
       </label>
     </illustration>
@@ -130,14 +130,14 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   </sense>
 </entry>
 </lift>
-=== aves.gamas de peso ===
+=== birds.lift-ranges ===
 <?xml version="1.0" encoding="UTF-8"?>
 <lift-ranges>
 <range id="grammatical-info">
   <range-element id="Noun">
     <label>
       <form lang="en">
-        <text>sustantivo</text>
+        <text>noun</text>
       </form>
     </label>
   </range-element>
@@ -146,7 +146,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="1.6.1.2">
     <label>
       <form lang="en">
-        <text>Ave</text>
+        <text>Bird</text>
       </form>
     </label>
   </range-element>
