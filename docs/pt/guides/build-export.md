@@ -1,8 +1,8 @@
-# Worked example: building a LIFT export from scratch
+# Exemplo prático: criar uma exportação LIFT a partir do zero
 
-If you are exporting another application's data as LIFT — the task behind [Producing conformant LIFT](lift-export-interop.md) — `sil-lift` can build the document object by object and serialize it, instead of emitting XML by hand. This walks through one script that constructs an entry with the pieces a real dictionary has (multiple writing systems, a pronunciation, a sense with an example, an illustration, a semantic-domain trait, and an app-specific field), writes the controlled vocabularies into a `.lift-ranges` companion, validates, and saves.
+Se estiver a exportar dados de outra aplicação no formato LIFT — a tarefa subjacente a [Produção de LIFT em conformidade](lift-export-interop.md) — o `sil-lift` pode construir o documento objeto a objeto e serializá-lo, em vez de gerar XML manualmente. Este guia explica passo a passo um script que cria uma entrada com os elementos que um dicionário real possui (vários sistemas de escrita, uma pronúncia, um significado com um exemplo, uma ilustração, uma característica do domínio semântico e um campo específico da aplicação), grava os vocabulários controlados num ficheiro complementar `.lift-ranges`, valida e guarda.
 
-## The script
+## O guião
 
 ```python
 from pathlib import Path
@@ -11,20 +11,20 @@ import sil_lift
 
 lex = sil_lift.Lexicon(producer="my-exporter")
 
-# One entry, built from the source model.
+# Uma entrada, criada a partir do modelo de origem.
 entry = sil_lift.Entry(id="kanga", guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d")
 entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
 
 pron = sil_lift.Pronunciation()
-pron.forms["en"] = "Speaker: Ana"  # The Combine's speaker-label convention
+pron.forms["en"] = "Speaker: Ana"  # A convenção de rotulagem de falantes do Combine
 pron.media.append(sil_lift.URLRef(href="audio/nkhuku.wav"))
 entry.pronunciations.append(pron)
 
 sense = sil_lift.Sense(id="kanga_s1")
-sense.grammatical_info = sil_lift.GrammaticalInfo(value="Noun")
+sense.grammatical_info = sil_lift.GrammaticalInfo(value="Substantivo")
 sense.glosses.append(sil_lift.Form(lang="en", text=sil_lift.Text(["chicken"])))
-sense.definition["en"] = "a domestic fowl kept for its eggs and meat"
+sense.definition["en"] = "uma ave doméstica criada pelos seus ovos e carne"
 
 example = sil_lift.Example()
 example.forms["seh"] = "Ndinafuna nkhuku."
@@ -34,27 +34,27 @@ example.translations.append(translation)
 sense.examples.append(example)
 
 photo = sil_lift.URLRef(href="pictures/hen.jpg")
-photo.label["en"] = "A hen"
+photo.label["en"] = "Uma galinha"
 sense.illustrations.append(photo)
 
 sense.traits.append(sil_lift.Trait(name="semantic-domain-ddp4", value="1.6.1.2"))
 
-scientific = sil_lift.Field(type="scientific-name")  # an app-specific extra field
+scientific = sil_lift.Field(type="scientific-name")  # um campo extra específico da aplicação
 scientific.content["en"] = "Gallus gallus domesticus"
 sense.fields.append(scientific)
 
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# The controlled vocabularies the entry refers to, in a companion .lift-ranges.
+# Os vocabulários controlados a que a entrada se refere, num ficheiro .lift-ranges.
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Validate what save() would write, before touching the disk.
+# Validar o que o save() escreveria, antes de gravar no disco.
 problems = list(lex.iter_problems())
-print(f"validation: {len(problems)} problem(s)")
+print(f"validação: {len(problems)} problema(s)")
 
 out = Path("export")
 out.mkdir(exist_ok=True)
@@ -65,9 +65,9 @@ print("=== birds.lift-ranges ===")
 print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 ```
 
-## What it produces
+## O que produz
 
-`validation: 0 problem(s)`, then the `.lift` and its companion side by side:
+`validação: 0 problema(s)`, e, em seguida, o `.lift` e o seu equivalente lado a lado:
 
 ```
 === birds.lift ===
@@ -154,15 +154,15 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 </lift-ranges>
 ```
 
-## Notes on the API
+## Notas sobre a API
 
-- Multitext fields (`lexical_unit`, `definition`, a `Form`/`URLRef` label, a `Field`'s content, ...) take one string per writing system through the mapping interface: `entry.lexical_unit["seh"] = "nkhuku"` adds a `<form lang="seh">`. A source model that keys strings by language code maps straight onto this.
-- `RangesFile.add_range()` / `Range.add_element()` build the controlled vocabularies, and `Lexicon.add_ranges_file(ranges, href=...)` attaches the companion and adds the header `<range href>` references — so the entry's `<grammatical-info value="Noun">` and `<trait name="semantic-domain-ddp4" value="1.6.1.2">` resolve against the ranges you defined.
-- A `URLRef` is an href plus an optional caption/label multitext — used for both `<media>` (audio) and `<illustration>` (photos). The pronunciation here follows The Combine's convention of an `en` form reading `Speaker: <name>`.
-- App-specific data with no native LIFT home rides as a `<field>` (or `<trait>`): FieldWorks reads these as custom fields and The Combine preserves them.
-- Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports) — a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` enforces this.
-- `lex.iter_problems()` validates the in-memory document (what `save()` would write) before anything hits disk; here it is clean. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped — run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
+- Campos multitexto (`lexical_unit`, `definition`, um rótulo de `Form`/`URLRef`, o conteúdo de um `Field`, ...) selecione uma sequência por sistema de escrita através da interface de mapeamento: `entry.lexical_unit["seh"] = "nkhuku"` adiciona um `<form lang="seh">`. Um modelo de origem que indexa cadeias de caracteres pelo código do idioma corresponde diretamente a isto.
+- `RangesFile.add_range()` / `Range.add_element()` criam os vocabulários controlados, e `Lexicon.add_ranges_file(ranges, href=...)` associa o vocabulário complementar e adiciona as referências de cabeçalho `<range href>` — para que os campos `<grammatical-info value="Noun">` e `<trait name="semantic-domain-ddp4" value="1.6.1.2">` da entrada sejam resolvidos de acordo com os intervalos que definiu.
+- Um `URLRef` é um href acompanhado de um texto múltiplo opcional (legenda/rótulo) — utilizado tanto para `<media>` (áudio) como para `<illustration>` (fotografias). A pronúncia aqui segue a convenção do The Combine, que prevê uma forma «en» que se lê «Orador: <name> ».
+- Dados específicos da aplicação que não incluam viagens de regresso a casa nativas do LIFT, como «<field> » (ou «<trait> »): o FieldWorks interpreta-os como campos personalizados e o The Combine preserva-os.
+- Atribua a cada entrada um `guid` válido e estável (por exemplo, gerado por `uuid.uuid4()`, reutilizado em todas as exportações) — uma reimportação posterior atualiza a entrada no local, em vez de a duplicar. O comando `sil-lift validate --require-ids` garante que isso seja cumprido.
+- A função `lex.iter_problems()` valida o documento na memória (o que a função `save()` iria gravar) antes de qualquer coisa ser gravada no disco; neste caso, está correto. Como o léxico ainda não tem nenhuma pasta, as verificações de «media-presence» e «companion-href» são ignoradas — execute [`sil-lift validate`](cli.md) na saída guardada (ou com `--no-check-media`) assim que os ficheiros de áudio e de fotografias estiverem no local.
 
-## Packaging
+## Embalagem
 
-`lex.save("export/birds.lift")` writes the folder form (`.lift` + `.lift-ranges` side by side). To emit a single zipped package that FieldWorks and The Combine import directly, use `lex.save_zip("birds.zip")` instead — see [Producing conformant LIFT](lift-export-interop.md).
+`lex.save("export/birds.lift")` grava a estrutura da pasta (ficheiros `.lift` e `.lift-ranges` lado a lado). Para gerar um único pacote compactado que o FieldWorks e o The Combine importem diretamente, utilize `lex.save_zip("birds.zip")` — consulte [Produção de LIFT em conformidade](lift-export-interop.md).
