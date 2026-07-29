@@ -1,12 +1,12 @@
-# Large files (streaming)
+# Faili kubwa (mtiririko)
 
-`load()` builds the whole object graph. For multi-hundred-MB lexicons, the streaming API processes one entry at a time in bounded memory — the same `Entry` type, so code written against one mode works in the other.
+`load()` huunda grafu nzima ya vitu. Kwa kamusi zenye mamia ya MB, API ya mtiririko huchakata kipengee kimoja kwa wakati katika kumbukumbu yenye ukomo — aina ile ile ya `Entry`, hivyo msimbo ulioandikwa kwa njia moja unafanya kazi katika njia nyingine.
 
 ```python
 import sil_lift
 
 with sil_lift.open_reader("big.lift") as reader:
-    header = reader.header            # parsed up front (precedes entries)
+    header = reader.header            # imeparswa mapema (kabla ya entries)
     for entry in reader:              # lazy Iterator[Entry]
         ...
 ```
@@ -16,12 +16,12 @@ with sil_lift.open_reader("big.lift") as reader, sil_lift.open_writer(
     "out.lift", header=reader.header, producer="my-script"
 ) as writer:
     for entry in reader:
-        if not entry.date_deleted:    # e.g. drop tombstones
+        if not entry.date_deleted:    # mfano, ondoa tombstones
             writer.write(entry)
 ```
 
-Notes:
+Maelezo:
 
-- The writer's output is exactly what the full-document canonical serializer would produce for the same content — the two modes never drift apart.
-- Streaming mode has no byte-passthrough layer: output is always canonical. Root-level residue — comments between entries and out-of-schema attributes on `<lift>` — is not carried; entries and the header are complete, residue included.
-- If the body of an `open_writer` block raises, the file is left visibly unterminated (no closing `</lift>`) — a half-written lexicon must not look complete.
+- Matokeo ya mwandishi ni sawa kabisa na kile ambacho serializer kanoniki kamili ya hati ingetengeneza kwa maudhui yale yale — modi hizo mbili haziwahi kutofautiana.
+- Modi ya utiririshaji haina safu ya kupitisha baiti: pato daima ni kanoniki. Baki ya kiwango cha mizizi — maoni kati ya vitu na sifa zisizo za mpangilio kwenye `<lift>` — hazibebwi; vitu na kichwa ni kamili, ikijumuisha baki.
+- Ikiwa bloku ya `open_writer` itapandishwa, faili inabaki haijakamilika wazi (bila `</lift>` ya kufunga) — kamusi iliyoandikwa nusu haipaswi kuonekana imekamilika.
