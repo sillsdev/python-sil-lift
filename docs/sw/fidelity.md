@@ -1,30 +1,30 @@
-# Fidelity guarantees
+# Dhamana za uaminifu
 
-LIFT is an _interchange_ format: the cardinal rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
+LIFT ni muundo wa kubadilishana: kanuni kuu ni **usitupe kile usichokielewa**. Mkataba wa `sil-lift`, uliothibitishwa na mkusanyiko wa majaribio katika kila utekelezaji (faili za koropusi pamoja na uundaji unaotegemea sifa):
 
-## Reading
+## Kusoma
 
-Any well-formed LIFT 0.13 document loads — schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` bucket: unknown attributes and elements, XML comments and processing instructions, stray text, and malformed typed attributes (a bad date stays as the original string in `Extras`; the typed field is `None`).
+Hati yoyote ya LIFT 0.13 iliyoundwa vizuri hupakiwa — ikijumuisha maudhui yasiyoendana na skema. Chochote ambacho mfano haujafafanua huhifadhiwa kwenye baketi isiyoeleweka ya `Extras` ya nodi iliyo karibu zaidi: sifa na vipengele visivyojulikana, maoni ya XML na maagizo ya usindikaji, maandishi yaliyotapakaa, na sifa za aina zisizojengwa ipasavyo (tarehe isiyo sahihi inabaki kama msururu wa awali katika `Extras`; uwanja wa aina ni `None`).
 
-## Saving an unchanged document
+## Kuhifadhi hati bila mabadiliko
 
-`load()` → `save()` with no edits writes **byte-identical output** — no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. There is currently no normalization list: identity is exact.
+`load()` → `save()` bila mabadiliko huandika **matokeo yanayofanana kabisa kwa baiti** — hakuna kupanga upya muundo, hakuna kurejesha tena alama za kutoroka, hakuna kupanga upya mpangilio, alama za mpangilio wa baiti na matangazo ya XML zimejumuishwa. Kwa sasa hakuna orodha ya kawaida: utambulisho ni sahihi kabisa.
 
-Exceptions (the writer falls back to full canonical serialization, which is semantically complete but not byte-preserving):
+Vilevyo vya kipekee (mwandishi anarudi kwenye mfululizo kamili wa kanoniki, ambao kimaana ni kamili lakini hauhifadhi baiti):
 
-- the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
-- the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
-- the source was built in memory rather than loaded from a file.
+- Ukodishaji wa chanzo hauendani na ASCII (sio UTF-8/US-ASCII), au
+- chanzo kina DOCTYPE, au
+- kikagua baiti na mchanganuzi havikubaliani kuhusu muundo wa ngazi ya juu wa hati — kwa mfano `<header>` ya pili isiyoendana na vipimo, ambayo mchanganuzi huihifadhi mara moja tu (kikagua baiti hakiamini kwa makusudi: shaka yoyote inamaanisha hakuna baiti za chanzo zinazoshikiliwa kabisa), au
+- Chanzo kilijengwa kwenye kumbukumbu badala ya kupakiwa kutoka kwenye faili.
 
-## Saving an edited document
+## Kuhifadhi hati iliyohaririwa
 
-- **Untouched entries are emitted verbatim from their original bytes.** An entry counts as touched if any part of its model object changed since parse (detected by canonical-serialization snapshot, not a dirty flag).
-- **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
-- Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
+- **Maingizo yasiyoguswa hutolewa neno kwa neno kutoka kwa baiti zao za awali.** Ingizo linahesabiwa kuwa limeguswa ikiwa sehemu yoyote ya kitu chake cha mfano imebadilika tangu uchanganuzi (inagunduliwa na picha ya kanonali-serialization, si bendera ya uchafu).
+- **Maingizo yaliyoguswa yanaserializwa tena kwa kanuni na kikamilifu**: UTF-8, uingizaji wa nafasi mbili _nje_ ya maudhui mchanganyiko (nafasi tupu ndani ya `<text>` na `<span>` haibadilishwi kamwe), upangaji wa vikundi vya watoto uliodokumentishwa kwa kila kipengele (mfano: ingizo: kitengo-cha-msamiati, nukuu, matamshi, aina-tofauti, maana, dondoo, uhusiano, asili-ya-neno, maelezo-ya-nyongeza, sifa, nyanja), mpangilio thabiti wa sifa, tarehe kwa ISO-8601 (`Z` kwa UTC). Baki yote inatolewa tena; nafasi yake inarejeshwa kwenye kiashiria cha awali cha mtoto, na kufungwa kwenye orodha mpya ya watoto (ni makadirio — nafasi halisi za baiti zinahakikishwa tu kwa vipengee visivyoguswa).
+- Kuongeza, kuondoa, au kupanga upya maingizo kunasababisha muundo wa hati kusiriwa upya kwa mpangilio wa mfululizo, lakini bado hutoa baiti za kila kiingizo kisichobadilika neno kwa neno.
 
-## Known approximations (touched nodes only)
+## Makadirio yanayojulikana (nodsi zilizoguswa pekee)
 
-- Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
-- Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
-- A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
+- Maoni ndani ya utekelezaji wa `<text>` yanahifadhiwa lakini huwekwa juu kando ya utekelezaji, badala ya mahali pao halisi pa herufi.
+- Agizo la mtoto la aina ya msalaba ndani ya kipengele kilichohaririwa linawekwa katika muundo wa kawaida wa makundi (shemia ya LIFT `interleave` hufanya mpangilio huu usiwe na maana kimaana).
+- Kipengele cha multitext kilichopo lakini hakibebi chochote — hakuna fomu, hakuna mabaki, mfano `<definition></definition>` — hakitolewa tena. Mfano unawakilisha nyanja hizi kama `Multitext` inayopatikana kila wakati (`lexical-unit`, `citation`, `definition`, `usage` ya uhusiano, na `label` / `abbrev` / `description` kwenye marejeleo ya URL, vipimo, vipengele vya kipimo na kichwa), hivyo tupu haiwezi kutofautishwa na kutokuwepo baada ya uchanganuzi. Hakuna kitu cha kisemantiki kinachopotea.
