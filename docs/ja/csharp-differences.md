@@ -8,45 +8,45 @@ sil-lift は、SIL の C# LIFT ツール群――主に [libpalaso](https://gith
 | ---------- | -------------------------------------------------------- | ---------------------------------------------------- |
 | LIFTのバージョン | 0.10–0.13（移行機能が組み込まれている） | **0.13のみ**；それより古いバージョンは明確なエラーで拒否されます |
 | バージョンの移行   | `Migrator`（XSLTチェーン）                                     | なし — 単発のアップグレードには、lift-standardに含まれるXSLTを使用してください    |
-| 3ウェイマージ／同期 | Chorus                                                   | out of scope                                         |
-| Validation | RELAX NG only (`Validator`)           | RELAX NG + ranges schema + semantic checks           |
-| Streaming  | internal entry-granularity parsing                       | public `open_reader` / `open_writer` API             |
+| 3ウェイマージ／同期 | コーラス                                                     | 対象外                                                  |
+| 検証         | RELAX NG のみ（`Validator`）                                 | RELAX NG + スキーマおよびセマンティックチェックの範囲                     |
+| ストリーミング    | エントリ単位の内部解析                                              | パブリック `open_reader` / `open_writer` API              |
 
-## API shape
+## APIの形状
 
-`SIL.Lift`'s parser is callback-driven (`ILexiconMerger`): it pushes parse events at a consumer. sil-lift instead returns a plain object graph — typed dataclasses for every LIFT element — because Python scripters want objects, not callbacks. `SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but as an application model it represents only the constructs those apps use — so re-serializing through it can't preserve out-of-model content the way sil-lift's residue capture and byte fidelity do (see below). The streaming API yields the _same_ `Entry` type, so there is no capability-reduced twin model.
+`SIL.Lift`のパーサーはコールバック駆動型（`ILexiconMerger`）であり、解析イベントをコンシューマーにプッシュします。 その代わりに、sil-lift は単純なオブジェクトグラフ（LIFT の各要素に対応する型付きデータクラス）を返します。これは、Python スクリプト作成者がコールバックではなくオブジェクトを求めているためです。 `SIL.DictionaryServices` は、`SIL.Lift`の上に`LexEntry`/`LexSense`オブジェクトモデルを重ねていますが、アプリケーションモデルとして、それはそれらのアプリが使用する構造のみを表しています。そのため、これを通じて再シリアライズを行っても、sil-liftの残留値のキャプチャやバイト単位の忠実度のように、モデル外のコンテンツを保持することはできません（以下を参照）。 ストリーミングAPIは_同じ_ `Entry` 型を返すため、機能が制限されたツインモデルは存在しません。
 
-## Round-trip fidelity
+## 往復の忠実度
 
-The strongest deliberate difference. Saving with `SIL.Lift` re-serializes the whole document. sil-lift guarantees:
+最も顕著な意図的な違い。 `SIL.Lift` を使用して保存すると、ドキュメント全体が再シリアル化されます。 sil-liftの保証：
 
-- an unchanged document saves **byte-identically**, and
-- untouched entries keep their exact source bytes even when other entries change (Chorus-grade byte chunking, applied automatically).
+- 変更のないドキュメントは**バイト単位で同一**に保存され、
+- 変更されていないエントリは、他のエントリが変更された場合でも、ソースのバイトを正確に保持します（Chorusレベルのバイト単位のチャンキングが自動的に適用されます）。
 
-See [Fidelity guarantees](fidelity.md).
+[フィデリティの保証](fidelity.md)をご覧ください。
 
-## Validation
+## 検証
 
-The C# `Validator` runs one RELAX NG pass and reports the first errors as strings. sil-lift reports a structured, entry/line-addressed `Problem` stream, and its schema layer knowingly diverges in three places:
+C#の`Validator`は、RELAX NGによる検証を1回実行し、最初に検出されたエラーを文字列として報告します。 sil-lift は、構造化された、エントリ／行単位でアドレス指定される `Problem` ストリームを報告しており、そのスキーマ層は意図的に 3 箇所で異なる仕様となっています：
 
-- **Invalid URIs are warnings, not errors.** The C# RELAX NG engine never enforced the `anyURI` datatype, so FieldWorks (FLEx) has been writing `file://C:/...` hrefs into real lexicons for years. Rejecting those files would flag virtually every FLEx export.
-- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by both C# and raw lxml validation.
-- **Cross-file comparisons are Unicode-normalized**, because FLEx writes the `.lift` in NFC and the companion `.lift-ranges` in NFD.
+- **無効なURIはエラーではなく警告です。** C#のRELAX NGエンジンは`anyURI`データ型を強制したことがなかったため、FieldWorks (FLEx) では長年にわたり、実際のレキシコンに`file://C:/...`というhrefを記述してきました。 それらのファイルを拒否すると、事実上すべてのFLExエクスポートにフラグが立てられてしまいます。
+- **Schematronルールが適用されます**（セマンティックチェックとして）：LIFT文法における重複するフォーム言語や類似の共制約は、C#および生のlxmlによる検証のいずれにおいても、黙って無視されていました。
+- **ファイル間の比較はUnicode正規化されています**。これは、FLExが`.lift`ファイルをNFC形式で、関連する`.lift-ranges`ファイルをNFD形式で書き出すためです。
 
-sil-lift also validates the `.lift-ranges` companions of a loaded lexicon against a schema for standalone ranges documents (vendored from `lift-standard` alongside the base LIFT grammar) — every tracked external ranges file is checked whenever the `.lift` is validated — with no such schema (or check) in the C# world. (There is no entry point for validating a `.lift-ranges` file on its own, detached from a `.lift`.)
+sil-lift は、読み込まれたレキシコンの `.lift-ranges` コンパニオンを、スタンドアロンの範囲ドキュメント用のスキーマ（ベースとなる LIFT 文法とともに `lift-standard` から提供されているもの）に対して検証します — `.lift` の検証が行われるたびに、追跡対象となっているすべての外部レンジファイルがチェックされます — C#の世界には、このようなスキーマ（またはチェック）は存在しません。 （`.lift` ファイルから切り離された状態で、`.lift-ranges` ファイル単体を検証するためのエントリポイントは存在しません。）
 
-## Canonical sorting
+## 規範的順序付け
 
-`Lexicon.sort()` mirrors `LiftSorter`'s core rules (entries by case-insensitive guid; ranges and range-elements by id; header field definitions by tag; senses kept in file order; whitespace inside `<text>` never touched), with three differences:
+`Lexicon.sort()` は、`LiftSorter` の基本ルール（エントリは大文字小文字を区別しない GUID 順、範囲および範囲要素は ID 順、ヘッダーフィールドの定義はタグ順、意味の並びはファイル順のまま、`<text>` 内の空白は一切変更しない）を踏襲していますが、3つの違いがあります：
 
-- entries without a guid sort deterministically by id (`LiftSorter` assumes a guid is present);
-- ordering is locale-independent (plain case-folded code points, not .NET invariant-culture collation);
-- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key — grouping is already deterministic, and reordering them only adds diff noise.
+- GUID を持たないエントリは、ID に基づいて決定論的にソートされます（`LiftSorter` は GUID が存在することを前提としています）。
+- 順序付けはロケールに依存しません（大文字小文字を区別しないコードポイントに基づくものであり、.NET の不変文化ソート順序ではありません）。
+- ノート、関係、フォームなどの同種のリストは、キーに基づいて再ソートされるのではなく、ドキュメント内の順序を維持します。グループ化はすでに決定論的であり、順序を変更しても差分のノイズが増えるだけです。
 
-The spec repo's `canonicalizeLift.xsl` is not used at all: it collapses whitespace inside lexical text (destructive) and its generated ids differ on every run.
+仕様リポジトリの `canonicalizeLift.xsl` はまったく使用されていません。このXSLは、字句テキスト内の空白を削除してしまう（破壊的）うえ、生成されるIDが実行のたびに異なるからです。
 
-## Not carried over
+## 繰り越されなかった
 
-- WeSay-specific conveniences (dashboard/config handling around LIFT files).
-- `SynchronicMerger` (Chorus update merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
-- LDML writing-system parsing: files in `WritingSystems/` are treated as opaque folder content.
+- WeSay特有の利便性（ダッシュボード／LIFTファイルに関する設定処理）。
+- `SynchronicMerger`（Chorusの更新マージ）— バイト単位のチャンク化という考え方はフィデリティ層で引き継がれているが、マージ機能自体は引き継がれていない。
+- LDMLの表記体系の解析：`WritingSystems/` ディレクトリ内のファイルは、不透明なフォルダ内容として扱われます。
