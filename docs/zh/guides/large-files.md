@@ -1,27 +1,27 @@
-# Large files (streaming)
+# 大文件（流式传输）
 
-`load()` builds the whole object graph. For multi-hundred-MB lexicons, the streaming API processes one entry at a time in bounded memory — the same `Entry` type, so code written against one mode works in the other.
+`load()` 会构建整个对象图。 对于大小达数百MB的词典，流式处理 API 会在有限的内存中逐条处理条目——由于采用的是相同的 `Entry` 类型，因此针对一种模式编写的代码在另一种模式下同样适用。
 
 ```python
 import sil_lift
 
 with sil_lift.open_reader("big.lift") as reader:
-    header = reader.header            # parsed up front (precedes entries)
-    for entry in reader:              # lazy Iterator[Entry]
+    header = reader.header            # 提前解析（位于条目之前）
+    for entry in reader:              # 惰性 Iterator[Entry]
         ...
 ```
 
 ```python
-with sil_lift.open_reader("big.lift") as reader, sil_lift.open_writer(
+使用 sil_lift.open_reader("big.lift") 作为读取器，sil_lift.open_writer(
     "out.lift", header=reader.header, producer="my-script"
-) as writer:
+) 作为写入器：
     for entry in reader:
-        if not entry.date_deleted:    # e.g. drop tombstones
+        if not entry.date_deleted:    # 例如：删除坟墓石
             writer.write(entry)
 ```
 
-Notes:
+注：
 
-- The writer's output is exactly what the full-document canonical serializer would produce for the same content — the two modes never drift apart.
-- Streaming mode has no byte-passthrough layer: output is always canonical. Root-level residue — comments between entries and out-of-schema attributes on `<lift>` — is not carried; entries and the header are complete, residue included.
-- If the body of an `open_writer` block raises, the file is left visibly unterminated (no closing `</lift>`) — a half-written lexicon must not look complete.
+- 该写入器的输出结果与全文档规范序列化器针对相同内容生成的结果完全一致——这两种模式的结果始终保持一致。
+- 流式传输模式没有字节直通层：输出始终是规范格式。 根级残留内容——即条目之间的注释以及 `<lift>` 上超出模式范围的属性——不会被传递；条目和头部内容是完整的，其中包含残留内容。
+- 如果 `open_writer` 代码块内部抛出异常，该文件将被标记为未终止（即没有关闭的 `</lift>`）——一个只写了一半的词汇表绝不能看起来像是完整的。
