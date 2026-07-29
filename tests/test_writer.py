@@ -201,6 +201,16 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
     assert _semantic_bytes(result) != b""  # well-formed enough to canonicalize
 
 
+def _ids(entries: list[sil_lift.Entry]) -> list[int]:
+    """Compare reported entries by identity.
+
+    ``Entry`` is a non-frozen dataclass, so it has a generated content-based
+    ``__eq__`` — two distinct entries with equal content compare equal. These
+    tests care which object was reported, so they compare identity.
+    """
+    return [id(entry) for entry in entries]
+
+
 @pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
 def test_changed_entries_is_empty_for_an_untouched_load(path: Path) -> None:
     assert sil_lift.load(path).changed_entries() == []
@@ -213,7 +223,7 @@ def test_changed_entries_reports_the_entry_for_an_edit_at_any_depth() -> None:
     entry = lexicon.entries[0]
     entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
 
-    assert lexicon.changed_entries() == [entry]
+    assert _ids(lexicon.changed_entries()) == [id(entry)]
 
 
 def test_changed_entries_ignores_an_identical_rewrite() -> None:
@@ -240,7 +250,7 @@ def test_changed_entries_reports_only_the_edited_entry() -> None:
     target = lexicon.entries[3]
     target.lexical_unit["en"] = "edited"
 
-    assert lexicon.changed_entries() == [target]
+    assert _ids(lexicon.changed_entries()) == [id(target)]
 
 
 def test_changed_entries_reports_entries_with_no_parse_time_record() -> None:
@@ -248,10 +258,10 @@ def test_changed_entries_reports_entries_with_no_parse_time_record() -> None:
     lexicon = sil_lift.load(CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift")
     added = sil_lift.Entry(id="brand-new")
     lexicon.entries.append(added)
-    assert lexicon.changed_entries() == [added]
+    assert _ids(lexicon.changed_entries()) == [id(added)]
 
     scratch = sil_lift.Lexicon(entries=[sil_lift.Entry(id="a"), sil_lift.Entry(id="b")])
-    assert scratch.changed_entries() == scratch.entries
+    assert _ids(scratch.changed_entries()) == _ids(scratch.entries)
 
 
 def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> None:
@@ -262,7 +272,7 @@ def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> 
     entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
     lexicon.save(tmp_path / "out.lift")
 
-    assert lexicon.changed_entries() == [entry]
+    assert _ids(lexicon.changed_entries()) == [id(entry)]
 
 
 def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path: Path) -> None:
@@ -279,7 +289,7 @@ def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path:
     lexicon = sil_lift.load(utf16)
     assert lexicon.entries  # it loaded fine; only the byte scan was declined
     assert lexicon._source is None
-    assert lexicon.changed_entries() == lexicon.entries
+    assert _ids(lexicon.changed_entries()) == _ids(lexicon.entries)
 
     # Not a false positive: save() cannot reproduce the source bytes here, so
     # reporting every entry matches what the writer actually does.
