@@ -1,35 +1,35 @@
-# The command line
+# 命令行
 
-Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported LiftTools-style tool that ships with the package (and, for `validate`, a worked example of the library API).
+安装该包（`pip install sil-lift`）时，还会一并安装 `sil-lift` 命令——这是一个随包附带的、受支持的 LiftTools 风格工具（对于 `validate` 而言，它还是该库 API 的一个示例）。
 
 ```
-sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
-                                           all problems, entry/line-addressed; exit 1 on errors
+sil-lift 验证 PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
+                                           列出所有问题，按条目/行处理；出现错误时退出并返回 1
 sil-lift stats PATH [--format {text,json}]
-                                           entry/sense/language counts (streaming; any size)
-sil-lift sort PATH [-o OUT]               canonically sorted, diff-ready copy (default: in place)
-sil-lift check-media PATH                 missing and orphaned media report; exit 1 if missing
+                                           条目/语义/语言计数（流式处理；任意大小）
+sil-lift sort PATH [-o OUT]               规范排序、支持差异比较的副本（默认：就地操作）
+sil-lift check-media PATH                 缺失和孤立媒体报告；若存在缺失则退出并返回 1
 sil-lift export PATH [-o OUT] [--langs L] [--tsv]
-                                           one row per leaf sense (subsenses flattened) to CSV/TSV (streaming)
+                                           将每个叶片感测单元（子感测单元已扁平化）按一行输出至 CSV/TSV 文件（流式输出）
 ```
 
-`--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below. `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on a clean bill of health rather than errors alone. `--no-check-media` skips the filesystem media-presence check (suppressing `missing-media` findings), which is useful when validating a freshly generated export whose audio/photo files live elsewhere and aren't colocated on disk. `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id. Passing `-` as the path reads the document from stdin (a piped document has no folder, so its companion `.lift-ranges` and media are not resolved). `stats` likewise takes `--format json`, emitting the counts as a single JSON object.
+`--format json` 会将单个 JSON 对象写入标准输出（且不输出其他内容），供持续集成（CI）和自动化流程使用；请参阅下例中的数据结构。 `--strict` 将警告视为错误，若发现任何警告则返回 1 —— 使用该选项可确保构建仅在系统状态完全正常时才通过，而不仅仅依赖于是否存在错误。 `--no-check-media` 会跳过文件系统的介质存在性检查（从而抑制 `missing-media` 检测结果），这在验证刚生成的导出文件时非常有用——此时音频/照片文件存储在其他位置，并未与导出文件位于同一磁盘上。 `--require-ids` 还会对任何缺少 `guid` 的条目或缺少 `id` 的语义返回错误（`missing-id` 错误）——这比 LIFT 更严格，适用于通过稳定 ID 重新导入的工作流。 将 `-` 作为路径参数传递时，系统将从标准输入（stdin）读取文档（通过管道传递的文档没有文件夹，因此其配套的 `.lift-ranges` 文件和媒体资源不会被解析）。 `stats` 同样支持 `--format json` 选项，将计数结果以单个 JSON 对象的形式输出。
 
 !!! note
-    `validate`'s exit codes and `--format json` schema are a supported automation interface: both are covered by tests and change only under SemVer.
+    `validate` 的退出代码和 `--format json` 模式是一种受支持的自动化接口：两者均经过测试验证，且仅在遵循 SemVer 规范的情况下才会发生变更。
 
-`sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
-untouched (sort those separately with the `RangesFile` API).
+`sort` 仅重写 `.lift` 文件；配套的 `.lift-ranges` 文件则保持不变
+（请使用 `RangesFile` API 单独对这些文件进行排序）。
 
-`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes.
+`validate`、`stats`、`check-media` 和 `export` 还支持接收压缩的 LIFT 包（以任何一种布局格式的 `.zip` 文件——文件位于归档根目录下，或嵌套在某个顶级文件夹下）；该包会在命令执行完毕后解压到临时目录，并被自动删除。
 
-Examples:
+示例：
 
 ```
 $ sil-lift validate dictionary.lift
-error [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches no entry id/guid or sense id
-warning [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)
-1 error(s), 1 warning(s)
+错误 [dangling-ref] dictionary.lift:88（条目 apu）：引用 'nope' 未匹配任何条目 ID/GUID 或词义 ID
+警告 [uri-not-rfc] dictionary.lift:6:<range href='file://C:/...'> ：将 Windows 驱动器盘符用作 URI 权威部分（FLEx 风格的 file://C:/）
+1 个错误，1 个警告
 
 $ sil-lift validate dictionary.lift --format json
 {
@@ -37,7 +37,7 @@ $ sil-lift validate dictionary.lift --format json
     {
       "level": "error",
       "code": "dangling-ref",
-      "message": "ref 'nope' matches no entry id/guid or sense id",
+      "message": "引用 'nope' 未匹配任何条目 ID/GUID 或语义 ID",
       "file": "dictionary.lift",
       "entry_id": "apu",
       "guid": null,
@@ -46,7 +46,7 @@ $ sil-lift validate dictionary.lift --format json
     {
       "level": "warning",
       "code": "uri-not-rfc",
-      "message": "<range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)",
+      "message": "<range href='file://C:/...'>: 将 Windows 驱动器盘符用作 URI 权威部分（FLEx 风格的 file://C:/）",
       "file": "dictionary.lift",
       "entry_id": null,
       "guid": null,
@@ -60,11 +60,11 @@ $ sil-lift validate dictionary.lift --format json
 }
 
 $ sil-lift stats sango.lift
-entries:   3507
-senses:    4541
+条目数：   3507
+词义数：    4541
 ...
 
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`), `2` unreadable input.
+退出代码：`0` 成功（允许出现警告，除非启用了 `--strict` 选项），`1` 发现问题（验证错误/媒体文件缺失/在启用 `--strict` 选项时出现的警告），`2` 输入不可读。
