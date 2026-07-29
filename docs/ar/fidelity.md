@@ -1,30 +1,30 @@
-# Fidelity guarantees
+# ضمانات فيديليتي
 
-LIFT is an _interchange_ format: the cardinal rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
+LIFT هو تنسيق _تبادل_: والقاعدة الأساسية هي **ألا تتجاهل أبدًا ما لا تفهمه**. عقد `sil-lift`، الذي يتم التحقق من صحته بواسطة مجموعة الاختبارات في كل عملية تشغيل (ملفات المجموعة بالإضافة إلى التوليد القائم على الخصائص):
 
-## Reading
+## القراءة
 
-Any well-formed LIFT 0.13 document loads — schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` bucket: unknown attributes and elements, XML comments and processing instructions, stray text, and malformed typed attributes (a bad date stays as the original string in `Extras`; the typed field is `None`).
+يتم تحميل أي مستند LIFT 0.13 صحيح التكوين — بما في ذلك المحتوى غير المتوافق مع المخطط. كل ما لا يحدده النموذج يتم نقله إلى حاوية `Extras` غير الشفافة في أقرب عقدة: السمات والعناصر غير المعروفة، وتعليقات XML وتعليمات المعالجة، والنصوص المتناثرة، والسمات المحددة النوع ذات التنسيق الخاطئ (يُحتفظ بالتاريخ غير الصحيح كسلسلة نصية أصلية في `Extras`؛ ويكون الحقل المحدد النوع هو `None`).
 
-## Saving an unchanged document
+## حفظ مستند لم يتم تغييره
 
-`load()` → `save()` with no edits writes **byte-identical output** — no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. There is currently no normalization list: identity is exact.
+تؤدي وظيفة `load()` → `save()` دون إجراء أي تعديلات إلى كتابة **مخرجات متطابقة على مستوى البايت** — دون إعادة تنسيق، أو إعادة ترميز، أو إعادة ترتيب، مع تضمين علامات ترتيب البايت وإعلانات XML. لا توجد حاليًا قائمة تطبيع: الهوية دقيقة.
 
-Exceptions (the writer falls back to full canonical serialization, which is semantically complete but not byte-preserving):
+الاستثناءات (يلجأ الكاتب إلى التسلسل القياسي الكامل، الذي يعتبر كاملاً من الناحية الدلالية ولكنه لا يحافظ على البايتات):
 
-- the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
-- the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
-- the source was built in memory rather than loaded from a file.
+- ترميز المصدر غير متوافق مع ASCII (ليس UTF-8/US-ASCII)، أو
+- يحتوي الملف المصدر على تعريف نوع المستند (DOCTYPE)، أو
+- يختلف كل من الماسح البايت والمحلل حول البنية العليا للوثيقة — على سبيل المثال، وجود `<header>` ثانية خارج المواصفات، والتي يحتفظ بها المحلل مرة واحدة فقط (أما الماسح فيتخذ موقفًا متشككًا عن عمد: فأي شك يعني عدم التقاط أي بايتات من المصدر على الإطلاق)، أو
+- تم إنشاء المصدر في الذاكرة بدلاً من تحميله من ملف.
 
-## Saving an edited document
+## حفظ مستند تم تحريره
 
-- **Untouched entries are emitted verbatim from their original bytes.** An entry counts as touched if any part of its model object changed since parse (detected by canonical-serialization snapshot, not a dirty flag).
-- **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
-- Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
+- **يتم إخراج الإدخالات التي لم يتم التعديل عليها حرفياً من البايتات الأصلية.** يُعتبر الإدخال قد تم التعديل عليه إذا تغير أي جزء من كائن النموذج الخاص به منذ عملية التحليل (يتم الكشف عن ذلك من خلال لقطة التسلسل القياسي، وليس من خلال علامة التغيير).\*\*
+- **يتم إعادة تسلسل المدخلات التي تم تعديلها بشكل قياسي وكامل**: UTF-8، مسافة بادئة بمقدار مسافتين _خارج_ المحتوى المختلط (لا يتم تغيير المسافات البيضاء داخل `<text>` و`<span>` أبدًا)، وتجميع فرعي موثق لكل عنصر (على سبيل المثال، المدخل: الوحدة اللغوية، الاقتباس، طرق النطق، المتغيرات، المعاني، الملاحظات، العلاقات، أصول الكلمات، التعليقات التوضيحية، السمات، الحقول)، ترتيب ثابت للسمات، التواريخ وفقًا لمعيار ISO-8601 (حرف `Z` لـ UTC). يتم إعادة إصدار جميع البقايا؛ ويتم إعادة وضعها في الفهرس الفرعي الأصلي، مع ربطها بالقائمة الفرعية الجديدة (وهذا تقريب — فالمواضع الدقيقة بالبايت مضمونة فقط للمدخلات التي لم يتم التعديل فيها).
+- تؤدي إضافة العناصر أو حذفها أو إعادة ترتيبها إلى إعادة تسلسل بنية المستند، لكنها تظل تُخرج بايتات كل عنصر لم يتغير حرفياً.
 
-## Known approximations (touched nodes only)
+## التقريبات المعروفة (العقد التي تم لمسها فقط)
 
-- Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
-- Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
-- A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
+- يتم الاحتفاظ بالتعليقات الموجودة _داخل_ عملية تشغيل `<text>`، ولكن يتم رفعها لتظهر بجوار عملية التشغيل، وليس في موضعها الدقيق من حيث عدد الأحرف.
+- يتم توحيد ترتيب العناصر الفرعية من النوع «المتقاطع» داخل عنصر تم تعديله وفقًا للتجميع القياسي (تجعل خاصية `interleave` في مخطط LIFT هذا الترتيب غير ذي أهمية من الناحية الدلالية).
+- لا يتم إعادة إصدار عنصر متعدد النصوص موجود ولكنه لا يحمل أي شيء — لا نماذج ولا بقايا، على سبيل المثال `<definition></definition>` —. يمثل النموذج هذه الحقول على شكل `Multitext` موجود دائمًا (`lexical-unit`، و`citation`، و`definition`، و`usage` للعلاقة، و`label` / `abbrev` / `description` في مراجع عناوين الويب، والنطاقات، وعناصر النطاق، والعنوان)، لذا لا يمكن التمييز بين النموذج الفارغ والنموذج الغائب بعد التحليل. لا يُفقد أي شيء من الناحية الدلالية.
