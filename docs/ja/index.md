@@ -1,6 +1,6 @@
 # シルリフト
 
-[LIFT](https://github.com/sillsdev/lift-standard)（Lexicon Interchange Format）0.13 用の Python ライブラリ：LIFT フォルダ（`.lift` + `.lift-ranges` + メディア参照）のロスレスな読み書き、スキーマおよびセマンティック検証、正規ソート機能に加え、大規模な辞書向けのストリーミング API を備えています。
+[LIFT](https://github.com/sillsdev/lift-standard) 用の Python ライブラリ (Lexicon Interchange FormaT) 0.13: LIFTフォルダ（`.lift` + `.lift-ranges` + メディア参照）のロスレスな読み書き、スキーマおよびセマンティック検証、正規ソート機能 — 大規模なレキシコン向けのストリーミングAPIを搭載。
 
 **ステータス：プレリリース版、現在開発中。**
 
