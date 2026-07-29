@@ -1,6 +1,6 @@
 # sil-lift
 
-一个用于 [LIFT](https://github.com/sillsdev/lift-standard)（词汇表交换格式）0.13 的 Python 库：支持 LIFT 文件夹（`.lift` + `.lift-ranges` + 媒体引用）的无损读写、模式和语义验证，以及规范排序——并为大型词汇表提供了流式 API。
+一个用于 [LIFT](https://github.com/sillsdev/lift-standard) 的 Python 库 (词典交换格式) 0.13：支持 LIFT 文件夹（`.lift` + `.lift-ranges` + 媒体引用）的无损读写、模式和语义验证以及规范排序——并为大型词典提供了流式 API。
 
 **状态：预发布版，正在积极开发中。**
 
