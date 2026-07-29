@@ -1,8 +1,8 @@
-# Worked example: building a LIFT export from scratch
+# Mfano uliofanyiwa kazi: kujenga usafirishaji wa LIFT kutoka mwanzo
 
-If you are exporting another application's data as LIFT — the task behind [Producing conformant LIFT](lift-export-interop.md) — `sil-lift` can build the document object by object and serialize it, instead of emitting XML by hand. This walks through one script that constructs an entry with the pieces a real dictionary has (multiple writing systems, a pronunciation, a sense with an example, an illustration, a semantic-domain trait, and an app-specific field), writes the controlled vocabularies into a `.lift-ranges` companion, validates, and saves.
+Ikiwa unatuma data za programu nyingine kama LIFT — kazi iliyopo nyuma ya [Kutengeneza LIFT inayokidhi viwango](lift-export-interop.md) — `sil-lift` inaweza kujenga kipengee cha hati kipengee kwa kipengee na kukisierializa, badala ya kutoa XML kwa mkono. Hii inaelezea hatua kwa hatua skripti moja inayounda kipengee chenye vipengele ambavyo kamusi halisi ina (mifumo mingi ya uandishi, matamshi, maana yenye mfano, mfano wa picha, sifa ya eneo la semanti, na sehemu maalum kwa programu), inaandika kamusi zilizodhibitiwa katika faili mwandani la `.lift-ranges`, inathibitisha, na huhifadhi.
 
-## The script
+## Maandishi
 
 ```python
 from pathlib import Path
@@ -11,50 +11,50 @@ import sil_lift
 
 lex = sil_lift.Lexicon(producer="my-exporter")
 
-# One entry, built from the source model.
+# Kuingia moja, iliyojengwa kutoka kwa mfano wa chanzo.
 entry = sil_lift.Entry(id="kanga", guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d")
 entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
 
 pron = sil_lift.Pronunciation()
-pron.forms["en"] = "Speaker: Ana"  # The Combine's speaker-label convention
+pron.forms["en"] = "Speaker: Ana"  # Kanuni ya lebo ya mzungumzaji ya Combine
 pron.media.append(sil_lift.URLRef(href="audio/nkhuku.wav"))
 entry.pronunciations.append(pron)
 
 sense = sil_lift.Sense(id="kanga_s1")
-sense.grammatical_info = sil_lift.GrammaticalInfo(value="Noun")
+sense.grammatical_info = sil_lift.GrammaticalInfo(value="Nomino")
 sense.glosses.append(sil_lift.Form(lang="en", text=sil_lift.Text(["chicken"])))
 sense.definition["en"] = "a domestic fowl kept for its eggs and meat"
 
 example = sil_lift.Example()
 example.forms["seh"] = "Ndinafuna nkhuku."
 translation = sil_lift.Translation()
-translation.forms["en"] = "I want a chicken."
+translation.forms["en"] = "Nataka kuku."
 example.translations.append(translation)
 sense.examples.append(example)
 
 photo = sil_lift.URLRef(href="pictures/hen.jpg")
-photo.label["en"] = "A hen"
+photo.label["en"] = "Kuku"
 sense.illustrations.append(photo)
 
 sense.traits.append(sil_lift.Trait(name="semantic-domain-ddp4", value="1.6.1.2"))
 
-scientific = sil_lift.Field(type="scientific-name")  # an app-specific extra field
+scientific = sil_lift.Field(type="scientific-name")  # uwanja wa ziada maalum kwa programu
 scientific.content["en"] = "Gallus gallus domesticus"
 sense.fields.append(scientific)
 
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# The controlled vocabularies the entry refers to, in a companion .lift-ranges.
+# Vichwa vya maneno vilivyodhibitiwa ambavyo kipengee kinavyorejelea, katika .lift-ranges.
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
-ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
+ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Ndege"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Validate what save() would write, before touching the disk.
+# Thibitisha kile save() itaandika, kabla ya kugusa diski.
 problems = list(lex.iter_problems())
-print(f"validation: {len(problems)} problem(s)")
+print(f"uthibitishaji: {len(problems)} problem(s)")
 
 out = Path("export")
 out.mkdir(exist_ok=True)
@@ -65,9 +65,9 @@ print("=== birds.lift-ranges ===")
 print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 ```
 
-## What it produces
+## Kinachozalisha
 
-`validation: 0 problem(s)`, then the `.lift` and its companion side by side:
+`uthibitishaji: 0 matatizo`, kisha `.lift` na mwenzake kando kwa kando:
 
 ```
 === birds.lift ===
@@ -154,15 +154,15 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 </lift-ranges>
 ```
 
-## Notes on the API
+## Maelezo kuhusu API
 
-- Multitext fields (`lexical_unit`, `definition`, a `Form`/`URLRef` label, a `Field`'s content, ...) take one string per writing system through the mapping interface: `entry.lexical_unit["seh"] = "nkhuku"` adds a `<form lang="seh">`. A source model that keys strings by language code maps straight onto this.
-- `RangesFile.add_range()` / `Range.add_element()` build the controlled vocabularies, and `Lexicon.add_ranges_file(ranges, href=...)` attaches the companion and adds the header `<range href>` references — so the entry's `<grammatical-info value="Noun">` and `<trait name="semantic-domain-ddp4" value="1.6.1.2">` resolve against the ranges you defined.
-- A `URLRef` is an href plus an optional caption/label multitext — used for both `<media>` (audio) and `<illustration>` (photos). The pronunciation here follows The Combine's convention of an `en` form reading `Speaker: <name>`.
-- App-specific data with no native LIFT home rides as a `<field>` (or `<trait>`): FieldWorks reads these as custom fields and The Combine preserves them.
-- Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports) — a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` enforces this.
-- `lex.iter_problems()` validates the in-memory document (what `save()` would write) before anything hits disk; here it is clean. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped — run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
+- Maeneo ya maandishi mengi (`lexical_unit`, `definition`, lebo ya `Form`/`URLRef`, yaliyomo ya `Field`, ...) Chukua mnyororo mmoja kwa kila mfumo wa uandishi kupitia kiolesura cha upangaji: `entry.lexical_unit["seh"] = "nkhuku"` huongeza `<form lang="seh">`. Mfano wa chanzo unaotumia misimbo ya lugha kupanga nyuzi unaendana moja kwa moja na hili.
+- `RangesFile.add_range()` /  `Range.add_element()` hujenga vokabularia zilizodhibitiwa, na `Lexicon.add_ranges_file(ranges, href=...)` huunganisha faili ya ziada na kuongeza kichwa `<range href>` kwa marejeleo — hivyo `<grammatical-info value="Noun">` na `<trait name="semantic-domain-ddp4" value="1.6.1.2">` za kipengee hurejelea masafa uliyoyabainisha.
+- URLRef ni href pamoja na maandishi mengi ya kichwa/lebo ya hiari — hutumika kwa `<media>` (sauti) na `<illustration>` (picha). Matamshi hapa yanafuata kanuni ya The Combine ya aina ya 'en', kama inavyosomwa na msemaji: <name>
+- Data maalum kwa programu bila safari za nyumbani za LIFT za asili kama `<field>` (au `<trait>`): FieldWorks husoma hizi kama viwanja maalum na The Combine huzihifadhi.
+- Panga kila kipengee na `guid` halisi, thabiti (kwa mfano kutoka `uuid.uuid4()`), inayotumika tena katika usafirishaji wa data — kuingiza tena baadaye husasisha kipengee mahali pake badala ya kuunda nakala yake. `sil-lift validate --require-ids` inahakikisha hili.
+- `lex.iter_problems()` inathibitisha hati iliyopo kwenye kumbukumbu (kile ambacho `save()` ingeandika) kabla chochote haijawekwa kwenye diski; hapa iko safi. Kwa sababu kamusi bado haina folda, ukaguzi wa media-presence na companion-href umeachwa — endesha [`sil-lift validate`](cli.md) kwenye matokeo yaliyohifadhiwa (au kwa kutumia `--no-check-media`) mara tu faili za sauti na picha zitakapokuwa zimewekwa.
 
-## Packaging
+## Ufungashaji
 
-`lex.save("export/birds.lift")` writes the folder form (`.lift` + `.lift-ranges` side by side). To emit a single zipped package that FieldWorks and The Combine import directly, use `lex.save_zip("birds.zip")` instead — see [Producing conformant LIFT](lift-export-interop.md).
+`lex.save("export/birds.lift")` huandika muundo wa saraka (`.lift` + `.lift-ranges` kando kando). Ili kutoa kifurushi kimoja cha zip ambacho FieldWorks na The Combine huingiza moja kwa moja, tumia `lex.save_zip("birds.zip")` badala yake — angalia [Kutengeneza LIFT inayofuata viwango](lift-export-interop.md).
