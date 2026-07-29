@@ -1,8 +1,8 @@
-# Worked example: bulk-editing glosses
+# Пример с решением: массовое редактирование глосс
 
-A common maintenance task: normalize spelling across every English gloss in a lexicon (British → American, or vice versa) without disturbing anything else in the file. This walks through one script that loads, edits, validates, and saves — showing the editing API and the fidelity guarantee working together.
+Типичная задача по обслуживанию: привести правописание всех английских терминов в словаре к единому стандарту (британский → американский или наоборот), не затрагивая при этом остальные элементы файла. В этом примере подробно рассматривается один скрипт, который выполняет загрузку, редактирование, проверку и сохранение данных, демонстрируя совместную работу API редактирования и гарантии точности.
 
-## The script
+## Сценарий
 
 ```python
 import sys
@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """Выдает все значения, включая подзначения (рекурсивно)."""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -39,32 +39,32 @@ errors = [p for p in lex.iter_problems() if p.level == "error"]
 if errors:
     for problem in errors:
         print(problem)
-    sys.exit(f"aborting: {len(errors)} validation error(s), nothing saved")
+    sys.exit(f"прерывание: {len(errors)} ошибка(и) валидации, ничего не сохранено")
 
 lex.save()
-print(f"edited {edited_glosses} gloss(es) across {len(touched_entries)} entry(ies)")
+print(f"отредактировано {edited_glosses} глосса(рий) в {len(touched_entries)} записи(ях)")
 ```
 
-A few things worth noting:
+Несколько моментов, на которые стоит обратить внимание:
 
-- `Sense.subsenses` is itself a `list[Sense]`, so `iter_senses` recurses into it — a bulk edit that only walked `entry.senses` would silently skip any gloss nested under a subsense.
-- `gloss.text` is a `Text`, not a plain string: `str(gloss.text)` flattens it for matching, and the replacement is written back with `sil_lift.Text([new])` rather than mutating the string in place.
-- Validating in memory (`lex.iter_problems()`) serializes the edited state first, so it correctly reflects the edit before anything is written to disk. Aborting on any `"error"`-level `Problem` — warnings are left for the caller to judge — means a bad edit never reaches `save()`.
+- `Sense.subsenses` само по себе представляет собой `list[Sense]`, поэтому `iter_senses` выполняет рекурсию по нему — при массовом редактировании, которое бы просматривало только `entry.senses`, любые глоссы, вложенные под подзначениями, были бы незаметно пропущены.
+- `gloss.text` — это объект типа `Text`, а не обычная строка: функция `str(gloss.text)` преобразует его в строку для сопоставления, а результат замены записывается обратно с помощью `sil_lift.Text([new])`, а не путем изменения исходной строки на месте.
+- При проверке в памяти (`lex.iter_problems()`) сначала выполняется сериализация отредактированного состояния, благодаря чему оно правильно отражает внесенные изменения ещё до записи на диск. Прерывание при возникновении любого объекта `Problem` уровня `"error"` — предупреждения оставляются на усмотрение вызывающего кода — означает, что некорректное изменение никогда не доходит до вызова `save()`.
 
-Glosses aren't the only thing worth touching this way. The same `Multitext` mapping surface applies to definitions and every other multilingual field on an entry or sense:
+Не только глянцевые поверхности стоит обрабатывать таким образом. Та же самая поверхность сопоставления `Multitext` применяется к определениям и всем другим многоязычным полям в записи или значении:
 
 ```python
-sense.definition["en"] = "the color of a thing"
+sense.definition["en"] = "цвет предмета"
 ```
 
-## Running it
+## Запуск программы
 
-Run against a small lexicon with a gloss and a subsense gloss that both say "colour":
+Проведите сравнение с небольшим лексиконом, в котором есть термин и его подзначение, обозначающие «цвет»:
 
 ```
-edited 2 gloss(es) across 1 entry(ies)
+внесено 2 исправления в 1 запись
 ```
 
-## The fidelity payoff
+## Выгода от точности воспроизведения
 
-The guarantee is per _entry_: an entry whose model didn't change comes back out **byte-identical** to how it was read in, and only the entries you actually touched are re-serialized. In the run above, one entry had glosses edited — every other entry in the file kept its exact bytes. (Note the granularity: editing any part of an entry re-serializes that whole entry, including its untouched sibling senses.) Editing one gloss in a 50,000-entry lexicon therefore produces a diff touching one entry, not a reformatted file. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+Гарантия распространяется на каждую отдельную запись: запись, модель которой не изменилась, возвращается в виде **байтово идентичного** копирования исходного содержимого, а повторная сериализация производится только для тех записей, в которые вы действительно вносили изменения. В приведенном выше фрагменте в одной записи были отредактированы глоссы — все остальные записи в файле сохранили свои байты без изменений. (Обратите внимание на степень детализации: при редактировании любой части записи происходит повторная сериализация всей записи целиком, включая нетронутые родственные значения.) Таким образом, при редактировании одного глоссария в словаре, содержащем 50 000 статей, создается файл diff, затрагивающий одну статью, а не переформатированный файл. Точные условия договора см. в разделе [Гарантии Fidelity](../fidelity.md).
