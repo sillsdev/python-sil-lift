@@ -1,8 +1,8 @@
-# Worked example: building a LIFT export from scratch
+# कार्य उदाहरण: शून्य से LIFT एक्सपोर्ट बनाना
 
-If you are exporting another application's data as LIFT — the task behind [Producing conformant LIFT](lift-export-interop.md) — `sil-lift` can build the document object by object and serialize it, instead of emitting XML by hand. This walks through one script that constructs an entry with the pieces a real dictionary has (multiple writing systems, a pronunciation, a sense with an example, an illustration, a semantic-domain trait, and an app-specific field), writes the controlled vocabularies into a `.lift-ranges` companion, validates, and saves.
+यदि आप किसी अन्य एप्लिकेशन का डेटा LIFT के रूप में निर्यात कर रहे हैं — [अनुरूप LIFT उत्पन्न करने](lift-export-interop.md) के पीछे का कार्य — तो `sil-lift` दस्तावेज़ के प्रत्येक ऑब्जेक्ट को क्रमबद्ध करके उसे सीरियलाइज़ कर सकता है, बजाय इसके कि आप XML को हाथ से उत्पन्न करें। यह एक स्क्रिप्ट के माध्यम से दिखाता है कि कैसे एक प्रविष्टि तैयार की जाती है, जिसमें एक वास्तविक शब्दकोश के सभी घटक होते हैं (कई लेखन प्रणालियाँ, उच्चारण, एक अर्थ उदाहरण के साथ, एक चित्रण, एक अर्थ-क्षेत्रीय गुण, और एक ऐप-विशिष्ट फ़ील्ड), नियंत्रित शब्दावलियों को `.lift-ranges` साथी फ़ाइल में लिखा जाता है, सत्यापित किया जाता है, और सहेजा जाता है।
 
-## The script
+## पटकथा
 
 ```python
 from pathlib import Path
@@ -11,48 +11,48 @@ import sil_lift
 
 lex = sil_lift.Lexicon(producer="my-exporter")
 
-# One entry, built from the source model.
+# एक प्रविष्टि, स्रोत मॉडल से निर्मित।
 entry = sil_lift.Entry(id="kanga", guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d")
 entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
 
 pron = sil_lift.Pronunciation()
-pron.forms["en"] = "Speaker: Ana"  # The Combine's speaker-label convention
+pron.forms["en"] = "Speaker: Ana"  # द कंबाइन का स्पीकर-लेबल कन्वेंशन
 pron.media.append(sil_lift.URLRef(href="audio/nkhuku.wav"))
 entry.pronunciations.append(pron)
 
 sense = sil_lift.Sense(id="kanga_s1")
-sense.grammatical_info = sil_lift.GrammaticalInfo(value="Noun")
+sense.grammatical_info = sil_lift.GrammaticalInfo(value="संज्ञा")
 sense.glosses.append(sil_lift.Form(lang="en", text=sil_lift.Text(["chicken"])))
 sense.definition["en"] = "a domestic fowl kept for its eggs and meat"
 
 example = sil_lift.Example()
 example.forms["seh"] = "Ndinafuna nkhuku."
 translation = sil_lift.Translation()
-translation.forms["en"] = "I want a chicken."
+translation.forms["en"] = "मुझे एक मुर्गी चाहिए।"
 example.translations.append(translation)
 sense.examples.append(example)
 
 photo = sil_lift.URLRef(href="pictures/hen.jpg")
-photo.label["en"] = "A hen"
+photo.label["en"] = "एक मुर्गी"
 sense.illustrations.append(photo)
 
 sense.traits.append(sil_lift.Trait(name="semantic-domain-ddp4", value="1.6.1.2"))
 
-scientific = sil_lift.Field(type="scientific-name")  # an app-specific extra field
+scientific = sil_lift.Field(type="scientific-name")  # एक ऐप-विशिष्ट अतिरिक्त फ़ील्ड
 scientific.content["en"] = "Gallus gallus domesticus"
 sense.fields.append(scientific)
 
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# The controlled vocabularies the entry refers to, in a companion .lift-ranges.
+# एंट्री जिन नियंत्रित शब्दावलियों का संदर्भ देती है, एक साथी .lift-ranges में।
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Validate what save() would write, before touching the disk.
+# डिस्क पर लिखने से पहले save() क्या लिखेगा, इसकी जांच करें।
 problems = list(lex.iter_problems())
 print(f"validation: {len(problems)} problem(s)")
 
@@ -65,9 +65,9 @@ print("=== birds.lift-ranges ===")
 print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 ```
 
-## What it produces
+## यह क्या उत्पन्न करता है
 
-`validation: 0 problem(s)`, then the `.lift` and its companion side by side:
+`validation: 0 problem(s)`, फिर `.lift` और उसका साथी एक साथ:
 
 ```
 === birds.lift ===
@@ -154,15 +154,15 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 </lift-ranges>
 ```
 
-## Notes on the API
+## एपीआई पर नोट्स
 
-- Multitext fields (`lexical_unit`, `definition`, a `Form`/`URLRef` label, a `Field`'s content, ...) take one string per writing system through the mapping interface: `entry.lexical_unit["seh"] = "nkhuku"` adds a `<form lang="seh">`. A source model that keys strings by language code maps straight onto this.
-- `RangesFile.add_range()` / `Range.add_element()` build the controlled vocabularies, and `Lexicon.add_ranges_file(ranges, href=...)` attaches the companion and adds the header `<range href>` references — so the entry's `<grammatical-info value="Noun">` and `<trait name="semantic-domain-ddp4" value="1.6.1.2">` resolve against the ranges you defined.
-- A `URLRef` is an href plus an optional caption/label multitext — used for both `<media>` (audio) and `<illustration>` (photos). The pronunciation here follows The Combine's convention of an `en` form reading `Speaker: <name>`.
-- App-specific data with no native LIFT home rides as a `<field>` (or `<trait>`): FieldWorks reads these as custom fields and The Combine preserves them.
-- Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports) — a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` enforces this.
-- `lex.iter_problems()` validates the in-memory document (what `save()` would write) before anything hits disk; here it is clean. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped — run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
+- मल्टीटेक्स्ट फ़ील्ड (`lexical_unit`, `definition`, एक `Form`/`URLRef` लेबल, एक `Field` की सामग्री, ...) लेखन प्रणाली के लिए एक स्ट्रिंग मैपिंग इंटरफ़ेस के माध्यम से लें: `entry.lexical_unit["seh"] = "nkhuku"` एक `<form lang="seh">` जोड़ता है। एक स्रोत मॉडल जो भाषा कोड के आधार पर स्ट्रिंग्स को मैप करता है, सीधे इस पर लागू होता है।
+- `RangesFile.add_range()` / `Range.add_element()` नियंत्रित शब्दावलियाँ बनाती हैं, और `Lexicon.add_ranges_file(ranges, href=...)` साथी फ़ाइल को जोड़ती है और हेडर `<range href>` संदर्भ जोड़ती है — ताकि प्रविष्टि के `<grammatical-info value="Noun">` और `<trait name="semantic-domain-ddp4" value="1.6.1.2">` आपके द्वारा परिभाषित रेंज के अनुसार हल हों।
+- `URLRef` एक href और एक वैकल्पिक कैप्शन/लेबल मल्टीटेक्स्ट है — जो `<media>` (ऑडियो) और `<illustration>` (फ़ोटो) दोनों के लिए उपयोग किया जाता है। यहाँ का उच्चारण द कॉम्बाइन की परंपरा का पालन करता है, जिसमें `en` रूप को `Speaker: <name>` के रूप में पढ़ा जाता है।
+- ऐप-विशिष्ट डेटा जिसमें कोई नेटिव LIFT होम राइड्स नहीं होतीं, एक `<field>` (या `<trait>`) के रूप में: FieldWorks इन्हें कस्टम फ़ील्ड्स के रूप में पढ़ता है और The Combine इन्हें संरक्षित करता है।
+- प्रत्येक प्रविष्टि को एक वास्तविक, स्थिर `guid` दें (उदाहरण के लिए `uuid.uuid4()` से, जो एक्सपोर्ट्स में पुन: उपयोग किया जाता है) — बाद में पुनः आयात करने पर यह प्रविष्टि को डुप्लिकेट करने के बजाय उसी स्थान पर अपडेट कर देता है। `sil-lift validate --require-ids` इसे लागू करता है।
+- `lex.iter_problems()` मेमोरी में मौजूद दस्तावेज़ (जिसे `save()` लिखता) को डिस्क पर लिखने से पहले सत्यापित करता है; यहाँ यह सही है। चूंकि लेक्सिकॉन में अभी तक कोई फ़ोल्डर नहीं है, इसलिए मीडिया-उपस्थिति और साथी-href जांच छोड़ दी जाती हैं — ऑडियो और फोटो फ़ाइलें तैयार होने पर सहेजे गए आउटपुट पर [`sil-lift validate`](cli.md) चलाएँ (या `--no-check-media` के साथ)।
 
-## Packaging
+## पैकेजिंग
 
-`lex.save("export/birds.lift")` writes the folder form (`.lift` + `.lift-ranges` side by side). To emit a single zipped package that FieldWorks and The Combine import directly, use `lex.save_zip("birds.zip")` instead — see [Producing conformant LIFT](lift-export-interop.md).
+`lex.save("export/birds.lift")` फ़ोल्डर फ़ॉर्म (`.lift` + `.lift-ranges` एक साथ) लिखता है। FieldWorks और The Combine द्वारा सीधे आयात किए जाने वाले एकल ज़िप पैकेज को उत्पन्न करने के लिए, इसके बजाय `lex.save_zip("birds.zip")` का उपयोग करें — देखें [अनुरूप LIFT का उत्पादन](lift-export-interop.md)।
