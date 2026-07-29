@@ -1,64 +1,64 @@
-# Producing conformant LIFT
+# Kutengeneza LIFT inayokidhi viwango
 
-This guide is for anyone writing a LIFT _exporter_ — code in any language that turns another application's data model into LIFT 0.13. `sil-lift` serves two roles for that work: a conformance gate that checks the output against the schema and the semantics a schema can't express, and a reference for the shapes and text rules the output must follow.
+Mwongozo huu ni kwa yeyote anayeandika _exporter_ ya LIFT — msimbo katika lugha yoyote unaobadilisha muundo wa data wa programu nyingine kuwa LIFT 0.13. `sil-lift` ina majukumu mawili katika kazi hiyo: lango la utimilifu linalokagua pato dhidi ya skema na semantiki ambazo skema haiwezi kueleza, na rejea ya maumbo na kanuni za maandishi ambazo pato linapaswa kufuata.
 
-Writing LIFT is much easier than parsing it: an exporter only emits the subset of constructs its own model produces, and never faces the full spec's optionality. The hard part is the details — the `.lift-ranges` companion, per-writing-system text, stable ids, and XML escaping — and those are exactly what the checks below catch.
+Kuandika LIFT ni rahisi zaidi kuliko kuchanganua: kiendeshaji cha kusafirisha hutoa tu sehemu ndogo ya miundo ambayo mfano wake wenyewe huzalisha, na kamwe hakikabiliwi na chaguzi zote za kiwango kamili. Sehemu ngumu ni maelezo — `.lift-ranges` companion, maandishi kulingana na mfumo wa uandishi, vitambulisho thabiti, na kuepuka XML — na hayo ndiyo hasa yanayokamatwa na ukaguzi hapa chini.
 
-## Zipped packages
+## Vifurushi vilivyosimbwa
 
-LIFT is usually moved around as a single `.zip` — FieldWorks and The Combine both import and export that way — so `sil-lift` reads and writes zipped packages directly, in either layout the ecosystem uses: the files at the archive root, or nested under one top-level folder.
+LIFT kawaida huhamishwa kama faili moja ya `.zip` — FieldWorks na The Combine zote huingiza na kusafirisha kwa njia hiyo — hivyo `sil-lift` husoma na kuandika vifurushi vilivyofungwa kwa `zip` moja kwa moja, katika mpangilio wowote ambao mfumo unatumia: faili ziko mizizi ya hifadhi, au zimepangwa ndani ya folda moja kuu.
 
-- **Read:** `sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual). The `validate`, `stats`, `check-media`, and `export` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is. Extraction is hardened against hostile archives — path-traversal members are refused, and the entry count and total uncompressed size (10 GiB) are capped against zip bombs.
-- **Write:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip. `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
+- Soma: `sil_lift.load("package.zip")` hutoa maudhui kwenye saraka ya muda, hupata faili moja la `.lift`, na kulipakia (viendani na vyombo vya habari hutatuliwa kama kawaida). Amri za CLI `validate`, `stats`, `check-media`, na `export` pia zinakubali njia ya `.zip`, hivyo lango hapa chini linafanya kazi dhidi ya kifurushi kama kilivyo. Utoaji umeimarishwa dhidi ya hifadhidata hatari — vipengele vya kupita njia vinakataliwa, na idadi ya kuingia na ukubwa wote bila kubanwa (10 GiB) vimewekewa kikomo dhidi ya mabomu ya zip.
+- **Andika:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` hufunga `.lift`, `.lift-ranges` zake, na kila faili nyingine katika folda ya chanzo (media, `WritingSystems/`, `consent/`, ...) katika zipu `wrap_folder` kwa chaguo-msingi huunda folda ya ngazi ya juu inayopewa jina la faili la zip (utaratibu wa kuingiza wa FieldWorks/Combine); toa `False` ili kupata hifadhi tambarare.
 
-The `.lift` and `.lift-ranges` keep their byte-fidelity inside the package; the zip container itself is not byte-reproducible.
+`.lift` na `.lift-ranges` huhifadhi uaminifu wa baiti ndani ya kifurushi; chombo cha zip chenyewe hakiruhusu kurejesha baiti kikamilifu.
 
-## Validate the output as a conformance gate
+## Thibitisha pato kama lango la utii
 
-Point `sil-lift validate` at the produced `.lift` file. It runs RELAX NG (over both the `.lift` and its `.lift-ranges` companion) plus semantic checks the grammar can't express: dangling `relation`/`variant` references, duplicate GUIDs, range-element parent integrity, trait and grammatical-info values not defined in their range, and header `range/@href` references that resolve to no companion.
+Lenga `sil-lift validate` kwenye faili ya `.lift` iliyotengenezwa. Inatekeleza RELAX NG (kupitia `.lift` na mwenza wake `.lift-ranges`) pamoja na ukaguzi wa kisemantiki ambao sarufi haiwezi kueleza: marejeleo ya `relation`/`variant` yasiyo na kiungo, GUID zilizorudiwa, uadilifu wa wazazi wa vipengele vya safu, thamani za sifa na taarifa za kisarufi ambazo hazijaelezwa katika safu zao, na marejeleo ya `range/@href` katika kichwa yanayotatua hadi kwa mwandani asiye na muunganisho.
 
-For CI, fail on anything and emit machine-readable findings:
+Kwa CI, shindwa katika chochote na kutoa matokeo yanayosomeka na mashine:
 
 ```
 sil-lift validate export.lift --strict --no-check-media --format json
 ```
 
-- `--strict` makes warnings (not just errors) fail the run.
-- `--no-check-media` skips the filesystem media-presence check, whose `missing-media` findings are noise when the audio/photo files aren't colocated with the `.lift` in CI.
-- `--format json` prints a single JSON object (`{"problems": [...], "summary": {...}}`) instead of human text; its exit codes and schema are a supported, SemVer-covered interface (see [the command line guide](cli.md)).
-- `--require-ids` additionally errors on entries missing a `guid` or senses missing an `id` — useful when a later re-import must update rather than duplicate.
+- `--strict` hufanya maonyo (sio tu makosa) kusababisha utekelezaji kushindikana.
+- `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili, ambao matokeo yake ya `missing-media` ni kelele tu wakati faili za sauti/picha haziko pamoja na `.lift` katika CI.
+- `--format json` huchapisha kitu kimoja cha JSON (`{"problems": [...], "summary": {...}}`) badala ya maandishi ya kawaida; misimbo yake ya kutoka na schema ni kiolesura kinachotumika kinachofunikwa na SemVer (tazama [mwongozo wa mstari wa amri](cli.md)).
+- `--require-ids` pia hutoa hitilafu kwa maingizo yanayokosa `guid` au `id` — ni muhimu wakati uingizaji upya wa baadaye unapaswa kusasisha badala ya kurudia.
 
-Guard against silent data loss (the failure mode that makes flat CSV export lossy) by asserting counts with `stats --format json` against your source model:
+Jikinga dhidi ya upotevu wa data kimya (mtindo wa kushindwa unaofanya usafirishaji wa CSV wa kawaida upoteze data) kwa kuthibitisha idadi kwa kutumia `stats --format json` dhidi ya mfano wako wa chanzo:
 
 ```
-sil-lift stats export.lift --format json
+sil-lift takwimu toa.lift --format json
 ```
 
-It reports `entries`, `senses`, `examples`, `media_refs`, `languages`, and per-name `traits` counts.
+Inaripoti idadi ya `entries`, `senses`, `examples`, `media_refs`, `languages`, na `traits` kwa kila jina.
 
-### Running the gate without a Python toolchain
+### Kuendesha lango bila mnyororo wa zana za Python
 
-A TypeScript or C# project's CI can run the same check without installing Python, via the bundled GitHub Action:
+CI ya mradi wa TypeScript au C# inaweza kufanya ukaguzi uleule bila kusakinisha Python, kupitia GitHub Action iliyojumuishwa:
 
 ```yaml
-- uses: sillsdev/python-sil-lift@v0.1.0
-  with:
-    path: export.lift
-    strict: "true"
-    no-check-media: "true"
+- matumizi: sillsdev/python-sil-lift@v0.1.0
+  na:
+    njia: export.lift
+    strict: "kweli"
+    no-check-media: "kweli"
     format: json
 ```
 
-or the container image, built from the repo's `Dockerfile`:
+au picha ya kontena, iliyojengwa kutoka kwa `Dockerfile` ya repo:
 
 ```
 docker build -t sil-lift .
 docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 ```
 
-## The `.lift-ranges` companion
+## Mwandani wa `.lift-ranges`
 
-Controlled vocabularies — parts of speech, semantic domains, and any other trait-keyed value set — live in a sibling `.lift-ranges` file, referenced from the `<header>`:
+Vibainishi vilivyodhibitiwa — aina za maneno, nyanja za maana, na seti nyingine yoyote ya thamani zilizo na ufunguo wa sifa — huishi katika faili ndugu ya `.lift-ranges`, inayorejelewa kutoka kwenye `<header>`:
 
 ```xml
 <header>
@@ -69,40 +69,40 @@ Controlled vocabularies — parts of speech, semantic domains, and any other tra
 </header>
 ```
 
-The companion carries each range's full definition. Values are `<range-element>`s; `parent` builds a hierarchy; `label` / `abbrev` / `description` are multitexts:
+Kiambatisho kinabeba ufafanuzi kamili wa kila safu. Thamani ni `<range-element>`; `parent` huunda ngazi; `label` / `abbrev` / `description` ni maandishi mengi:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <lift-ranges>
   <range id="grammatical-info">
     <range-element id="Noun">
-      <label><form lang="en"><text>noun</text></form></label>
+      <label><form lang="en"><text>Nomino</text></form></label>
       <abbrev><form lang="en"><text>n</text></form></abbrev>
     </range-element>
   </range>
   <range id="semantic-domain-ddp4">
     <range-element id="1.6.1.2">
-      <label><form lang="en"><text>Bird</text></form></label>
+      <label><form lang="en"><text>Ndege</text></form></label>
     </range-element>
   </range>
 </lift-ranges>
 ```
 
-An entry then refers to a value by id: a sense's part of speech is `<grammatical-info value="Noun"/>`, and a semantic domain is `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` warns (`undefined-range-value`) when a value isn't defined in its range and errors (`range-parent`) when a `parent` isn't a sibling id — so emit the ranges your data actually uses. See also [Ranges and media](folder-media.md).
+Kisha, kila kipengee kinarejelea thamani kwa kutumia ID: sehemu ya hotuba ya hisia ni `<grammatical-info value="Noun"/>`, na uwanja wa semantiki ni `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` inatoa onyo (`undefined-range-value`) wakati thamani haijafafanuliwa katika upeo wake na makosa (`range-parent`) wakati `parent` si id ya ndugu — kwa hivyo toa upeo ambao data yako inatumia kweli. Tazama pia [Vipimo na vyombo vya habari](folder-media.md).
 
-If you build the export in Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, and `Range.add_element()` construct the companion and add the header references for you; `open_writer(..., ranges=...)` does the same on the streaming path.
+Ukijenga toleo la kusafirisha kwa kutumia Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, na `Range.add_element()` huunda kiambatisho na kuongeza marejeleo ya kichwa kwa niaba yako; `open_writer(..., ranges=...)` hufanya vivyo hivyo kwenye njia ya utiririshaji.
 
-## Text and multitext
+## Maandishi na maandishi mengi
 
-Every human-language string in LIFT is a _multitext_: one `<form>` per writing system, each wrapping a `<text>`:
+Kila mfululizo wa lugha ya kibinadamu katika LIFT ni _multitext_: `<form>` moja kwa kila mfumo wa uandishi, kila moja ikizunguka `<text>`:
 
 ```xml
 <lexical-unit>
   <form lang="seh"><text>kanga</text></form>
-  <form lang="pt"><text>galinha</text></form>
+  <form lang="pt"><text>kuku</text></form>
 </lexical-unit>
 ```
 
-A model that keys strings by language code (a `MultiString`, a `Record<code, string>`, a `dict[str, str]`) maps onto this one-to-one: one entry per key becomes one `<form lang="…">`. At most one form per language is allowed in a single multitext — `sil-lift` warns `duplicate-form-lang` otherwise.
+Mfano unaopanga nyuzi kwa msimbo wa lugha (MultiString, Record<code, string>, dict[str, str]) unaakisi uwiano wa moja kwa moja: kila kipengee kwa kila ufunguo kinakuwa<form lang="… "> moja. Kila lugha inaweza kuwa na fomu moja tu katika maandishi mengi — vinginevyo `sil-lift` itatoa onyo la `duplicate-form-lang`.
 
-XML escaping is the one genuinely correctness-sensitive part. In element text, `&`, `<`, and `>` must be escaped (`&amp;`, `&lt;`, `&gt;`); in attribute values, the quote character too. `sil-lift`'s writer applies exactly these rules and never alters whitespace inside `<text>` — it adds no indentation there, because that would corrupt the lexical data. If you aim to match its output, reuse a real XML serializer's escaping (not a hand-rolled replace that forgets `&`) and leave `<text>` content byte-for-byte as your source has it.
+Utoaji wa XML ni sehemu pekee inayohitaji usahihi hasa. Katika maandishi ya elementi, `&`, `<`, and `>` lazima ziwekwe kwa alama za kutoroka (`&amp;`, `&lt;`, `&gt;`); katika thamani za sifa, pia alama ya nukuu. Mwandishi wa `sil-lift` hutumia kanuni hizi hasa na kamwe haibadilishi nafasi tupu ndani ya `<text>` — haiongezi nafasi ya kuanzishia hapo, kwa sababu hilo lingeharibu data ya kisemaji. Ikiwa unalenga kuendana na matokeo yake, tumia tena mbinu halisi ya serializer ya XML ya kuepuka alama (sio uingizaji uliofanywa kwa mkono unaosahau `&`) na acha maudhui ya `<text>` byte kwa byte kama chanzo chako kilivyo.
