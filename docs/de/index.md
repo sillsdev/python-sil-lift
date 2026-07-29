@@ -1,6 +1,6 @@
 # sil-lift
 
-Eine Python-Bibliothek für [LIFT](https://github.com/sillsdev/lift-standard) (Lexicon Interchange Format) 0.13: verlustfreies Lesen und Schreiben des LIFT-Ordners (`.lift` + `.lift-ranges` + Medienverweise), Schema- und semantische Validierung sowie kanonische Sortierung – mit Streaming-APIs für große Lexika.
+Eine Python-Bibliothek für [LIFT](https://github.com/sillsdev/lift-standard) (Lexicon Interchange FormaT) 0.13: verlustfreies Lesen und Schreiben des LIFT-Ordners (`.lift` + `.lift-ranges` + Medienverweise), Schema- und semantische Validierung sowie kanonische Sortierung – mit Streaming-APIs für große Lexika.
 
 **Status: Vorabversion, befindet sich in aktiver Entwicklung.**
 
