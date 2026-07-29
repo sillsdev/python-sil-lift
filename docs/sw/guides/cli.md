@@ -1,35 +1,34 @@
-# The command line
+# Mstari wa amri
 
-Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported LiftTools-style tool that ships with the package (and, for `validate`, a worked example of the library API).
+Kusakinisha kifurushi (`pip install sil-lift`) pia husakinisha amri ya `sil-lift` — zana inayounga mkono mtindo wa LiftTools inayotolewa na kifurushi hicho (na, kwa `validate`, mfano uliofanyiwa kazi wa API ya maktaba).
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
-                                           all problems, entry/line-addressed; exit 1 on errors
+                                           matatizo yote, yaliyotatuliwa kwa kipengee/anwani ya mstari; kutoka 1 kwa makosa
 sil-lift stats PATH [--format {text,json}]
-                                           entry/sense/language counts (streaming; any size)
-sil-lift sort PATH [-o OUT]               canonically sorted, diff-ready copy (default: in place)
-sil-lift check-media PATH                 missing and orphaned media report; exit 1 if missing
-sil-lift export PATH [-o OUT] [--langs L] [--tsv]
-                                           one row per leaf sense (subsenses flattened) to CSV/TSV (streaming)
+                                           idadi za kipengee/maana/lugha (mtiririko; ukubwa wowote)
+sil-lift sort PATH [-o OUT]               imepangwa kihalali, nakala tayari kwa tofauti (chaguo-msingi: mahali pake)
+sil-lift check-media NJIA                 ripoti ya vyombo vilivyokosekana na vilivyoachwa peke yake; toa 1 ikiwa hakuna
+sil-lift export NJIA [-o OUT] [--langs L] [--tsv]
+                                           safu moja kwa kila hisia ya majani (hisia ndogo zimepangwa wazi) kwa CSV/TSV (mtiririko)
 ```
 
-`--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below. `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on a clean bill of health rather than errors alone. `--no-check-media` skips the filesystem media-presence check (suppressing `missing-media` findings), which is useful when validating a freshly generated export whose audio/photo files live elsewhere and aren't colocated on disk. `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id. Passing `-` as the path reads the document from stdin (a piped document has no folder, so its companion `.lift-ranges` and media are not resolved). `stats` likewise takes `--format json`, emitting the counts as a single JSON object.
+`--format json` huandika object moja ya JSON kwenye stdout (na hakuna kitu kingine) kwa matumizi ya CI/otomatishaji; tazama schema katika mfano hapa chini. `--strict` huchukulia maonyo kama makosa, na kutoka kwa nambari 1 endapo yoyote yatapatikana — itumie ili kuidhinisha ujenzi endapo hakuna matatizo, badala ya kutegemea makosa pekee. `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili (na hivyo kuficha matokeo ya `missing-media`), jambo ambalo ni muhimu wakati wa kuthibitisha toleo jipya lililotengenezwa ambalo faili zake za sauti/picha ziko mahali pengine na haziko kwenye diski pamoja. `--require-ids` pia hushindwa (kosa la `missing-id`) kwa kipengee chochote kinachokosa `guid` au sense kinachokosa `id` — ni kali zaidi kuliko LIFT, kwa mtiririko wa kazi unao-re-import tena kwa kutumia id thabiti. Kupitisha `-` kama njia husoma hati kutoka stdin (hati iliyopitishwa kwa bomba haina folda, hivyo faili zake za `.lift-ranges` na media hazitatatuliwa). `stats` vivyo hivyo huchukua `--format json`, na kutoa hesabu kama kitu kimoja cha JSON.
 
 !!! note
-    `validate`'s exit codes and `--format json` schema are a supported automation interface: both are covered by tests and change only under SemVer.
+    Misimbo ya kutoka ya `validate` na `--format json` schema ni kiolesura cha kiotomatiki kinachotumika: vyote vimejumuishwa katika majaribio na hubadilika tu kulingana na SemVer.
 
-`sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
-untouched (sort those separately with the `RangesFile` API).
+`sort` inaandika upya tu faili ya `.lift`; faili zake washirika za `.lift-ranges` zinaachwa bila kuguswa (ziandike kwa mpangilio tofauti kwa kutumia API ya `RangesFile`).
 
-`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes.
+`validate`, `stats`, `check-media`, na `export` pia hukubali kifurushi cha LIFT kilichobanwa (faili la `.zip` katika mpangilio wowote — faili zikiwa kwenye msingi wa hifadhi, au zimewekwa ndani ya folda moja ya ngazi ya juu); hutolewa kwenye saraka ya muda na kutupwa wakati amri inapomalizika.
 
-Examples:
+Mifano:
 
 ```
 $ sil-lift validate dictionary.lift
-error [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches no entry id/guid or sense id
-warning [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)
-1 error(s), 1 warning(s)
+kosa [dangling-ref] dictionary.lift:88 (kipengee apu): ref 'nope' haifanani na kitambulisho chochote cha kipengee au kitambulisho cha maana
+onyo [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Herufi ya diski ya Windows inatumiwa kama mamlaka ya URI (mtindo wa FLEx file://C:/)
+1 kosa, 1 onyo
 
 $ sil-lift validate dictionary.lift --format json
 {
@@ -37,7 +36,7 @@ $ sil-lift validate dictionary.lift --format json
     {
       "level": "error",
       "code": "dangling-ref",
-      "message": "ref 'nope' matches no entry id/guid or sense id",
+      "message": "ref 'nope' inalingana na id/guid ya entry au sense id yoyote",
       "file": "dictionary.lift",
       "entry_id": "apu",
       "guid": null,
@@ -46,7 +45,7 @@ $ sil-lift validate dictionary.lift --format json
     {
       "level": "warning",
       "code": "uri-not-rfc",
-      "message": "<range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)",
+      "message": "<range href='file://C:/...'>: Herufi ya diski ya Windows inatumiwa kama mamlaka ya URI (mtindo wa FLEx file://C:/)",
       "file": "dictionary.lift",
       "entry_id": null,
       "guid": null,
@@ -67,4 +66,4 @@ senses:    4541
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`), `2` unreadable input.
+Misimbo ya kutoka: `0` mafanikio (maonyo yanaruhusiwa, isipokuwa `--strict`), `1` matokeo (makosa ya uthibitishaji / vyombo vya habari vilivyokosekana / maonyo chini ya `--strict`), `2` ingizo lisilosomeka.
