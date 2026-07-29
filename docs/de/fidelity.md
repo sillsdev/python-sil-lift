@@ -1,30 +1,30 @@
-# Fidelity guarantees
+# Fidelity-Garantien
 
-LIFT is an _interchange_ format: the cardinal rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
+LIFT ist ein _Austauschformat_: Die oberste Regel lautet: **Lass niemals etwas weg, was du nicht verstehst**. Der Vertrag von `sil-lift`, der bei jedem Durchlauf durch die Testsuite überprüft wird (Korpusdateien sowie eigenschaftsbasierte Generierung):
 
-## Reading
+## Lesen
 
-Any well-formed LIFT 0.13 document loads — schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` bucket: unknown attributes and elements, XML comments and processing instructions, stray text, and malformed typed attributes (a bad date stays as the original string in `Extras`; the typed field is `None`).
+Jedes wohlgeformte LIFT 0.13-Dokument wird geladen – auch Inhalte, die nicht dem Schema entsprechen. Alles, was das Modell nicht definiert, wird im „Extras“-Bereich des nächstgelegenen Knotens gespeichert: unbekannte Attribute und Elemente, XML-Kommentare und Verarbeitungsanweisungen, überflüssiger Text sowie fehlerhaft formatierte typisierte Attribute (ein fehlerhaftes Datum bleibt als ursprüngliche Zeichenkette in „Extras“ erhalten; das typisierte Feld ist „None“).
 
-## Saving an unchanged document
+## Ein unverändertes Dokument speichern
 
-`load()` → `save()` with no edits writes **byte-identical output** — no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. There is currently no normalization list: identity is exact.
+`load()` → `save()` ohne Änderungen erzeugt eine **byte-identische Ausgabe** – keine Neuformatierung, kein erneutes Escaping, keine Neuanordnung, einschließlich Byte-Order-Markierungen und XML-Deklarationen. Derzeit gibt es keine Normalisierungsliste: Die Identität ist exakt.
 
-Exceptions (the writer falls back to full canonical serialization, which is semantically complete but not byte-preserving):
+Ausnahmen (der Writer greift auf die vollständige kanonische Serialisierung zurück, die zwar semantisch vollständig, jedoch nicht bytekonsistent ist):
 
-- the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
-- the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
-- the source was built in memory rather than loaded from a file.
+- die Quellkodierung ist nicht ASCII-kompatibel (nicht UTF-8/US-ASCII) oder
+- der Quelltext enthält einen DOCTYPE oder
+- Der Byte-Scanner und der Parser sind sich hinsichtlich der obersten Struktur des Dokuments nicht einig – beispielsweise bei einem nicht spezifikationskonformen zweiten `<header>`, den der Parser nur einmal beibehält (der Scanner ist bewusst misstrauisch: Bei jedem Zweifel werden überhaupt keine Quellbytes erfasst), oder
+- Der Quellcode wurde im Speicher erstellt und nicht aus einer Datei geladen.
 
-## Saving an edited document
+## Ein bearbeitetes Dokument speichern
 
-- **Untouched entries are emitted verbatim from their original bytes.** An entry counts as touched if any part of its model object changed since parse (detected by canonical-serialization snapshot, not a dirty flag).
-- **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
-- Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
+- **Unveränderte Einträge werden wortwörtlich aus ihren ursprünglichen Bytes ausgegeben.** Ein Eintrag gilt als verändert, wenn sich seit dem Parsen ein beliebiger Teil seines Modellobjekts geändert hat (erkannt anhand eines Snapshots der kanonischen Serialisierung, nicht anhand eines „Dirty“-Flags).
+- **Die bearbeiteten Einträge werden kanonisch und vollständig neu serialisiert**: UTF-8, Einrückung mit zwei Leerzeichen _außerhalb_ von gemischtem Inhalt (Leerzeichen innerhalb von `<text>` und `<span>` werden niemals verändert), eine dokumentierte Untergruppierung pro Element (z. B. Eintrag: lexikalische Einheit, Zitat, Aussprachen, Varianten, Bedeutungen, Anmerkungen, Beziehungen, Etymologien, Annotationen, Merkmale, Felder), feste Attributreihenfolge, Datumsangaben nach ISO-8601 (`Z` für UTC). Alle Reste werden erneut ausgegeben; ihre Position wird auf den ursprünglichen Unterindex zurückgesetzt und an die neue Unterliste angepasst (eine Annäherung – exakte Byte-Positionen sind nur für unveränderte Einträge garantiert).
+- Das Hinzufügen, Entfernen oder Neuanordnen von Einträgen führt zu einer erneuten Serialisierung der Dokumentstruktur, wobei die Bytes jedes unveränderten Eintrags jedoch unverändert ausgegeben werden.
 
-## Known approximations (touched nodes only)
+## Bekannte Näherungswerte (nur berührte Knoten)
 
-- Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
-- Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
-- A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
+- Kommentare _innerhalb_ eines `<text>`-Laufs bleiben erhalten, werden jedoch neben den Lauf verschoben und nicht an ihrer genauen Zeichenposition angezeigt.
+- Die kreuzförmige Reihenfolge der untergeordneten Elemente innerhalb eines bearbeiteten Elements wird auf die kanonische Gruppierung normiert (durch das `interleave`-Schema des LIFT-Schemas wird diese Reihenfolge semantisch irrelevant).
+- Ein Multitext-Element, das zwar vorhanden ist, aber nichts enthält – weder Formen noch Reste, z. B. `<definition></definition>` – wird nicht erneut ausgegeben. Das Modell stellt diese Felder als stets vorhandenes `Multitext` dar (`lexical-unit`, `citation`, `definition`, die `usage` einer Relation sowie `label` / `abbrev` / `description` bei URL-Verweisen, Bereichen, Bereichselementen und der Kopfzeile) dar, sodass sich ein leeres Feld nach der Analyse nicht von einem fehlenden unterscheiden lässt. Es geht keine semantische Information verloren.
