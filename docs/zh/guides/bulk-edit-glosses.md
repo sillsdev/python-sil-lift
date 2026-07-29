@@ -1,8 +1,8 @@
-# Worked example: bulk-editing glosses
+# 示例：批量编辑释义
 
-A common maintenance task: normalize spelling across every English gloss in a lexicon (British → American, or vice versa) without disturbing anything else in the file. This walks through one script that loads, edits, validates, and saves — showing the editing API and the fidelity guarantee working together.
+一项常见的维护任务：将词汇表中所有英语释义的拼写统一为标准形式（英式英语 → 美式英语，或反之），同时不影响文件中的其他内容。 本文将逐步演示一个脚本，该脚本负责加载、编辑、验证和保存数据，从而展示编辑 API 与保真度保证如何协同工作。
 
-## The script
+## 剧本
 
 ```python
 import sys
@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """返回每个词义，包括子词义（递归）."""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -39,32 +39,32 @@ errors = [p for p in lex.iter_problems() if p.level == "error"]
 if errors:
     for problem in errors:
         print(problem)
-    sys.exit(f"aborting: {len(errors)} validation error(s), nothing saved")
+    sys.exit(f"中止：{len(errors)} 个验证错误，未保存任何内容")
 
 lex.save()
-print(f"edited {edited_glosses} gloss(es) across {len(touched_entries)} entry(ies)")
+print(f"已编辑 {edited_glosses} 个释义，涉及{len(touched_entries)}个条目")
 ```
 
-A few things worth noting:
+有几点值得注意：
 
-- `Sense.subsenses` is itself a `list[Sense]`, so `iter_senses` recurses into it — a bulk edit that only walked `entry.senses` would silently skip any gloss nested under a subsense.
-- `gloss.text` is a `Text`, not a plain string: `str(gloss.text)` flattens it for matching, and the replacement is written back with `sil_lift.Text([new])` rather than mutating the string in place.
-- Validating in memory (`lex.iter_problems()`) serializes the edited state first, so it correctly reflects the edit before anything is written to disk. Aborting on any `"error"`-level `Problem` — warnings are left for the caller to judge — means a bad edit never reaches `save()`.
+- `Sense.subsenses` 本身是一个 `list[Sense]`，因此 `iter_senses` 会递归遍历它——如果批量编辑操作仅遍历 `entry.senses`，则会无提示地跳过任何嵌套在子义项下的释义。
+- `gloss.text` 是一个 `Text` 对象，而不是普通的字符串：`str(gloss.text)` 会将其扁平化以便进行匹配，而替换后的内容会通过 `sil_lift.Text([new])` 写回，而不是直接修改原字符串。
+- 内存验证（`lex.iter_problems()`）会先将编辑后的状态序列化，因此能在将任何内容写入磁盘之前，准确反映编辑后的状态。 一旦遇到任何 `"error"` 级别的 `Problem` 就终止处理——警告信息将留给调用方自行判断——这意味着错误的编辑操作永远不会进入 `save()` 方法。
 
-Glosses aren't the only thing worth touching this way. The same `Multitext` mapping surface applies to definitions and every other multilingual field on an entry or sense:
+值得这样处理的不仅仅是光泽。 相同的 `Multitext` 映射规则同样适用于定义以及条目或词义中的所有其他多语言字段：
 
 ```python
-sense.definition["en"] = "the color of a thing"
+sense.definition["en"] = "事物的颜色"
 ```
 
-## Running it
+## 运行它
 
-Run against a small lexicon with a gloss and a subsense gloss that both say "colour":
+针对一个包含简短词汇表的小型词库进行比对，其中该词的释义和子义释义均显示为“colour”：
 
 ```
-edited 2 gloss(es) across 1 entry(ies)
+编辑了 1 个条目中的 2 个释义
 ```
 
-## The fidelity payoff
+## 忠诚的回报
 
-The guarantee is per _entry_: an entry whose model didn't change comes back out **byte-identical** to how it was read in, and only the entries you actually touched are re-serialized. In the run above, one entry had glosses edited — every other entry in the file kept its exact bytes. (Note the granularity: editing any part of an entry re-serializes that whole entry, including its untouched sibling senses.) Editing one gloss in a 50,000-entry lexicon therefore produces a diff touching one entry, not a reformatted file. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+该保证针对每个_条目_：模型未发生变化的条目，其输出与读取时的内容在**字节级**完全一致，且只有您实际修改过的条目才会被重新序列化。 在上面的处理过程中，有一个条目的注释被编辑了——文件中的其他所有条目都保留了原有的字节内容。 （请注意粒度：编辑条目中的任何部分都会导致整个条目重新序列化，包括未被修改的同级释义。） 因此，在一部包含50,000条目词典中编辑一条释义，生成的差异文件仅涉及一条条目，而非重新格式化的文件。 具体合同条款请参见[富达保证](../fidelity.md)。
