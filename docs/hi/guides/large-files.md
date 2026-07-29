@@ -1,13 +1,13 @@
-# Large files (streaming)
+# बड़ी फ़ाइलें (स्ट्रीमिंग)
 
-`load()` builds the whole object graph. For multi-hundred-MB lexicons, the streaming API processes one entry at a time in bounded memory — the same `Entry` type, so code written against one mode works in the other.
+`load()` पूरे ऑब्जेक्ट ग्राफ़ का निर्माण करता है। सैकड़ों एमबी के शब्दकोशों के लिए, स्ट्रीमिंग एपीआई सीमित मेमोरी में एक समय में एक प्रविष्टि को संसाधित करता है — वही `Entry` प्रकार, इसलिए एक मोड के लिए लिखा गया कोड दूसरे मोड में भी काम करता है।
 
 ```python
 import sil_lift
 
 with sil_lift.open_reader("big.lift") as reader:
-    header = reader.header            # parsed up front (precedes entries)
-    for entry in reader:              # lazy Iterator[Entry]
+    header = reader.header         # पहले से पार्स किया गया (एंट्रीज़ से पहले)
+    for entry in reader:          # लेज़ी Iterator[Entry]
         ...
 ```
 
@@ -16,12 +16,12 @@ with sil_lift.open_reader("big.lift") as reader, sil_lift.open_writer(
     "out.lift", header=reader.header, producer="my-script"
 ) as writer:
     for entry in reader:
-        if not entry.date_deleted:    # e.g. drop tombstones
+        if not entry.date_deleted:    # उदाहरण के लिए टॉम्बस्टोन हटाएँ
             writer.write(entry)
 ```
 
-Notes:
+टिप्पणियाँ:
 
-- The writer's output is exactly what the full-document canonical serializer would produce for the same content — the two modes never drift apart.
-- Streaming mode has no byte-passthrough layer: output is always canonical. Root-level residue — comments between entries and out-of-schema attributes on `<lift>` — is not carried; entries and the header are complete, residue included.
-- If the body of an `open_writer` block raises, the file is left visibly unterminated (no closing `</lift>`) — a half-written lexicon must not look complete.
+- लेखक का आउटपुट बिल्कुल वैसा ही होता है जैसा पूर्ण-दस्तावेज़ कैनोनिकल सीरियलाइज़र उसी सामग्री के लिए उत्पन्न करेगा — दोनों मोड कभी अलग नहीं होते।
+- स्ट्रीमिंग मोड में बाइट-पासथ्रू लेयर नहीं होती: आउटपुट हमेशा मानक होता है। रूट-स्तर का अवशेष — प्रविष्टियों के बीच और स्कीमा-बाहर के गुणों वाले `<lift>` पर टिप्पणियाँ — शामिल नहीं किया जाता; प्रविष्टियाँ और हेडर अवशेष सहित पूर्ण होते हैं।
+- यदि `open_writer` ब्लॉक के शरीर में raise होता है, तो फ़ाइल स्पष्ट रूप से अधूरी छोड़ दी जाती है (कोई समापन `</lift>` नहीं) — एक आधा लिखा गया शब्दकोश पूर्ण नहीं दिखना चाहिए।
