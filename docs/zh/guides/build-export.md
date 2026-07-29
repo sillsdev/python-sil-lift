@@ -1,8 +1,8 @@
-# Worked example: building a LIFT export from scratch
+# 示例：从零开始构建 LIFT 导出
 
-If you are exporting another application's data as LIFT — the task behind [Producing conformant LIFT](lift-export-interop.md) — `sil-lift` can build the document object by object and serialize it, instead of emitting XML by hand. This walks through one script that constructs an entry with the pieces a real dictionary has (multiple writing systems, a pronunciation, a sense with an example, an illustration, a semantic-domain trait, and an app-specific field), writes the controlled vocabularies into a `.lift-ranges` companion, validates, and saves.
+如果你正在将另一个应用程序的数据导出为 LIFT 格式——这正是 [生成符合规范的 LIFT](lift-export-interop.md) 背后的任务——`sil-lift` 可以逐个构建文档对象并将其序列化，而无需手动生成 XML。 本文将逐步演示一个脚本，该脚本利用真实词典所包含的各项要素（多种书写系统、发音、带例句的词义、插图、语义领域特征以及应用程序特定字段）来构建词条，将受控词汇写入 `.lift-ranges` 伴生文件，进行验证并保存。
 
-## The script
+## 剧本
 
 ```python
 from pathlib import Path
@@ -11,13 +11,13 @@ import sil_lift
 
 lex = sil_lift.Lexicon(producer="my-exporter")
 
-# One entry, built from the source model.
+# 一个条目，基于源模型构建。
 entry = sil_lift.Entry(id="kanga", guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d")
 entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
 
 pron = sil_lift.Pronunciation()
-pron.forms["en"] = "Speaker: Ana"  # The Combine's speaker-label convention
+pron.forms["en"] = "Speaker: Ana"  # Combine 的说话人标签约定
 pron.media.append(sil_lift.URLRef(href="audio/nkhuku.wav"))
 entry.pronunciations.append(pron)
 
@@ -39,22 +39,22 @@ sense.illustrations.append(photo)
 
 sense.traits.append(sil_lift.Trait(name="semantic-domain-ddp4", value="1.6.1.2"))
 
-scientific = sil_lift.Field(type="scientific-name")  # an app-specific extra field
+scientific = sil_lift.Field(type="scientific-name")  # 一个应用程序专用的额外字段
 scientific.content["en"] = "Gallus gallus domesticus"
 sense.fields.append(scientific)
 
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# The controlled vocabularies the entry refers to, in a companion .lift-ranges.
+# 该词条所引用的受控词汇表，位于配套的 .lift-ranges 中。
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Validate what save() would write, before touching the disk.
+# 在写入磁盘之前，验证 save() 会写入什么内容。
 problems = list(lex.iter_problems())
-print(f"validation: {len(problems)} problem(s)")
+print(f"validation: {len(problems)} 个问题")
 
 out = Path("export")
 out.mkdir(exist_ok=True)
@@ -65,9 +65,9 @@ print("=== birds.lift-ranges ===")
 print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 ```
 
-## What it produces
+## 其产出
 
-`validation: 0 problem(s)`, then the `.lift` and its companion side by side:
+`验证结果：0 个问题`，然后是 `.lift` 及其配套代码的并列展示：
 
 ```
 === birds.lift ===
@@ -154,15 +154,15 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 </lift-ranges>
 ```
 
-## Notes on the API
+## API说明
 
-- Multitext fields (`lexical_unit`, `definition`, a `Form`/`URLRef` label, a `Field`'s content, ...) take one string per writing system through the mapping interface: `entry.lexical_unit["seh"] = "nkhuku"` adds a `<form lang="seh">`. A source model that keys strings by language code maps straight onto this.
-- `RangesFile.add_range()` / `Range.add_element()` build the controlled vocabularies, and `Lexicon.add_ranges_file(ranges, href=...)` attaches the companion and adds the header `<range href>` references — so the entry's `<grammatical-info value="Noun">` and `<trait name="semantic-domain-ddp4" value="1.6.1.2">` resolve against the ranges you defined.
-- A `URLRef` is an href plus an optional caption/label multitext — used for both `<media>` (audio) and `<illustration>` (photos). The pronunciation here follows The Combine's convention of an `en` form reading `Speaker: <name>`.
-- App-specific data with no native LIFT home rides as a `<field>` (or `<trait>`): FieldWorks reads these as custom fields and The Combine preserves them.
-- Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports) — a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` enforces this.
-- `lex.iter_problems()` validates the in-memory document (what `save()` would write) before anything hits disk; here it is clean. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped — run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
+- 多文本字段（`lexical_unit`、`definition`、`Form`/`URLRef` 的标签、`Field` 的内容等） 通过映射接口，为每个书写系统取一条字符串：`entry.lexical_unit["seh"] = "nkhuku"` 会添加一个 `<form lang="seh">`。 一个以语言代码为键对字符串进行索引的源模型可以直接映射到此处。
+- `RangesFile.add_range()` / `Range.add_element()` 用于构建受控词汇表，而 `Lexicon.add_ranges_file(ranges, href=...)` 则关联相应的范围文件并添加 `<range href>` 引用——这样，条目的 `<grammatical-info value="Noun">` 和 `<trait name="semantic-domain-ddp4" value="1.6.1.2">` 就能解析为您定义的范围。
+- `URLRef` 由 href 以及可选的标题/标签多文本组成——既适用于 `<media>`（音频），也适用于 `<illustration>`（照片）。 此处的发音遵循“The Combine”的惯例，即采用读作“<name> ”的`en`形式。
+- 不包含原生 LIFT 回家行程的应用程序专用数据，格式为 `<field>`（或 `<trait>`）：FieldWorks 会将其识别为自定义字段，而 The Combine 会保留这些数据。
+- 为每个条目分配一个真实且稳定的 `guid`（例如通过 `uuid.uuid4()` 生成，并在不同导出之间复用）——这样，后续重新导入时会就地更新该条目，而非创建重复条目。 `sil-lift validate --require-ids` 会强制执行此要求。
+- `lex.iter_problems()` 会在任何数据写入磁盘之前，对内存中的文档（即 `save()` 会写入的内容）进行验证；此时该文档是干净的。 由于词汇表目前还没有文件夹，因此会跳过媒体存在性检查和关联链接检查——待音频和照片文件就位后，请对保存的输出结果运行 [`sil-lift validate`](cli.md)（或使用 `--no-check-media` 选项）。
 
-## Packaging
+## 包装
 
-`lex.save("export/birds.lift")` writes the folder form (`.lift` + `.lift-ranges` side by side). To emit a single zipped package that FieldWorks and The Combine import directly, use `lex.save_zip("birds.zip")` instead — see [Producing conformant LIFT](lift-export-interop.md).
+`lex.save("export/birds.lift")` 会生成文件夹结构（`.lift` 和 `.lift-ranges` 并列存放）。 若要生成一个可被 FieldWorks 和 The Combine 直接导入的单个压缩包，请改用 `lex.save_zip("birds.zip")` —— 参见 [生成符合规范的 LIFT 文件](lift-export-interop.md)。
