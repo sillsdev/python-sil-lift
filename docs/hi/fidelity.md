@@ -1,30 +1,30 @@
-# Fidelity guarantees
+# फिडेलिटी गारंटी
 
-LIFT is an _interchange_ format: the cardinal rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
+LIFT एक _इंटरचेंज_ प्रारूप है: मुख्य नियम है **जिस चीज़ को आप नहीं समझते, उसे कभी न छोड़ें**। `sil-lift` का कॉन्ट्रैक्ट, जिसे हर रन पर टेस्ट सूट (कॉर्पस फ़ाइलें और प्रॉपर्टी-आधारित जेनरेशन) द्वारा सत्यापित किया जाता है:
 
-## Reading
+## पढ़ना
 
-Any well-formed LIFT 0.13 document loads — schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` bucket: unknown attributes and elements, XML comments and processing instructions, stray text, and malformed typed attributes (a bad date stays as the original string in `Extras`; the typed field is `None`).
+कोई भी अच्छी तरह से निर्मित LIFT 0.13 दस्तावेज़ लोड हो जाता है — स्कीमा-अमान्य सामग्री सहित। जो कुछ भी मॉडल परिभाषित नहीं करता है, वह निकटतम नोड के अपारदर्शी `Extras` बकेट में रखा जाता है: अज्ञात गुण और तत्व, XML टिप्पणियाँ और प्रसंस्करण निर्देश, बिखरा हुआ पाठ, और गलत प्रकार के गुण (एक गलत दिनांक `Extras` में मूल स्ट्रिंग के रूप में बनी रहती है; प्रकार का क्षेत्र `None` होता है)।
 
-## Saving an unchanged document
+## बिना बदले दस्तावेज़ को सहेजें
 
-`load()` → `save()` with no edits writes **byte-identical output** — no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. There is currently no normalization list: identity is exact.
+`load()` → `save()` बिना किसी संपादन के **बाइट-समान आउटपुट** लिखता है — कोई पुनः स्वरूपण नहीं, कोई पुनः एस्केपिंग नहीं, कोई पुनर्विन्यास नहीं, बाइट-ऑर्डर मार्क और XML घोषणाएँ शामिल हैं। वर्तमान में कोई सामान्यीकरण सूची नहीं है: पहचान सटीक है।
 
-Exceptions (the writer falls back to full canonical serialization, which is semantically complete but not byte-preserving):
+अपवाद (लेखक पूर्ण कैनोनिकल सीरियलाइज़ेशन पर वापस चला जाता है, जो अर्थगत रूप से पूर्ण है लेकिन बाइट-संरक्षण नहीं करता):
 
-- the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
-- the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
-- the source was built in memory rather than loaded from a file.
+- स्रोत एन्कोडिंग ASCII-संगत नहीं है (UTF-8/US-ASCII नहीं), या
+- स्रोत में एक DOCTYPE है, या
+- बाइट स्कैनर और पार्सर दस्तावेज़ की शीर्ष-स्तरीय संरचना को लेकर असहमत हैं — उदाहरण के लिए विनिर्देश के बाहर का दूसरा `<header>`, जिसे पार्सर केवल एक बार रखता है (स्कैनर जानबूझकर अविश्वासी है: कोई भी संदेह होने पर वह कोई भी स्रोत बाइट नहीं पकड़ता), या
+- स्रोत फ़ाइल से लोड करने के बजाय मेमोरी में बनाया गया था।
 
-## Saving an edited document
+## संपादित दस्तावेज़ सहेजें
 
-- **Untouched entries are emitted verbatim from their original bytes.** An entry counts as touched if any part of its model object changed since parse (detected by canonical-serialization snapshot, not a dirty flag).
-- **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
-- Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
+- **अछूटी प्रविष्टियाँ उनके मूल बाइट्स से शब्दशः उत्सर्जित की जाती हैं।** एक प्रविष्टि को तब छूई हुई माना जाता है यदि पार्स के बाद उसके मॉडल ऑब्जेक्ट का कोई भी भाग बदला गया हो (यह कैनोनिकल-सीरियलाइजेशन स्नैपशॉट द्वारा पता लगाया जाता है, डर्टी फ्लैग द्वारा नहीं)।
+- स्पर्शित प्रविष्टियाँ मानक रूप से और पूरी तरह से पुनः सीरियलाइज़ की जाती हैं: UTF-8, मिश्रित सामग्री के बाहर 2-स्पेस इंडेंटेशन (`<text>` और `<span>` के अंदर रिक्त स्थान कभी नहीं बदला जाता), प्रत्येक तत्व के लिए एक प्रलेखित उपसमूह (उदाहरण के लिए प्रविष्टि: शब्द-इकाई, उद्धरण, उच्चारण, रूप, अर्थ, टिप्पणियाँ, संबंध, व्युत्पत्तियाँ, टिप्पणियाँ, विशेषताएँ, क्षेत्र), निश्चित गुणक्रम, ISO-8601 में दिनांक (`Z` UTC के लिए)। सभी अवशेष पुनः उत्सर्जित किए जाते हैं; इसकी स्थिति मूल चाइल्ड इंडेक्स पर पुनर्स्थापित की जाती है, और इसे नई चाइल्ड सूची से क्लैम्प किया जाता है (एक अनुमान — सटीक बाइट स्थितियाँ केवल अछूती प्रविष्टियों के लिए ही गारंटी की जाती हैं)।
+- प्रविष्टियाँ जोड़ने, हटाने या पुनर्व्यवस्थित करने से दस्तावेज़ की संरचना पुनः अनुक्रमित होती है, लेकिन फिर भी हर अपरिवर्तित प्रविष्टि के बाइट्स को शब्दशः उत्सर्जित किया जाता है।
 
-## Known approximations (touched nodes only)
+## ज्ञात अनुमान (केवल स्पर्श किए गए नोड्स)
 
-- Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
-- Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
-- A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
+- `<text>` रन के अंदर की टिप्पणियाँ संरक्षित रहती हैं, लेकिन इन्हें उनके सटीक वर्ण-ऑफसेट पर नहीं, बल्कि रन के बगल में ऊपर ला दिया जाता है।
+- संपादित तत्व के भीतर क्रॉस-टाइप बाल क्रम को मानक समूहबद्धता में सामान्यीकृत किया जाता है (LIFT स्कीमा का `interleave` इस क्रम को अर्थगत रूप से महत्वहीन बना देता है)।
+- एक मल्टीटेक्स्ट तत्व जो मौजूद तो है लेकिन कुछ भी नहीं ले जाता — न कोई फॉर्म, न कोई अवशेष, उदाहरण के लिए `<definition></definition>` — पुनः उत्सर्जित नहीं होता। मॉडल इन फ़ील्ड्स को हमेशा मौजूद `Multitext` (`lexical-unit`, `citation`, `definition`, किसी संबंध का `usage`, और `label` / `abbrev` / `description` url-refs, रेंज, रेंज-एलिमेंट्स और हेडर पर), इसलिए पार्सिंग के बाद एक खाली फ़ील्ड का अभाव वाले फ़ील्ड से कोई अंतर नहीं किया जा सकता। कोई भी अर्थपूर्ण बात खोई नहीं है।
