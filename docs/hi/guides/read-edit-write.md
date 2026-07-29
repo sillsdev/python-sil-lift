@@ -1,6 +1,6 @@
-# Read, edit, write
+# पढ़ें, संपादित करें, लिखें
 
-## Loading
+## लोड हो रहा है
 
 ```python
 import sil_lift
@@ -8,23 +8,23 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` accepts any well-formed LIFT **0.13** document — including schema-invalid real-world files. Anything the model doesn't define (unknown elements/attributes, comments) is carried losslessly in each node's opaque `extra` bucket. Other LIFT versions raise `LiftParseError` naming the version.
+`load()` कोई भी सुव्यवस्थित LIFT **0.13** दस्तावेज़ स्वीकार करता है — जिसमें स्कीमा-अमान्य वास्तविक-विश्व फ़ाइलें भी शामिल हैं। मॉडल द्वारा परिभाषित नहीं की गई कोई भी चीज़ (अज्ञात तत्व/गुणधर्म, टिप्पणियाँ) प्रत्येक नोड के अपारदर्शी `extra` बकेट में बिना किसी हानि के रखी जाती है। अन्य LIFT संस्करण संस्करण का नाम बताते हुए `LiftParseError` उत्पन्न करते हैं।
 
-## The model
+## मॉडल
 
-Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on. Multilingual text is a `Multitext`, which behaves like a mapping from language code to `Text`:
+प्रत्येक LIFT तत्व एक प्रकारित डेटाक्लास है: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, आदि। बहुभाषी पाठ एक `Multitext` है, जो भाषा कोड से `Text` तक एक मैपिंग की तरह व्यवहार करता है:
 
 ```python
 entry = lex.find(id="abat")
 
 str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # plain strings are coerced
+entry.lexical_unit["en"] = "grove"      # साधारण स्ट्रिंग्स को कोअर्स्ड किया जाता है
 "en" in entry.citation                  # False
 ```
 
-`Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
+`Text` संरचित है — `str` और `Span` खंडों की एक क्रमबद्ध सूची — क्योंकि `<text>` में घिरी हुई `<span>` मार्कअप हो सकती है। `str(text)` सादे पाठ में बदल देता है; खंड राउंड-ट्रिपिंग के लिए मार्कअप बनाए रखते हैं।
 
-Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus a helper:
+LIFT में ग्लॉसेज़ _फॉर्म-आकार के_ होते हैं (प्रत्येक `<gloss>` अपनी भाषा स्वयं साथ ले चलता है), इसलिए एक सेंस में `glosses: list[Form]` होता है और साथ ही एक हेल्पर भी:
 
 ```python
 sense = entry.senses[0]
@@ -32,16 +32,16 @@ sense.gloss("en")                       # Text | None
 entry.gloss_langs()                     # {"en", "id"}
 ```
 
-## Saving
+## बचत
 
 ```python
-lex.save()                # back to where it was loaded from
+lex.save()                # उस स्थान पर वापस जहाँ से इसे लोड किया गया था
 lex.save("elsewhere.lift")
 ```
 
-Entries you didn't modify are written back **byte-identical**; a document you didn't modify at all is byte-identical from the first byte to the last. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+आपने जिन प्रविष्टियों में कोई बदलाव नहीं किया, वे बाइट-समान रूप से वापस लिखी जाती हैं; एक ऐसा दस्तावेज़ जिसे आपने बिल्कुल भी संशोधित नहीं किया, वह पहले बाइट से लेकर आखिरी बाइट तक बाइट-समान होता है। सटीक अनुबंध के लिए [फिडेलिटी गारंटी](../fidelity.md) देखें।
 
-## Building from scratch
+## शुरू से निर्माण
 
 ```python
 lex = sil_lift.Lexicon(producer="my-script 1.0")
@@ -54,13 +54,13 @@ lex.entries.append(entry)
 lex.save("new.lift")
 ```
 
-## Canonical sorting
+## कैनोनिकल क्रमबद्धकरण
 
 ```python
-lex.sort()      # entries by (guid, id); ranges/field defs by id/tag
-lex.save()      # untouched entries keep their exact bytes, in the new order
+lex.sort()      # प्रविष्टियाँ (guid, id) के अनुसार; id/tag द्वारा रेंज/फ़ील्ड परिभाषाएँ
+lex.save()      # बिना बदले प्रविष्टियाँ अपने सटीक बाइट्स बनाए रखती हैं, नई व्यवस्था में
 
-sil_lift.canonicalize("in.lift", "out.lift")   # fully re-serialized, diff-ready
+sil_lift.canonicalize("in.lift", "out.lift")   # पूरी तरह से पुनः-सीरियलाइज़्ड, diff-तैयार
 ```
 
-See also: [Worked example: bulk-editing glosses](bulk-edit-glosses.md).
+यह भी देखें: [कार्य-उदाहरण: ग्लॉसेज़ के थोक-संपादन](bulk-edit-glosses.md)।
