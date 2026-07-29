@@ -199,3 +199,67 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
     assert reloaded_entry is not None
     assert reloaded_entry.extra  # unknown attr + element still carried
     assert _semantic_bytes(result) != b""  # well-formed enough to canonicalize
+
+
+@pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
+def test_changed_entries_is_empty_for_an_untouched_load(path: Path) -> None:
+    assert sil_lift.load(path).changed_entries() == []
+
+
+def test_changed_entries_reports_the_entry_for_an_edit_at_any_depth() -> None:
+    """An entry's digest spans its subtree, so a subsense edit reports the entry."""
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
+    lexicon = sil_lift.load(source)
+    entry = lexicon.entries[0]
+    entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
+
+    assert lexicon.changed_entries() == [entry]
+
+
+def test_changed_entries_ignores_an_identical_rewrite() -> None:
+    """Assigning the value it already had is not a change — the digest is unmoved."""
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
+    lexicon = sil_lift.load(source)
+    gloss = lexicon.entries[0].senses[0].subsenses[0].glosses[0]
+    gloss.text = sil_lift.Text([str(gloss.text)])
+
+    assert lexicon.changed_entries() == []
+
+
+def test_changed_entries_ignores_reordering() -> None:
+    """Matches the guarantee on Lexicon.sort: reordering leaves entry bytes alone."""
+    lexicon = sil_lift.load(CORPUS_DIR / "misc" / "sample.0.13.lift")
+    lexicon.sort()
+
+    assert lexicon.changed_entries() == []
+
+
+def test_changed_entries_reports_only_the_edited_entry() -> None:
+    lexicon = sil_lift.load(CORPUS_DIR / "misc" / "sample.0.13.lift")
+    assert len(lexicon.entries) > 1
+    target = lexicon.entries[3]
+    target.lexical_unit["en"] = "edited"
+
+    assert lexicon.changed_entries() == [target]
+
+
+def test_changed_entries_reports_entries_with_no_parse_time_record() -> None:
+    """Appended entries, and every entry of a lexicon that was never loaded."""
+    lexicon = sil_lift.load(CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift")
+    added = sil_lift.Entry(id="brand-new")
+    lexicon.entries.append(added)
+    assert lexicon.changed_entries() == [added]
+
+    scratch = sil_lift.Lexicon(entries=[sil_lift.Entry(id="a"), sil_lift.Entry(id="b")])
+    assert scratch.changed_entries() == scratch.entries
+
+
+def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> None:
+    """Changed means changed since load, so saving does not clear the report."""
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
+    lexicon = sil_lift.load(source)
+    entry = lexicon.entries[0]
+    entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
+    lexicon.save(tmp_path / "out.lift")
+
+    assert lexicon.changed_entries() == [entry]

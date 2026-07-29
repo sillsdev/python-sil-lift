@@ -18,6 +18,16 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- `Lexicon.changed_entries()` reports the entries whose serialized content
+  differs from the document as loaded, using the digest machinery the writer
+  already keeps for byte-fidelity passthrough. An entry's digest covers its
+  whole subtree, so an edit at any depth reports the entry containing it,
+  while an identical rewrite or a `sort()` reports nothing. Comparison is
+  always against the loaded document, never against the most recent
+  `save()`. Entry content only: header and ranges changes are not reported.
+
 ## [0.1.0] - 2026-07-TBD
 
 ### Added

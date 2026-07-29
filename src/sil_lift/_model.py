@@ -493,6 +493,40 @@ class Lexicon:
 
         sort_lexicon(self)
 
+    def changed_entries(self) -> list[Entry]:
+        """Entries whose serialized content differs from the loaded document.
+
+        An entry's digest covers its whole subtree, so an edit at any depth —
+        a gloss on a nested subsense included — reports the containing entry.
+        Writing back an identical value reports nothing, and neither does
+        reordering (see :meth:`sort`). Entries added since loading are
+        reported; for a lexicon that was not loaded from a file, so is every
+        entry.
+
+        The comparison is always against the document as loaded, never against
+        the most recent :meth:`save`, so an entry stays reported once changed.
+
+        Entry content only — not a document-level dirty check. Header and
+        ranges edits are not reported and both change what :meth:`save`
+        writes, so an empty result does not mean the document would
+        round-trip byte-identically. Removed entries are likewise not
+        reportable.
+
+        Costs one canonical serialization pass over the entries, the same
+        order as :meth:`iter_problems`.
+        """
+        from ._writer import entry_digest
+
+        source = self._source
+        if source is None:
+            return list(self.entries)
+        digests = {id(record.entry): record.digest for record in source.entry_records}
+        return [
+            entry
+            for entry in self.entries
+            if (digest := digests.get(id(entry))) is None or entry_digest(entry) != digest
+        ]
+
     def iter_problems(self, *, require_ids: bool = False) -> Iterator[Problem]:
         """Validate the in-memory state (schema layers + semantic checks).
 
