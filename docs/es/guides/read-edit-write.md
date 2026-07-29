@@ -5,7 +5,7 @@
 ```python
 import sil_lift
 
-; lex = sil_lift.load("dictionary.lift")
+lex = sil_lift.load("dictionary.lift")
 ```
 
 La función `load()` admite cualquier documento LIFT **0.13** bien formado, incluidos los archivos reales que no cumplen con el esquema. Todo aquello que el modelo no defina (elementos o atributos desconocidos, comentarios) se transmite sin pérdida de información en el campo opaco `extra` de cada nodo. Otras versiones de LIFT generan un error `LiftParseError` indicando la versión.
