@@ -8,45 +8,45 @@ sil-lift ni mfano hafifu wa zana za LIFT za C# za SIL — hasa `SIL.Lift` katika
 | ----------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Toleo za LIFT                       | 0.10–0.13 (uhamiaji umejengewa ndani) | **0.13 tu**; matoleo ya zamani yanakataliwa kwa kosa dhahiri  |
 | Uhamishaji wa toleo                 | `Migrator` (mnyororo wa XSLT)                                         | Hakuna — tumia XSLTs katika lifti-kawaida kwa ajili ya masasisho ya mara moja |
-| Muunganiko/Ulinganisho wa njia tatu | Chorus                                                                                   | out of scope                                                                  |
-| Validation                          | RELAX NG only (`Validator`)                                           | RELAX NG + ranges schema + semantic checks                                    |
-| Streaming                           | internal entry-granularity parsing                                                       | public `open_reader` / `open_writer` API                                      |
+| Muunganiko/Ulinganisho wa njia tatu | Kwaya                                                                                    | Nje ya wigo                                                                   |
+| Uthibitishaji                       | RELAX NG tu (`Validator`)                                             | RELAX NG + masanduku ya schema + ukaguzi wa semantiki                         |
+| Utiririshaji                        | Uchanganuzi wa ndani wa kiwango cha kuingia                                              | API ya umma `open_reader` / `open_writer`                                     |
 
-## API shape
+## Umbo la API
 
-`SIL.Lift`'s parser is callback-driven (`ILexiconMerger`): it pushes parse events at a consumer. sil-lift instead returns a plain object graph — typed dataclasses for every LIFT element — because Python scripters want objects, not callbacks. `SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but as an application model it represents only the constructs those apps use — so re-serializing through it can't preserve out-of-model content the way sil-lift's residue capture and byte fidelity do (see below). The streaming API yields the _same_ `Entry` type, so there is no capability-reduced twin model.
+Parser ya `SIL.Lift` inaendeshwa na callback (`ILexiconMerger`): inasukuma matukio ya uchanganuzi kwa mtumiaji. sil-lift badala yake hurudisha grafu ya vitu ya kawaida — dataclasses zilizotengwa aina kwa kila kipengele cha LIFT — kwa sababu watunzi wa skripti za Python wanataka vitu, si callbacks. `SIL.DictionaryServices` huweka juu ya `SIL.` mfano wa kitu wa `LexEntry`/`LexSense`Lift`, lakini kama mfano wa programu unawakilisha tu miundo ambayo programu hizo hutumia — hivyo kuirudisha tena katika muundo kupitia kwake haiwezi kuhifadhi maudhui yaliyo nje ya mfano kama vile sil-lift inavyofanya kwa kunasa mabaki na uaminifu wa baiti (tazama hapa chini). API ya utiririshaji hutoa aina ile ile ya `Entry\`, kwa hivyo hakuna mfano wa pacha uliopunguzwa uwezo.
 
-## Round-trip fidelity
+## Uaminifu wa safari ya kwenda na kurudi
 
-The strongest deliberate difference. Saving with `SIL.Lift` re-serializes the whole document. sil-lift guarantees:
+Tofauti iliyokusudiwa yenye nguvu zaidi. Kuhifadhi kwa kutumia `SIL.Lift` kunaserialisha tena hati nzima. sil-lift inahakikisha:
 
-- an unchanged document saves **byte-identically**, and
-- untouched entries keep their exact source bytes even when other entries change (Chorus-grade byte chunking, applied automatically).
+- Hati isiyobadilika huhifadhi **byte-identically**, na
+- Ningizo zisizoguswa huhifadhi baiti zao halisi za chanzo hata wakati nyingo zingine zinabadilika (Ugawaji wa baiti wa kiwango cha Chorus, unaotumika kiotomatiki).
 
-See [Fidelity guarantees](fidelity.md).
+Tazama [Dhamana za Fidelity](fidelity.md).
 
-## Validation
+## Uthibitishaji
 
-The C# `Validator` runs one RELAX NG pass and reports the first errors as strings. sil-lift reports a structured, entry/line-addressed `Problem` stream, and its schema layer knowingly diverges in three places:
+Validator ya C# hufanya upitaji mmoja wa RELAX NG na kuripoti makosa ya kwanza kama nyuzi. sil-lift inaripoti mtiririko wa `Problem` uliopangiliwa, wa kuingia/anwani-ya-mstari, na safu yake ya schema inakwenda njia tofauti kwa makusudi katika sehemu tatu:
 
-- **Invalid URIs are warnings, not errors.** The C# RELAX NG engine never enforced the `anyURI` datatype, so FieldWorks (FLEx) has been writing `file://C:/...` hrefs into real lexicons for years. Rejecting those files would flag virtually every FLEx export.
-- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by both C# and raw lxml validation.
-- **Cross-file comparisons are Unicode-normalized**, because FLEx writes the `.lift` in NFC and the companion `.lift-ranges` in NFD.
+- **URI zisizo halali ni maonyo, si makosa.** Injini ya C# RELAX NG haijawahi kulazimisha aina ya data `anyURI`, hivyo FieldWorks (FLEx) imekuwa ikiandika hrefs za `file://C:/...` katika kamusi halisi kwa miaka mingi. Kukataa faili hizo kungeweka alama karibu kila toleo la FLEx.
+- **Kanuni za Schematron zinatekelezwa** (kama ukaguzi wa kisemantiki): lugha za fomu zilizorudiwa na vikwazo vinavyofanana katika sarufi ya LIFT vilipuuzwa kimya kimya na C# na uthibitishaji wa lxml ghafi.
+- Ulinganisho wa faili-msalaba ume-normalishwa kwa Unicode, kwa sababu FLEx huandika `.lift` katika NFC na faili mwenza `.lift-ranges` katika NFD.
 
-sil-lift also validates the `.lift-ranges` companions of a loaded lexicon against a schema for standalone ranges documents (vendored from `lift-standard` alongside the base LIFT grammar) — every tracked external ranges file is checked whenever the `.lift` is validated — with no such schema (or check) in the C# world. (There is no entry point for validating a `.lift-ranges` file on its own, detached from a `.lift`.)
+sil-lift pia huthibitisha faili za `.lift-ranges` zinazohusiana na kamusi iliyopakiwa dhidi ya skema ya nyaraka huru za masafa (zilizotolewa kutoka `lift-standard` pamoja na sarufi ya msingi ya LIFT) — kila faili ya masafa ya nje inayofuatiliwa hukaguliwa kila wakati `.lift` inapothibitishwa — bila mpangilio kama huo (au ukaguzi) katika ulimwengu wa C#. Hakuna njia ya kuthibitisha faili ya `.lift-ranges` peke yake, bila kuwa na faili ya `.lift`.
 
-## Canonical sorting
+## Upangaji rasmi
 
-`Lexicon.sort()` mirrors `LiftSorter`'s core rules (entries by case-insensitive guid; ranges and range-elements by id; header field definitions by tag; senses kept in file order; whitespace inside `<text>` never touched), with three differences:
+`Lexicon.sort()` inaakisi kanuni za msingi za `LiftSorter` (vipengele kwa `guid` isiyozingatia herufi kubwa/ndogo; viwango na vipengele vya kiwango kwa `id`; ufafanuzi wa nyanja za kichwa kwa `tag`; maana zinahifadhiwa kulingana na mpangilio wa faili; nafasi tupu ndani ya `<text>` haibadilishwi kamwe), na tofauti tatu:
 
-- entries without a guid sort deterministically by id (`LiftSorter` assumes a guid is present);
-- ordering is locale-independent (plain case-folded code points, not .NET invariant-culture collation);
-- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key — grouping is already deterministic, and reordering them only adds diff noise.
+- Ingizo bila guid huorodheshwa kwa utaratibu wa uhakika kulingana na id (`LiftSorter` huchukulia kuwa guid ipo);
+- Uagizaji hautegemei eneo (alama za kawaida zilizopinduliwa kwa herufi, si upangaji wa .NET wa utamaduni usiobadilika);
+- Orodha za aina moja kama vile dondoo, mahusiano, na fomu zinadumisha mpangilio wao wa hati badala ya kupangwa upya kwa kutumia funguo — upangaji wa makundi tayari ni wa uhakika, na kuzipanga upya kunazidisha tu kelele za utofauti.
 
-The spec repo's `canonicalizeLift.xsl` is not used at all: it collapses whitespace inside lexical text (destructive) and its generated ids differ on every run.
+`canonicalizeLift.xsl` ya repo ya spec haitumiki kabisa: inafuta nafasi tupu ndani ya maandishi ya kileksiki (huharibu) na vitambulisho vyake vinavyotengenezwa hutofautiana kila inapotekelezwa.
 
-## Not carried over
+## Haijahamishwa
 
-- WeSay-specific conveniences (dashboard/config handling around LIFT files).
-- `SynchronicMerger` (Chorus update merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
-- LDML writing-system parsing: files in `WritingSystems/` are treated as opaque folder content.
+- Vifaa maalum vya WeSay (udhibiti wa dashibodi/usanidi kuhusu faili za LIFT).
+- `SynchronicMerger` (Uunganishaji wa masasisho ya kwaya) — wazo la kugawanya baiti katika vipande linaendelea kuishi katika safu ya uaminifu, lakini uunganishaji wenyewe hauendelei.
+- Uchanganuzi wa mfumo wa uandishi wa LDML: faili zilizo katika `WritingSystems/` zinachukuliwa kama yaliyomo yasiyoonekana ya folda.
