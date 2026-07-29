@@ -1,35 +1,35 @@
-# The command line
+# Командная строка
 
-Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported LiftTools-style tool that ships with the package (and, for `validate`, a worked example of the library API).
+При установке пакета (`pip install sil-lift`) также устанавливается команда `sil-lift` — поддерживаемый инструмент в стиле LiftTools, входящий в состав пакета (а также, в случае команды `validate`, готовый пример использования API библиотеки).
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
-                                           all problems, entry/line-addressed; exit 1 on errors
+                                           все проблемы, с указанием записи/строки; выход 1 при ошибках
 sil-lift stats PATH [--format {text,json}]
-                                           entry/sense/language counts (streaming; any size)
-sil-lift sort PATH [-o OUT]               canonically sorted, diff-ready copy (default: in place)
-sil-lift check-media PATH                 missing and orphaned media report; exit 1 if missing
+                                           подсчёт записей/значений/языков (потоково; любой размер)
+sil-lift sort PATH [-o OUT]               канонически отсортированная копия, готовая к сравнениям (по умолчанию: на месте)
+sil-lift check-media PATH                 отчёт об отсутствующих и осиротевших медиа-файлах; выход с кодом 1 при отсутствии
 sil-lift export PATH [-o OUT] [--langs L] [--tsv]
-                                           one row per leaf sense (subsenses flattened) to CSV/TSV (streaming)
+                                           одна строка на каждый листьевой сенс (подсенсы сглажены) в формат CSV/TSV (потоковая передача)
 ```
 
-`--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below. `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on a clean bill of health rather than errors alone. `--no-check-media` skips the filesystem media-presence check (suppressing `missing-media` findings), which is useful when validating a freshly generated export whose audio/photo files live elsewhere and aren't colocated on disk. `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id. Passing `-` as the path reads the document from stdin (a piped document has no folder, so its companion `.lift-ranges` and media are not resolved). `stats` likewise takes `--format json`, emitting the counts as a single JSON object.
+`--format json` выводит в stdout один объект JSON (и ничего больше) для использования в системах CI/автоматизации; схему см. в примере ниже. Параметр `--strict` рассматривает предупреждения как ошибки и возвращает значение 1 при обнаружении хотя бы одного из них — используйте его, чтобы сборочный процесс завершался только при полном отсутствии проблем, а не при наличии одних лишь ошибок. `--no-check-media` пропускает проверку наличия медиафайлов в файловой системе (подавляя появление сообщений об ошибках `missing-media`), что полезно при проверке только что сгенерированного экспорта, аудио- и фотофайлы которого хранятся в другом месте и не находятся на том же диске. `--require-ids` дополнительно возвращает ошибку (`missing-id`) при обнаружении любой записи, в которой отсутствует `guid`, или сенса, в котором отсутствует `id` — это более строгий подход, чем в LIFT, и предназначен для рабочих процессов, в которых повторный импорт осуществляется по стабильному идентификатору. Если в качестве пути передать символ `-`, документ будет считываться из стандартного ввода (документ, передаваемый по конвейеру, не имеет папки, поэтому сопутствующий файл `.lift-ranges` и медиафайлы не определяются). Команда `stats` также поддерживает опцию `--format json`, выводя результаты подсчёта в виде одного объекта JSON.
 
 !!! note
-    `validate`'s exit codes and `--format json` schema are a supported automation interface: both are covered by tests and change only under SemVer.
+    Коды завершения функции `validate` и схема `--format json` представляют собой поддерживаемый интерфейс автоматизации: оба элемента проходят тестирование и изменяются только в соответствии с SemVer.
 
-`sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
-untouched (sort those separately with the `RangesFile` API).
+`sort` перезаписывает только файл `.lift`; сопутствующие файлы `.lift-ranges` остаются неизменными
+(их следует сортировать отдельно с помощью API `RangesFile`).
 
-`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes.
+Команды `validate`, `stats`, `check-media` и `export` также поддерживают заархивированный пакет LIFT (файл с расширением `.zip` в любом из двух вариантов структуры — с файлами в корневом каталоге архива или вложенными в одну папку верхнего уровня); он распаковывается во временный каталог и удаляется по завершении выполнения команды.
 
-Examples:
+Примеры:
 
 ```
 $ sil-lift validate dictionary.lift
-error [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches no entry id/guid or sense id
-warning [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)
-1 error(s), 1 warning(s)
+ошибка [dangling-ref] dictionary.lift:88 (запись apu): ссылка «nope» не соответствует ни одному идентификатору записи (ID/GUID), ни идентификатору значения (sense ID)
+предупреждение [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Буква диска Windows использована в качестве авторитета URI (file://C:/ в стиле FLEx)
+1 ошибка, 1 предупреждение
 
 $ sil-lift validate dictionary.lift --format json
 {
@@ -37,7 +37,7 @@ $ sil-lift validate dictionary.lift --format json
     {
       "level": "error",
       "code": "dangling-ref",
-      "message": "ref 'nope' matches no entry id/guid or sense id",
+      "message": "ref 'nope' не соответствует ни одному id/guid записи или id значения",
       "file": "dictionary.lift",
       "entry_id": "apu",
       "guid": null,
@@ -46,7 +46,7 @@ $ sil-lift validate dictionary.lift --format json
     {
       "level": "warning",
       "code": "uri-not-rfc",
-      "message": "<range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)",
+      "message": "<range href='file://C:/...'>: В качестве авторитета URI использована буква диска Windows (file://C:/ в стиле FLEx)",
       "file": "dictionary.lift",
       "entry_id": null,
       "guid": null,
@@ -60,11 +60,11 @@ $ sil-lift validate dictionary.lift --format json
 }
 
 $ sil-lift stats sango.lift
-entries:   3507
-senses:    4541
+записей:   3507
+значений:    4541
 ...
 
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`), `2` unreadable input.
+Коды завершения: `0` — операция выполнена успешно (предупреждения допускаются, за исключением случая, когда задан параметр `--strict`), `1` — обнаружены проблемы (ошибки валидации / отсутствующие носители / предупреждения при использовании параметра `--strict`), `2` — входные данные нечитаемы.
