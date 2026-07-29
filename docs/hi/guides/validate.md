@@ -1,36 +1,36 @@
-# Validate
+# सत्यापित करें
 
-Validation is always explicit — loading and saving never validate implicitly.
+प्रमाणीकरण हमेशा स्पष्ट होता है — लोडिंग और सेविंग कभी भी निहित रूप से प्रमाणीकरण नहीं करते।
 
 ```python
 import sil_lift
 
-# Exhaustive: a lazy stream of Problems (schema + semantic layers).
+# Exhaustive: समस्याओं की एक लेज़ी स्ट्रीम (स्कीमा + सेमंटिक लेयर्स).
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
     # error [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches ...
 
-# Fail-fast: raises LiftValidationError on the first error-level problem.
+# Fail-fast: पहली त्रुटि-स्तर की समस्या पर LiftValidationError उठाता है।
 sil_lift.validate_file("dictionary.lift")
 
-# In-memory state (serializes first — a documented cost on large lexicons):
+# इन-मेमोरी स्थिति (पहले सीरियलाइज़ होती है — बड़े शब्दकोशों पर एक दस्तावेजीकृत लागत):
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
 
-Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `message`, and an address: `file`, `entry_id`, `guid`, `line`.
+प्रत्येक `Problem` में `level` (`"error"`/`"warning"`), एक स्थिर `code`, `message`, और एक पता होता है: `file`, `entry_id`, `guid`, `line`.
 
-## The layers
+## परतें
 
-1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard).
-2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion.
-3. **Semantic checks** the grammar cannot express: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
+1. LIFT 0.13 व्याकरण (lift-standard से विक्रेता) के विरुद्ध RELAX NG।
+2. **रेंज स्कीमा** — इस प्रोजेक्ट का `lift-ranges-0.13.rng` — प्रत्येक ट्रैक किए गए `.lift-ranges` साथी पर।
+3. **सेमांटिक जाँचें** जिन्हें व्याकरण व्यक्त नहीं कर सकता: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`।
 
-## Real-world FieldWorks (FLEx) output
+## वास्तविक-विश्व फील्डवर्क्स (FLEx) आउटपुट
 
-FieldWorks systematically writes some content that strict tooling rejects. Here is sil-lift's policy, so that real lexicons validate usefully:
+FieldWorks व्यवस्थित रूप से कुछ सामग्री लिखता है जिसे सख्त टूलिंग अस्वीकार कर देती है। यहाँ sil-lift की नीति है, ताकि वास्तविक शब्दकोश उपयोगी रूप से मान्य हों:
 
-- `file://C:/...` hrefs (invalid URIs) are reported as **warnings** (`uri-not-rfc`), not schema errors — the C# validator never rejected them.
-- Legally interleaved children (e.g. `field, note, field, note` in a sense) are **not** flagged, working around a false positive in libxml2.
-- Range values are compared under Unicode NFC normalization — FLEx writes the `.lift` in NFC but the `.lift-ranges` in NFD within the same export.
-- FLEx's `trait`/`field` extensions inside `range-element` **are** reported (schema errors against the ranges schema): they are genuine spec deviations.
+- `file://C:/...` hrefs (अमान्य URI) को स्कीमा त्रुटियों के रूप में नहीं, बल्कि **चेतावनियाँ** (`uri-not-rfc`) के रूप में रिपोर्ट किया जाता है — C# वैलिडेटर ने उन्हें कभी अस्वीकार नहीं किया।
+- कानूनी रूप से इंटरलीव किए गए चाइल्ड एलिमेंट्स (उदाहरण के लिए, एक तरह से `field, note, field, note`) को **फ्लैग नहीं** किया जाता है, जो libxml2 में एक फॉलस पॉजिटिव से बचने का काम करता है।
+- रेंज मानों की तुलना यूनिकोड NFC सामान्यीकरण के तहत की जाती है — FLEx एक ही एक्सपोर्ट में `.lift` को NFC में और `.lift-ranges` को NFD में लिखता है।
+- FLEx के `trait`/`field` एक्सटेंशन `range-element` के अंदर रिपोर्ट किए जाते हैं (रेंज स्कीमा के खिलाफ स्कीमा त्रुटियाँ): ये वास्तव में विनिर्देश से विचलन हैं।
