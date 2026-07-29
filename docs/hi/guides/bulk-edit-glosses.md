@@ -1,8 +1,8 @@
-# Worked example: bulk-editing glosses
+# कार्य किया गया उदाहरण: ग्लॉस का थोक-संपादन
 
-A common maintenance task: normalize spelling across every English gloss in a lexicon (British → American, or vice versa) without disturbing anything else in the file. This walks through one script that loads, edits, validates, and saves — showing the editing API and the fidelity guarantee working together.
+एक सामान्य रखरखाव कार्य: शब्दकोश में प्रत्येक अंग्रेज़ी ग्लॉस में वर्तनी को सामान्य करना (ब्रिटिश → अमेरिकी, या इसके विपरीत), बिना फ़ाइल में किसी अन्य चीज़ को प्रभावित किए। यह एक स्क्रिप्ट के माध्यम से लोड, संपादन, सत्यापन और सहेजने की प्रक्रिया को दिखाता है — संपादन API और निष्ठा गारंटी को एक साथ काम करते हुए।
 
-## The script
+## पटकथा
 
 ```python
 import sys
@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """प्रत्येक इंद्रिय, उप-इंद्रियों सहित (पुनरावर्ती) उत्पन्न करें।"""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -45,26 +45,26 @@ lex.save()
 print(f"edited {edited_glosses} gloss(es) across {len(touched_entries)} entry(ies)")
 ```
 
-A few things worth noting:
+ध्यान देने योग्य कुछ बातें:
 
-- `Sense.subsenses` is itself a `list[Sense]`, so `iter_senses` recurses into it — a bulk edit that only walked `entry.senses` would silently skip any gloss nested under a subsense.
-- `gloss.text` is a `Text`, not a plain string: `str(gloss.text)` flattens it for matching, and the replacement is written back with `sil_lift.Text([new])` rather than mutating the string in place.
-- Validating in memory (`lex.iter_problems()`) serializes the edited state first, so it correctly reflects the edit before anything is written to disk. Aborting on any `"error"`-level `Problem` — warnings are left for the caller to judge — means a bad edit never reaches `save()`.
+- `Sense.subsenses` स्वयं एक `list[Sense]` है, इसलिए `iter_senses` इसमें पुनरावृत्ति करता है — एक सामूहिक संपादन जो केवल `entry.senses` को ही चलाता है, वह किसी उपसंज्ञा के अंतर्गत निहित किसी भी परिभाषा को चुपचाप छोड़ देगा।
+- `gloss.text` एक `Text` है, न कि एक साधारण स्ट्रिंग: `str(gloss.text)` इसे मिलान के लिए फ्लैटन करता है, और प्रतिस्थापन को स्ट्रिंग को वहीं पर बदलने के बजाय `sil_lift.Text([new])` के साथ वापस लिखा जाता है।
+- मेमोरी में सत्यापन (`lex.iter_problems()`) पहले संपादित स्थिति को सीरियलाइज़ करता है, ताकि डिस्क पर कुछ भी लिखे जाने से पहले यह संपादन को सही ढंग से दर्शाए। किसी भी `"error"`-स्तर के `Problem` पर प्रक्रिया रद्द करने पर — चेतावनियाँ कॉल करने वाले पर छोड़ दी जाती हैं — इसका मतलब है कि एक खराब संपादन कभी भी `save()` तक नहीं पहुँचता।
 
-Glosses aren't the only thing worth touching this way. The same `Multitext` mapping surface applies to definitions and every other multilingual field on an entry or sense:
+इस तरह छूने लायक सिर्फ ग्लॉस ही नहीं हैं। एक ही `Multitext` मैपिंग सतह परिभाषाओं और किसी प्रविष्टि या अर्थ पर प्रत्येक अन्य बहुभाषी क्षेत्र पर लागू होती है:
 
 ```python
-sense.definition["en"] = "the color of a thing"
+sense.definition["en"] = "किसी वस्तु का रंग"
 ```
 
-## Running it
+## इसे चलाना
 
-Run against a small lexicon with a gloss and a subsense gloss that both say "colour":
+एक छोटे शब्दकोश के खिलाफ चलाएँ, जिसमें एक परिभाषा और एक उप-अर्थ परिभाषा दोनों में "रंग" लिखा हो:
 
 ```
-edited 2 gloss(es) across 1 entry(ies)
+1 प्रविष्टि(यों) में 2 ग्लॉस(स) संपादित
 ```
 
-## The fidelity payoff
+## वफ़ादारी का इनाम
 
-The guarantee is per _entry_: an entry whose model didn't change comes back out **byte-identical** to how it was read in, and only the entries you actually touched are re-serialized. In the run above, one entry had glosses edited — every other entry in the file kept its exact bytes. (Note the granularity: editing any part of an entry re-serializes that whole entry, including its untouched sibling senses.) Editing one gloss in a 50,000-entry lexicon therefore produces a diff touching one entry, not a reformatted file. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+यह गारंटी प्रत्येक प्रविष्टि के लिए है: जिस प्रविष्टि का मॉडल नहीं बदला, वह बिल्कुल उसी रूप में वापस आती है जैसा पढ़ी गई थी, और केवल वे प्रविष्टियाँ जो वास्तव में बदली गई थीं, पुनः सीरियलाइज़ की जाती हैं। उपरोक्त रन में, एक प्रविष्टि के ग्लॉस संपादित किए गए थे — फ़ाइल में बाकी सभी प्रविष्टियों ने अपने सटीक बाइट्स बनाए रखे। (बारीकी पर ध्यान दें: प्रविष्टि के किसी भी भाग को संपादित करने पर वह पूरी प्रविष्टि पुनः अनुक्रमित हो जाती है, जिसमें उसके अप्रभावित सहोदर अर्थ भी शामिल हैं।) इसलिए 50,000 प्रविष्टियों वाले शब्दकोश में एक ग्लॉस का संपादन एक प्रविष्टि को प्रभावित करने वाला diff उत्पन्न करता है, न कि एक पुनः स्वरूपित फ़ाइल। सटीक अनुबंध के लिए [फिडेलिटी गारंटी](../fidelity.md) देखें।
