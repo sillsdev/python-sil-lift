@@ -1,64 +1,64 @@
-# Producing conformant LIFT
+# अनुरूप LIFT का उत्पादन
 
-This guide is for anyone writing a LIFT _exporter_ — code in any language that turns another application's data model into LIFT 0.13. `sil-lift` serves two roles for that work: a conformance gate that checks the output against the schema and the semantics a schema can't express, and a reference for the shapes and text rules the output must follow.
+यह मार्गदर्शिका उन सभी के लिए है जो LIFT _एक्सपोर्टर_ लिख रहे हैं — किसी भी भाषा में ऐसा कोड जो किसी अन्य एप्लिकेशन के डेटा मॉडल को LIFT 0.13 में परिवर्तित करता है। `sil-lift` उस कार्य के लिए दो भूमिकाएँ निभाता है: एक अनुपालन द्वार जो आउटपुट की जाँच स्कीमा और उन अर्थों के अनुसार करता है जिन्हें स्कीमा व्यक्त नहीं कर सकती, और आउटपुट द्वारा अनुसरण किए जाने वाले आकारों और पाठ नियमों के लिए एक संदर्भ।
 
-Writing LIFT is much easier than parsing it: an exporter only emits the subset of constructs its own model produces, and never faces the full spec's optionality. The hard part is the details — the `.lift-ranges` companion, per-writing-system text, stable ids, and XML escaping — and those are exactly what the checks below catch.
+LIFT लिखना इसे पार्स करने से कहीं आसान है: एक एक्सपोर्टर केवल उन संरचनाओं का उपसमूह उत्पन्न करता है जिन्हें उसका अपना मॉडल उत्पन्न करता है, और कभी भी पूरी विशिष्टता की वैकल्पिकताओं का सामना नहीं करता। कठिन हिस्सा विवरणों में है — `.lift-ranges` साथी, लेखन-प्रणाली-विशिष्ट पाठ, स्थिर आईडी, और XML एस्केपिंग — और ठीक इन्हीं को नीचे दिए गए चेक पकड़ते हैं।
 
-## Zipped packages
+## ज़िप किए गए पैकेज
 
-LIFT is usually moved around as a single `.zip` — FieldWorks and The Combine both import and export that way — so `sil-lift` reads and writes zipped packages directly, in either layout the ecosystem uses: the files at the archive root, or nested under one top-level folder.
+LIFT आमतौर पर एक ही `.zip` फ़ाइल के रूप में स्थानांतरित किया जाता है — FieldWorks और The Combine दोनों इसी तरह आयात और निर्यात करते हैं — इसलिए `sil-lift` सीधे ज़िप किए गए पैकेज पढ़ता और लिखता है, चाहे इकोसिस्टम किसी भी लेआउट का उपयोग करे: आर्काइव रूट में फ़ाइलें, या एक शीर्ष-स्तरीय फ़ोल्डर के अंतर्गत नेस्टेड।
 
-- **Read:** `sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual). The `validate`, `stats`, `check-media`, and `export` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is. Extraction is hardened against hostile archives — path-traversal members are refused, and the entry count and total uncompressed size (10 GiB) are capped against zip bombs.
-- **Write:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip. `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
+- **पढ़ें:** `sil_lift.load("package.zip")` एक अस्थायी निर्देशिका में निकालता है, एकल `.lift` को ढूंढता है, और उसे लोड करता है (साथी और मीडिया सामान्य रूप से हल हो जाते हैं)। `validate`, `stats`, `check-media`, और `export` CLI कमांड्स `.zip` पथ भी स्वीकार करते हैं, इसलिए नीचे दिया गया गेट बिना किसी बदलाव के पैकेज पर चलता है। एक्सट्रैक्शन को शत्रुतापूर्ण आर्काइव्स के खिलाफ मजबूत किया गया है — पाथ-ट्रैवर्सल सदस्यों को अस्वीकार कर दिया जाता है, और एंट्री काउंट तथा कुल अनकंप्रेस्ड आकार (10 जीबी) को ज़िप बॉम्ब्स के खिलाफ सीमित किया गया है।
+- `Write:` `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` `.lift`, इसके `.lift-ranges`, और सोर्स फ़ोल्डर (media, `WritingSystems/`, `consent/`, ...) की हर दूसरी फ़ाइल को पैकेज करता है। एक ज़िप में `wrap_folder` डिफ़ॉल्ट रूप से ज़िप के नाम पर एक शीर्ष-स्तरीय फ़ोल्डर बनाता है (FieldWorks/Combine आयात कन्वेंशन); फ़्लैट आर्काइव के लिए `False` पास करें।
 
-The `.lift` and `.lift-ranges` keep their byte-fidelity inside the package; the zip container itself is not byte-reproducible.
+`.lift` और `.lift-ranges` पैकेज के भीतर अपनी बाइट-निष्ठा बनाए रखते हैं; ज़िप कंटेनर स्वयं बाइट-पुनरुत्पादन योग्य नहीं है।
 
-## Validate the output as a conformance gate
+## आउटपुट को एक अनुपालन गेट के रूप में मान्य करें।
 
-Point `sil-lift validate` at the produced `.lift` file. It runs RELAX NG (over both the `.lift` and its `.lift-ranges` companion) plus semantic checks the grammar can't express: dangling `relation`/`variant` references, duplicate GUIDs, range-element parent integrity, trait and grammatical-info values not defined in their range, and header `range/@href` references that resolve to no companion.
+उत्पादित `.lift` फ़ाइल पर `sil-lift validate` पॉइंट करें। यह RELAX NG चलाता है (`.lift` और इसके `.lift-ranges` साथी दोनों पर) साथ ही ऐसी अर्थपूर्ण जाँचें भी करता है जिन्हें व्याकरण व्यक्त नहीं कर सकता: लटकते `relation`/`variant` संदर्भ, डुप्लिकेट GUIDs, रेंज-एलिमेंट के पैरेंट की अखंडता, उनके रेंज में परिभाषित नहीं किए गए trait और व्याकरण-सूचना मान, और हेडर `range/@href` संदर्भ जो किसी साथी पर हल नहीं होते।
 
-For CI, fail on anything and emit machine-readable findings:
+CI के लिए, किसी भी चीज़ में विफल होने पर मशीन-पठनीय निष्कर्ष उत्पन्न करें:
 
 ```
 sil-lift validate export.lift --strict --no-check-media --format json
 ```
 
-- `--strict` makes warnings (not just errors) fail the run.
-- `--no-check-media` skips the filesystem media-presence check, whose `missing-media` findings are noise when the audio/photo files aren't colocated with the `.lift` in CI.
-- `--format json` prints a single JSON object (`{"problems": [...], "summary": {...}}`) instead of human text; its exit codes and schema are a supported, SemVer-covered interface (see [the command line guide](cli.md)).
-- `--require-ids` additionally errors on entries missing a `guid` or senses missing an `id` — useful when a later re-import must update rather than duplicate.
+- `--strict` चेतावनियों (केवल त्रुटियों नहीं) के कारण रन विफल हो जाता है।
+- `--no-check-media` फ़ाइलसिस्टम मीडिया-उपस्थिति जाँच को छोड़ देता है, जिसकी `missing-media` निष्कर्षों से शोर होता है जब ऑडियो/फ़ोटो फ़ाइलें CI में `.lift` के साथ एक साथ नहीं होती हैं।
+- `--format json` मानव-पठनीय टेक्स्ट के बजाय एक एकल JSON ऑब्जेक्ट (`{"problems": [...], "summary": {...}}`) प्रिंट करता है; इसके एग्जिट कोड और स्कीमा एक समर्थित, SemVer-आच्छादित इंटरफ़ेस हैं (देखें [कमांड लाइन गाइड](cli.md))।
+- `--require-ids` अतिरिक्त रूप से उन प्रविष्टियों पर त्रुटि दिखाता है जिनमें `guid` नहीं है या उन सेंसों में जिनमें `id` नहीं है — यह तब उपयोगी होता है जब बाद में पुनः-आयात को डुप्लिकेट करने के बजाय अपडेट करना हो।
 
-Guard against silent data loss (the failure mode that makes flat CSV export lossy) by asserting counts with `stats --format json` against your source model:
+मौन डेटा हानि (वह विफलता मोड जो फ्लैट CSV निर्यात को हानिकारक बना देता है) से बचने के लिए अपने स्रोत मॉडल पर `stats --format json` के साथ काउंट्स की पुष्टि करें:
 
 ```
 sil-lift stats export.lift --format json
 ```
 
-It reports `entries`, `senses`, `examples`, `media_refs`, `languages`, and per-name `traits` counts.
+यह `entries`, `senses`, `examples`, `media_refs`, `languages` और प्रत्येक नाम के `traits` की संख्या रिपोर्ट करता है।
 
-### Running the gate without a Python toolchain
+### पाइथन टूलचेन के बिना गेट चलाना
 
-A TypeScript or C# project's CI can run the same check without installing Python, via the bundled GitHub Action:
+एक TypeScript या C# प्रोजेक्ट का CI, बंडल किए गए GitHub Action के माध्यम से, Python इंस्टॉल किए बिना ही वही जाँच चला सकता है:
 
 ```yaml
-- uses: sillsdev/python-sil-lift@v0.1.0
-  with:
-    path: export.lift
-    strict: "true"
-    no-check-media: "true"
-    format: json
+- उपयोग: sillsdev/python-sil-lift@v0.1.0
+  के साथ:
+    पथ: export.lift
+    सख्त: "true"
+    नो-चेक-मीडिया: "true"
+    प्रारूप: json
 ```
 
-or the container image, built from the repo's `Dockerfile`:
+या रिपो के `Dockerfile` से बनी कंटेनर इमेज:
 
 ```
 docker build -t sil-lift .
-docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
+docker run --rm -v "$PWD:/work" -w /work   sil-lift validate export.lift --strict
 ```
 
-## The `.lift-ranges` companion
+## `.lift-ranges` साथी
 
-Controlled vocabularies — parts of speech, semantic domains, and any other trait-keyed value set — live in a sibling `.lift-ranges` file, referenced from the `<header>`:
+नियंत्रित शब्दावलियाँ — शब्द-प्रकार, अर्थगत क्षेत्र, और कोई भी अन्य गुण-आधारित मान-समूह — एक सहोदर `.lift-ranges` फ़ाइल में रहती हैं, जिसे `<header>` से संदर्भित किया जाता है:
 
 ```xml
 <header>
@@ -69,40 +69,40 @@ Controlled vocabularies — parts of speech, semantic domains, and any other tra
 </header>
 ```
 
-The companion carries each range's full definition. Values are `<range-element>`s; `parent` builds a hierarchy; `label` / `abbrev` / `description` are multitexts:
+सहायक प्रत्येक श्रेणी की पूरी परिभाषा वहन करता है। मूल्य `<range-element>` हैं; `parent` एक पदानुक्रम बनाता है; `label` / `abbrev` / `description` बहुपाठ हैं:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <lift-ranges>
   <range id="grammatical-info">
     <range-element id="Noun">
-      <label><form lang="en"><text>noun</text></form></label>
-      <abbrev><form lang="en"><text>n</text></form></abbrev>
+      <label><form lang="en"><text>संज्ञा</text></form></label>
+      <abbrev><form lang="en"><text>संज्ञा</text></form></abbrev>
     </range-element>
   </range>
   <range id="semantic-domain-ddp4">
     <range-element id="1.6.1.2">
-      <label><form lang="en"><text>Bird</text></form></label>
+      <label><form lang="en"><text>पक्षी</text></form></label>
     </range-element>
   </range>
 </lift-ranges>
 ```
 
-An entry then refers to a value by id: a sense's part of speech is `<grammatical-info value="Noun"/>`, and a semantic domain is `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` warns (`undefined-range-value`) when a value isn't defined in its range and errors (`range-parent`) when a `parent` isn't a sibling id — so emit the ranges your data actually uses. See also [Ranges and media](folder-media.md).
+तब एक प्रविष्टि आईडी द्वारा एक मान को संदर्भित करती है: एक सेंस का शब्द-प्रकार `<grammatical-info value="Noun"/>` है, और एक सेमांटिक डोमेन `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>` है। `sil-lift validate` चेतावनी (`undefined-range-value`) देता है जब कोई मान अपनी सीमा में परिभाषित नहीं होता है, और त्रुटि (`range-parent`) देता है जब कोई `parent` सहोदर आईडी नहीं होता — इसलिए अपनी डेटा द्वारा वास्तव में उपयोग की जाने वाली सीमाएँ ही उत्सर्जित करें। यह भी देखें [दायरे और मीडिया](folder-media.md).
 
-If you build the export in Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, and `Range.add_element()` construct the companion and add the header references for you; `open_writer(..., ranges=...)` does the same on the streaming path.
+यदि आप पाइथन में एक्सपोर्ट बनाते हैं, तो `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, और `Range.add_element()` साथी (companion) का निर्माण करते हैं और आपके लिए हेडर संदर्भ जोड़ते हैं; `open_writer(..., ranges=...)` स्ट्रीमिंग पथ पर भी यही करता है।
 
-## Text and multitext
+## पाठ और बहु-पाठ
 
-Every human-language string in LIFT is a _multitext_: one `<form>` per writing system, each wrapping a `<text>`:
+LIFT में प्रत्येक मानव-भाषा स्ट्रिंग एक _मल्टीटेक्स्ट_ है: प्रत्येक लेखन प्रणाली के लिए एक `<form>`, जो प्रत्येक एक `<text>` को लपेटता है:
 
 ```xml
 <lexical-unit>
-  <form lang="seh"><text>kanga</text></form>
-  <form lang="pt"><text>galinha</text></form>
+  <form lang="seh"><text>कंगा</text></form>
+  <form lang="pt"><text>मुर्गी</text></form>
 </lexical-unit>
 ```
 
-A model that keys strings by language code (a `MultiString`, a `Record<code, string>`, a `dict[str, str]`) maps onto this one-to-one: one entry per key becomes one `<form lang="…">`. At most one form per language is allowed in a single multitext — `sil-lift` warns `duplicate-form-lang` otherwise.
+एक मॉडल जो स्ट्रिंग्स को भाषा कोड के आधार पर मैप करता है (एक `MultiString`, एक `Record<code, string>`, एक `dict[str, str]`) इस एक-से-एक मैपिंग में बदल जाता है: प्रत्येक कुंजी के लिए एक प्रविष्टि एक `<form lang="… ">` बन जाती है। एक ही मल्टीटेक्स्ट में प्रति भाषा अधिकतम एक फॉर्म की अनुमति है — अन्यथा `sil-lift` `duplicate-form-lang` चेतावनी देता है।
 
-XML escaping is the one genuinely correctness-sensitive part. In element text, `&`, `<`, and `>` must be escaped (`&amp;`, `&lt;`, `&gt;`); in attribute values, the quote character too. `sil-lift`'s writer applies exactly these rules and never alters whitespace inside `<text>` — it adds no indentation there, because that would corrupt the lexical data. If you aim to match its output, reuse a real XML serializer's escaping (not a hand-rolled replace that forgets `&`) and leave `<text>` content byte-for-byte as your source has it.
+XML एस्केपिंग ही एकमात्र वास्तव में शुद्धता-संवेदनशील हिस्सा है। एलिमेंट टेक्स्ट में `&`, `<`, and `>` को एस्केप करना होगा (`&amp;`, `&lt;`, `&gt;`); एट्रिब्यूट मानों में उद्धरण चिह्न को भी। `sil-lift` के लेखक ठीक इन्हीं नियमों का पालन करते हैं और `<text>` के भीतर कभी भी रिक्त स्थान (whitespace) को नहीं बदलते — यह वहाँ कोई इंडेंटेशन नहीं जोड़ता, क्योंकि इससे लेक्सिकल डेटा खराब हो जाएगा। यदि आप इसके आउटपुट से मेल खाने का लक्ष्य रखते हैं, तो एक वास्तविक XML सीरियलाइज़र की एस्केपिंग का पुन: उपयोग करें (स्वयं लिखित प्रतिस्थापन नहीं जो `&` को भूल जाता है) और `<text>` सामग्री को बाइट-दर-बाइट उसी रूप में छोड़ दें जैसा आपके स्रोत में है।
