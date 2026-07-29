@@ -1,8 +1,8 @@
-# Worked example: building a LIFT export from scratch
+# 実践例：LIFTエクスポートをゼロから作成する
 
-If you are exporting another application's data as LIFT — the task behind [Producing conformant LIFT](lift-export-interop.md) — `sil-lift` can build the document object by object and serialize it, instead of emitting XML by hand. This walks through one script that constructs an entry with the pieces a real dictionary has (multiple writing systems, a pronunciation, a sense with an example, an illustration, a semantic-domain trait, and an app-specific field), writes the controlled vocabularies into a `.lift-ranges` companion, validates, and saves.
+他のアプリケーションのデータをLIFTとしてエクスポートする場合――これは[準拠したLIFTの生成](lift-export-interop.md)で説明されている作業です――`sil-lift`を使用すれば、手動でXMLを生成する代わりに、ドキュメントをオブジェクト単位で構築してシリアライズすることができます。 ここでは、実際の辞書に含まれる要素（複数の表記体系、発音、例文付きの語義、イラスト、意味領域の特徴、およびアプリケーション固有のフィールド）を用いて項目を構築し、管理語彙を `.lift-ranges` コンパニオンに書き出し、検証を行い、保存するスクリプトの手順を解説します。
 
-## The script
+## 脚本
 
 ```python
 from pathlib import Path
@@ -11,13 +11,13 @@ import sil_lift
 
 lex = sil_lift.Lexicon(producer="my-exporter")
 
-# One entry, built from the source model.
+# ソースモデルから構築された1つのエントリ。
 entry = sil_lift.Entry(id="kanga", guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d")
 entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
 
 pron = sil_lift.Pronunciation()
-pron.forms["en"] = "Speaker: Ana"  # The Combine's speaker-label convention
+pron.forms["en"] = "Speaker: Ana"  # The Combine の話者ラベルの規則
 pron.media.append(sil_lift.URLRef(href="audio/nkhuku.wav"))
 entry.pronunciations.append(pron)
 
@@ -39,22 +39,22 @@ sense.illustrations.append(photo)
 
 sense.traits.append(sil_lift.Trait(name="semantic-domain-ddp4", value="1.6.1.2"))
 
-scientific = sil_lift.Field(type="scientific-name")  # an app-specific extra field
+scientific = sil_lift.Field(type="scientific-name")  # アプリ固有の追加フィールド
 scientific.content["en"] = "Gallus gallus domesticus"
 sense.fields.append(scientific)
 
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# The controlled vocabularies the entry refers to, in a companion .lift-ranges.
+# エントリが参照する統制語彙（付随する .lift-ranges 内に記述）。
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Validate what save() would write, before touching the disk.
+# ディスクに書き込む前に、save() が書き込む内容を検証します。
 problems = list(lex.iter_problems())
-print(f"validation: {len(problems)} problem(s)")
+print(f"validation: {len(problems)} 個の問題")
 
 out = Path("export")
 out.mkdir(exist_ok=True)
@@ -65,9 +65,9 @@ print("=== birds.lift-ranges ===")
 print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 ```
 
-## What it produces
+## どのような成果が得られるか
 
-`validation: 0 problem(s)`, then the `.lift` and its companion side by side:
+`validation: 0 problem(s)` と表示されたら、`.lift` とそのコンパニオンを並べて表示します：
 
 ```
 === birds.lift ===
@@ -154,15 +154,15 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 </lift-ranges>
 ```
 
-## Notes on the API
+## APIに関する注意事項
 
-- Multitext fields (`lexical_unit`, `definition`, a `Form`/`URLRef` label, a `Field`'s content, ...) take one string per writing system through the mapping interface: `entry.lexical_unit["seh"] = "nkhuku"` adds a `<form lang="seh">`. A source model that keys strings by language code maps straight onto this.
-- `RangesFile.add_range()` / `Range.add_element()` build the controlled vocabularies, and `Lexicon.add_ranges_file(ranges, href=...)` attaches the companion and adds the header `<range href>` references — so the entry's `<grammatical-info value="Noun">` and `<trait name="semantic-domain-ddp4" value="1.6.1.2">` resolve against the ranges you defined.
-- A `URLRef` is an href plus an optional caption/label multitext — used for both `<media>` (audio) and `<illustration>` (photos). The pronunciation here follows The Combine's convention of an `en` form reading `Speaker: <name>`.
-- App-specific data with no native LIFT home rides as a `<field>` (or `<trait>`): FieldWorks reads these as custom fields and The Combine preserves them.
-- Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports) — a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` enforces this.
-- `lex.iter_problems()` validates the in-memory document (what `save()` would write) before anything hits disk; here it is clean. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped — run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
+- マルチテキストフィールド（`lexical_unit`、`definition`、`Form`/`URLRef`のラベル、`Field`の内容など） マッピングインターフェースを通じて、各文字体系ごとに1つの文字列を取り込みます。`entry.lexical_unit["seh"] = "nkhuku"` とすると、`<form lang="seh">` が追加されます。 言語コードをキーとする文字列を含むソースモデルは、これにそのまま対応します。
+- `RangesFile.add_range()` / `Range.add_element()` によって制御語彙が構築され、`Lexicon.add_ranges_file(ranges, href=...)` によってコンパニオンが紐付けられ、ヘッダー `<range href>` の参照が追加されます。これにより、エントリの `<grammatical-info value="Noun">` および `<trait name="semantic-domain-ddp4" value="1.6.1.2">` は、定義した範囲に対して解決されるようになります。
+- `URLRef` とは、href にオプションのキャプションやラベルなどのマルチテキストを加えたもので、`<media>`（音声）と `<illustration>`（写真）の両方で使用されます。 ここでの発音は、The Combine の慣例に従い、`en` 形式で「<name> 」と読みます。
+- ネイティブのLIFTホームライドが含まれないアプリ固有のデータは、`<field>`（または`<trait>`）として指定されます。FieldWorksはこれらをカスタムフィールドとして読み取り、The Combineはそれらを保持します。
+- すべてのエントリに、実際の安定した `guid`（例：`uuid.uuid4()` から生成し、エクスポート間で再利用）を割り当ててください。そうすれば、後で再インポートした際に、エントリが複製されることなく、その場で更新されます。 `sil-lift validate --require-ids` はこのルールを強制します。
+- `lex.iter_problems()` は、データがディスクに書き込まれる前に、メモリ内のドキュメント（`save()` が書き込む内容）の整合性を検証します。ここでは、そのドキュメントに問題はありません。 この辞書にはまだフォルダが存在しないため、media-presence および companion-href のチェックはスキップされます。音声ファイルと写真ファイルが所定の場所に配置されたら、保存された出力に対して [`sil-lift validate`](cli.md) を実行してください（または `--no-check-media` オプションを指定して実行してください）。
 
-## Packaging
+## パッケージ
 
-`lex.save("export/birds.lift")` writes the folder form (`.lift` + `.lift-ranges` side by side). To emit a single zipped package that FieldWorks and The Combine import directly, use `lex.save_zip("birds.zip")` instead — see [Producing conformant LIFT](lift-export-interop.md).
+`lex.save("export/birds.lift")` を実行すると、フォルダ形式（`.lift` と `.lift-ranges` を並べて配置）で保存されます。 FieldWorks や The Combine が直接インポートできる単一の ZIP パッケージを出力するには、代わりに `lex.save_zip("birds.zip")` を使用してください。詳細は [準拠した LIFT の生成](lift-export-interop.md) を参照してください。
