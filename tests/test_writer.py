@@ -263,3 +263,26 @@ def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> 
     lexicon.save(tmp_path / "out.lift")
 
     assert lexicon.changed_entries() == [entry]
+
+
+def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path: Path) -> None:
+    """No byte baseline means every entry is reported — and genuinely is rewritten.
+
+    _attach_source declines a source it cannot byte-scan, so a *loaded* document
+    can have no source info too, not only a from-scratch lexicon.
+    """
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
+    text = source.read_text(encoding="utf-8").replace('encoding="UTF-8"', 'encoding="UTF-16"')
+    utf16 = tmp_path / "utf16.lift"
+    utf16.write_bytes(text.encode("utf-16"))
+
+    lexicon = sil_lift.load(utf16)
+    assert lexicon.entries  # it loaded fine; only the byte scan was declined
+    assert lexicon._source is None
+    assert lexicon.changed_entries() == lexicon.entries
+
+    # Not a false positive: save() cannot reproduce the source bytes here, so
+    # reporting every entry matches what the writer actually does.
+    out = tmp_path / "out.lift"
+    lexicon.save(out)
+    assert out.read_bytes() != utf16.read_bytes()

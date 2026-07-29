@@ -500,8 +500,14 @@ class Lexicon:
         a gloss on a nested subsense included — reports the containing entry.
         Writing back an identical value reports nothing, and neither does
         reordering (see :meth:`sort`). Entries added since loading are
-        reported; for a lexicon that was not loaded from a file, so is every
-        entry.
+        reported.
+
+        Every entry is reported when there is no byte baseline to compare
+        against — a lexicon built from scratch, and equally one whose source
+        the passthrough layer declined to scan (an encoding that is not
+        ASCII-compatible, or a scanner/parser disagreement). Both re-serialize
+        in full on :meth:`save`, so in both cases those entries genuinely are
+        rewritten.
 
         The comparison is always against the document as loaded, never against
         the most recent :meth:`save`, so an entry stays reported once changed.
