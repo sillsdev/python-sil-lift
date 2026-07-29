@@ -515,11 +515,10 @@ class Lexicon:
         Entry content only — not a document-level dirty check. Header and
         ranges edits are not reported and both change what :meth:`save`
         writes, so an empty result does not mean the document would
-        round-trip byte-identically. Removed entries are likewise not
-        reportable.
+        round-trip byte-identically. Neither are removals: this reports
+        entries currently in the lexicon.
 
-        Costs one canonical serialization pass over the entries, the same
-        order as :meth:`iter_problems`.
+        Costs one canonical serialization pass over the entries.
         """
         from ._writer import entry_digest
 
