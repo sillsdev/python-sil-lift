@@ -73,6 +73,49 @@ def test_streaming_not_xml() -> None:
         open_reader(CORPUS_DIR / "PROVENANCE.md")
 
 
+def test_streaming_root_guard_names_the_element(tmp_path: Path) -> None:
+    path = tmp_path / "other.lift"
+    path.write_bytes(b'<?xml version="1.0" encoding="UTF-8"?>\n<lexicon/>\n')
+    with pytest.raises(LiftParseError, match="root element is <lexicon>"):
+        open_reader(path)
+
+
+# A <header> after the entries is out of spec, but readable: the streaming reader
+# picks it up when it reaches it rather than ignoring it.
+LATE_HEADER = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+<header><description><form lang="en"><text>late</text></form></description></header>
+</lift>
+"""
+
+
+def test_streaming_reads_a_late_header(tmp_path: Path) -> None:
+    path = tmp_path / "late-header.lift"
+    path.write_bytes(LATE_HEADER)
+    with open_reader(path) as reader:
+        assert not reader.header  # it follows the entries, so nothing yet
+        assert [entry.id for entry in reader] == ["one"]
+        assert str(reader.header.description["en"]) == "late"
+
+
+# Truncated mid-entry: the first entry is complete, the second is not.
+TRUNCATED = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+<entry id="two"><lexical-unit><form lang="en"><text>tw"""
+
+
+def test_streaming_reports_truncation_mid_iteration(tmp_path: Path) -> None:
+    path = tmp_path / "truncated.lift"
+    path.write_bytes(TRUNCATED)
+    with open_reader(path) as reader:
+        entries = iter(reader)
+        assert next(entries).id == "one"
+        with pytest.raises(LiftParseError, match="not well-formed"):
+            next(entries)
+
+
 def test_stream_copy_preserves_models(tmp_path: Path) -> None:
     source = CORPUS_DIR / "large" / "sango" / "sango.lift"
     out = tmp_path / "copy.lift"
