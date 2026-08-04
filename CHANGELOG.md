@@ -18,19 +18,6 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
-### Changed
-
-- The streaming CLI commands (`stats`, `export`) now unpack only the `.lift`
-  member of a zipped package instead of the whole archive, so they no longer
-  write a media-heavy package's audio to a temporary directory just to read the
-  lexicon. The aggregate uncompressed-size cap still applies to the full
-  extraction that `load()`, `validate`, and `check-media` need; each file
-  written is capped in both paths.
-- The `.lift` member of a zipped package is located by archive member name
-  rather than by globbing the extracted tree, making the suffix match
-  case-insensitive on every platform (previously a `.LIFT` member resolved on
-  Windows but not on Linux or macOS).
-
 ## [0.1.0] - 2026-07-TBD
 
 ### Added
@@ -72,8 +59,10 @@ releases may contain breaking changes.
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
   package files through verbatim); `validate`, `stats`, `check-media`, and
-  `export` accept a `.zip` path on the CLI. Extraction rejects path-traversal
-  members and is capped (entry count and a 10 GiB uncompressed total) against
+  `export` accept a `.zip` path on the CLI, and the streaming two (`stats`,
+  `export`) unpack only the `.lift` rather than the whole package. Extraction
+  rejects path-traversal members and is capped (entry count, a 10 GiB
+  uncompressed total for a full extraction, and every file written) against
   zip bombs.
 - Validation: `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning a `Problem` stream, each carrying the
