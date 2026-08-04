@@ -327,3 +327,43 @@ def test_untrustworthy_companion_bytes_load_but_save_canonically(
     reloaded = sil_lift.load(out_dir / f"{id_}.lift")
     (reloaded_ranges,) = reloaded.ranges_files.values()
     assert reloaded_ranges.ranges == ranges_file.ranges
+
+
+# A junk date and a junk order: unparseable values a typed field cannot hold.
+# "2001-02-03 04:05:06" is the in-between case — not a date, but a valid datetime.
+UNPARSEABLE_ATTRS = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+<relation type="synonym" ref="two" order="first"/>
+<note dateCreated="2001-02-03 04:05:06" dateModified="whenever">
+<form lang="en"><text>n</text></form></note>
+</entry>
+</lift>
+"""
+
+
+def test_unparseable_date_and_order_attributes_become_residue(tmp_path: Path) -> None:
+    source = tmp_path / "junk-attrs.lift"
+    source.write_bytes(UNPARSEABLE_ATTRS)
+    lexicon = sil_lift.load(source)
+    entry = lexicon.entries[0]
+    (relation,) = entry.relations
+    (note,) = entry.notes
+
+    assert relation.order is None
+    assert relation.extra.to_string() == "@order='first'"
+    assert note.date_modified is None
+    assert note.extra.to_string() == "@dateModified='whenever'"
+    assert note.date_created == datetime(2001, 2, 3, 4, 5, 6)
+
+    out = tmp_path / "out.lift"
+    lexicon.save(out)
+    assert out.read_bytes() == UNPARSEABLE_ATTRS  # untouched entry: exact bytes
+
+    entry.senses.append(sil_lift.Sense(id="s1"))  # force this entry to re-serialize
+    lexicon.save(out)
+    touched = out.read_bytes()
+    assert b'order="first"' in touched
+    assert b'dateModified="whenever"' in touched
+    # The datetime round-trips through the typed field, so it normalizes to ISO.
+    assert b'dateCreated="2001-02-03T04:05:06"' in touched
