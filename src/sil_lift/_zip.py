@@ -45,27 +45,39 @@ _MAX_ENTRIES = 100_000
 _EXTRACT_CHUNK = 1 << 20  # 1 MiB
 
 
-def _size_limit_message(zip_path: Path) -> str:
+def _size_limit_message(zip_path: Path, member: str | None = None) -> str:
+    """The size-cap refusal, for the package as a whole or for one member."""
     limit_gib = _MAX_UNCOMPRESSED_BYTES / 1024**3
-    return f"{zip_path.name}: uncompressed size exceeds the {limit_gib:.0f} GiB limit"
+    if member is None:
+        return f"{zip_path.name}: uncompressed size exceeds the {limit_gib:.0f} GiB limit"
+    return f"{zip_path.name}: {member!r} alone exceeds the {limit_gib:.0f} GiB limit"
 
 
 def _select_lift_member(names: Iterable[str]) -> str:
     """The single ``.lift`` member of an archive listing; its parent is the root.
 
     Handles both the flat and folder-wrapped layouts, and ignores junk such as
-    ``__MACOSX`` and dotfile entries that some zip tools add. The suffix match
-    is case-insensitive, so a ``.LIFT`` member written by a Windows tool
-    resolves the same way on every platform.
+    ``__MACOSX`` and dotfile entries that some zip tools add. One path stored
+    twice counts once — some writers append a record rather than replace it,
+    and extraction overwrites, so what lands on disk is a single file.
+
+    The suffix match is case-insensitive, so a ``.LIFT`` member resolves the
+    same way on every platform rather than only where the filesystem is
+    case-folding. Such a package loads, but on a case-sensitive filesystem its
+    conventional sibling companion does not resolve (that candidate is derived
+    from the suffix, giving ``.LIFT-ranges``); a header ``range/@href`` still
+    resolves normally, which is how real exports reference the companion.
     """
-    lifts = [
-        name
-        for name in names
-        if name.lower().endswith(".lift")
-        and not any(
-            part == "__MACOSX" or part.startswith(".") for part in PurePosixPath(name).parts
+    lifts = list(
+        dict.fromkeys(  # de-duplicate, preserving listing order
+            name
+            for name in names
+            if name.lower().endswith(".lift")
+            and not any(
+                part == "__MACOSX" or part.startswith(".") for part in PurePosixPath(name).parts
+            )
         )
-    ]
+    )
     if not lifts:
         raise LiftParseError("no .lift file found in the archive")
     if len(lifts) > 1:
@@ -79,11 +91,15 @@ def _safe_extract(zip_path: Path, dest: Path, *, only_lift: bool = False) -> str
 
     Path-traversal members (``..`` or absolute, resolved against ``dest``) are
     rejected and the entry count is capped, both over the whole listing however
-    much of it gets written. ``only_lift`` narrows the write to the ``.lift``
-    itself, which is all a streaming read needs; the aggregate uncompressed
-    size cap then has nothing to guard and is left to full extraction. Either
-    way every member written is capped as it streams, since a crafted archive's
-    declared size can lie.
+    much of it gets written. Bytes written are capped as they stream, since a
+    crafted archive's declared size can lie.
+
+    ``only_lift`` narrows the write to the ``.lift`` itself, which is all a
+    streaming read needs. The aggregate declared-size check then has nothing to
+    guard and is left to full extraction, so a decompression bomb of a ``.lift``
+    is refused only once it has written ``_MAX_UNCOMPRESSED_BYTES`` — the same
+    worst-case temp usage as a full extraction, reached by one member instead of
+    the whole package.
     """
     dest_root = dest.resolve()
     try:
@@ -112,7 +128,9 @@ def _safe_extract(zip_path: Path, dest: Path, *, only_lift: bool = False) -> str
                     while chunk := source.read(_EXTRACT_CHUNK):
                         written += len(chunk)
                         if written > _MAX_UNCOMPRESSED_BYTES:
-                            raise LiftParseError(_size_limit_message(zip_path))
+                            raise LiftParseError(
+                                _size_limit_message(zip_path, info.filename if only_lift else None)
+                            )
                         sink.write(chunk)
     except zipfile.BadZipFile as exc:
         raise LiftParseError(f"{zip_path.name}: not a valid zip archive: {exc}") from exc
