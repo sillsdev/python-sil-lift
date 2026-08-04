@@ -18,6 +18,16 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- Companion `.lift-ranges` files now resolve when the folder's filenames
+  disagree in case (`Dict.LIFT` beside `Dict.lift-ranges`, or the reverse).
+  Such a folder loads on Windows and macOS, whose filesystems fold case, but
+  on Linux the companion was silently skipped and its ranges went missing.
+  A candidate that matches no file exactly now falls back to one whose name
+  differs only in case; where several fold together the lexicographically
+  first wins, so resolution is stable across runs.
+
 ## [0.1.0] - 2026-07-TBD
 
 ### Added
