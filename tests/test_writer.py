@@ -199,3 +199,61 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
     assert reloaded_entry is not None
     assert reloaded_entry.extra  # unknown attr + element still carried
     assert _semantic_bytes(result) != b""  # well-formed enough to canonicalize
+
+
+# Residue that is neither an element nor an attribute: a processing instruction,
+# stray character data in element-only contexts (both as an element's leading text
+# and as a later child's tail), a comment and a PI inside <text>'s mixed content,
+# and a second <text> in one <form>.
+TEXTUAL_RESIDUE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<entry id="one">stray text<?sil-lift keep me?>
+<lexical-unit><form lang="en"><text>on<?inline pi?>e<!-- in mixed --></text>
+<text>second</text></form></lexical-unit>
+<sense id="s1">
+<gloss lang="en"><text>ONE</text></gloss><gloss lang="fr"><text>UN</text></gloss>trailing
+</sense>
+</entry>
+</lift>
+"""
+
+
+def test_textual_residue_survives_touched_reserialization(tmp_path: Path) -> None:
+    source = tmp_path / "textual.lift"
+    source.write_bytes(TEXTUAL_RESIDUE)
+    lexicon = sil_lift.load(source)
+    entry = lexicon.entries[0]
+    form = entry.lexical_unit.forms[0]
+    sense = entry.senses[0]
+
+    assert entry.extra.to_string() == "stray text\n<?sil-lift keep me?>"
+    assert form.extra.to_string() == "<?inline pi?>\n<!-- in mixed -->\n<text>second</text>"
+    assert sense.extra.to_string() == "trailing\n"
+
+    out = tmp_path / "roundtrip.lift"
+    lexicon.save(out)
+    assert out.read_bytes() == TEXTUAL_RESIDUE  # untouched: byte-identical
+
+    sense.glosses[0].text = sil_lift.Text(["ONE (edited)"])
+    lexicon.save(out)
+    result = out.read_bytes()
+    for fragment in (
+        b"stray text",
+        b"<?sil-lift keep me?>",
+        b"<?inline pi?>",
+        b"<!-- in mixed -->",
+        b"<text>second</text>",
+    ):
+        assert fragment in result, fragment
+    # Character data recorded after a sibling comes back as that sibling's tail.
+    assert b"</gloss>trailing" in result
+
+    # Text and PI residue is re-read as residue, not silently promoted or lost.
+    # (The form's two <text> siblings swap roles on the way back in — the model
+    # takes the first, the other becomes residue — so it is compared by content.)
+    reloaded_entry = sil_lift.load(out).entries[0]
+    assert reloaded_entry.extra == entry.extra
+    assert reloaded_entry.senses[0].extra == sense.extra
+    assert reloaded_entry.lexical_unit.forms[0].extra.to_string() == (
+        "<?inline pi?>\n<!-- in mixed -->\n<text>one</text>"
+    )

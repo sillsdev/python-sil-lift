@@ -242,3 +242,32 @@ def test_normalize_href(href: str, expected: Path | None) -> None:
     # WeSay backslash+space stays relative; every absolute form (drive-letter,
     # POSIX, UNC, file://, remote) is refused regardless of host.
     assert _normalize_href(href) == expected
+
+
+# The DOCTYPE stops the scanner, so this companion has no byte spans to reuse and
+# saving must re-serialize it canonically, root-level residue included.
+UNSCANNABLE_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE lift-ranges>
+<lift-ranges>
+<range id="etymology"><range-element id="borrowed"/></range>
+<!-- between ranges -->
+stray root text
+<range id="dialect"><range-element id="north"/></range>
+</lift-ranges>
+"""
+
+
+def test_canonical_companion_keeps_root_comments_but_not_root_text(tmp_path: Path) -> None:
+    source = tmp_path / "unscannable.lift-ranges"
+    source.write_bytes(UNSCANNABLE_RANGES)
+    ranges_file = RangesFile.load(source)
+    assert ranges_file.extra.to_string() == "<!-- between ranges -->\n\nstray root text\n"
+
+    out = tmp_path / "canonical.lift-ranges"
+    ranges_file.save(out)
+    result = out.read_bytes()
+
+    assert [r.id for r in RangesFile.load(out).ranges] == ["etymology", "dialect"]
+    assert b"<!-- between ranges -->" in result
+    # Character data at the root of a ranges document is not representable.
+    assert b"stray root text" not in result
