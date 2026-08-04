@@ -6,6 +6,7 @@ import pytest
 
 import sil_lift
 from sil_lift._cli import main
+from sil_lift._zip import lift_source
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 PAIR_DIR = CORPUS_DIR / "ranges"  # test20080407.lift + companion, fully clean
@@ -129,6 +130,59 @@ def test_cli_export_accepts_zip(tmp_path: Path) -> None:
     rows = out.read_text(encoding="utf-8").splitlines()
     assert rows[0].startswith("entry_id,")
     assert any("abat" in row for row in rows[1:])  # the entry id in full-entry.lift
+
+
+def _package_with_media(dst: Path, *, media: bytes = b"\0" * 8192) -> Path:
+    with zipfile.ZipFile(dst, "w") as archive:
+        for arcname, src in PAIR.items():
+            archive.write(src, f"Pkg/{arcname}")
+        archive.writestr("Pkg/audio/big.wav", media)
+    return dst
+
+
+def test_lift_source_extracts_only_the_lift(tmp_path: Path) -> None:
+    package = _package_with_media(tmp_path / "pkg.zip")
+    with lift_source(package) as lift_path:
+        root = lift_path.parents[1]  # the temp dir; the .lift sits under Pkg/
+        written = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
+    assert written == ["Pkg/test20080407.lift"]  # no media, no companion
+
+
+def test_lift_source_skips_the_aggregate_size_cap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The cap guards bytes written to disk, and a streaming read writes one
+    # member — so a package whose media dwarfs the limit still streams, while
+    # the full extraction behind load() refuses it.
+    package = _package_with_media(tmp_path / "pkg.zip")
+    monkeypatch.setattr("sil_lift._zip._MAX_UNCOMPRESSED_BYTES", 4000)
+    with lift_source(package) as lift_path:
+        assert lift_path.is_file()
+    with pytest.raises(sil_lift.LiftParseError, match="exceeds"):
+        sil_lift.load(package)
+
+
+def test_lift_source_caps_an_oversized_lift_member(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    package = _package_with_media(tmp_path / "pkg.zip")
+    monkeypatch.setattr("sil_lift._zip._MAX_UNCOMPRESSED_BYTES", 100)  # under the .lift's size
+    with pytest.raises(sil_lift.LiftParseError, match="exceeds"), lift_source(package):
+        pass
+
+
+def test_lift_source_rejects_path_traversal(tmp_path: Path) -> None:
+    package = tmp_path / "evil.zip"
+    with zipfile.ZipFile(package, "w") as archive:
+        archive.write(PAIR_DIR / "test20080407.lift", "Pkg/test20080407.lift")
+        archive.writestr("../evil.txt", b"x")  # never extracted, still refused
+    with pytest.raises(sil_lift.LiftParseError, match="unsafe path"), lift_source(package):
+        pass
+
+
+def test_lift_source_passes_a_plain_lift_through() -> None:
+    with lift_source(PAIR_DIR / "test20080407.lift") as lift_path:
+        assert lift_path == PAIR_DIR / "test20080407.lift"
 
 
 def test_save_zip_roundtrip_wrapped(tmp_path: Path) -> None:

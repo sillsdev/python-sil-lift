@@ -18,6 +18,19 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Changed
+
+- The streaming CLI commands (`stats`, `export`) now unpack only the `.lift`
+  member of a zipped package instead of the whole archive, so they no longer
+  write a media-heavy package's audio to a temporary directory just to read the
+  lexicon. The aggregate uncompressed-size cap still applies to the full
+  extraction that `load()`, `validate`, and `check-media` need; each file
+  written is capped in both paths.
+- The `.lift` member of a zipped package is located by archive member name
+  rather than by globbing the extracted tree, making the suffix match
+  case-insensitive on every platform (previously a `.LIFT` member resolved on
+  Windows but not on Linux or macOS).
+
 ## [0.1.0] - 2026-07-TBD
 
 ### Added
