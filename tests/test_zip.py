@@ -1,6 +1,6 @@
 import json
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -69,6 +69,19 @@ def test_zip_with_no_lift_errors(tmp_path: Path) -> None:
         sil_lift.load(path)
 
 
+def test_zip_tolerates_one_lift_stored_twice(tmp_path: Path) -> None:
+    # Some writers append a record rather than replace it, leaving the same
+    # path in the listing twice; extraction overwrites, so it is one file.
+    path = tmp_path / "dup.zip"
+    with zipfile.ZipFile(path, "w") as archive:
+        for arcname, src in PAIR.items():
+            archive.write(src, arcname)
+        archive.write(PAIR_DIR / "test20080407.lift", "test20080407.lift")
+    assert len(sil_lift.load(path).entries) == 1
+    with lift_source(path) as lift_path:
+        assert lift_path.is_file()
+
+
 def test_zip_with_multiple_lift_errors(tmp_path: Path) -> None:
     path = tmp_path / "two.zip"
     with zipfile.ZipFile(path, "w") as archive:
@@ -132,20 +145,25 @@ def test_cli_export_accepts_zip(tmp_path: Path) -> None:
     assert any("abat" in row for row in rows[1:])  # the entry id in full-entry.lift
 
 
+_PKG = PurePosixPath("Pkg")  # the package's wrapper folder inside the archive
+_PKG_LIFT = _PKG / "test20080407.lift"
+
+
 def _package_with_media(dst: Path, *, media: bytes = b"\0" * 8192) -> Path:
     with zipfile.ZipFile(dst, "w") as archive:
         for arcname, src in PAIR.items():
-            archive.write(src, f"Pkg/{arcname}")
-        archive.writestr("Pkg/audio/big.wav", media)
+            archive.write(src, (_PKG / arcname).as_posix())
+        archive.writestr((_PKG / "audio" / "big.wav").as_posix(), media)
     return dst
 
 
 def test_lift_source_extracts_only_the_lift(tmp_path: Path) -> None:
     package = _package_with_media(tmp_path / "pkg.zip")
     with lift_source(package) as lift_path:
-        root = lift_path.parents[1]  # the temp dir; the .lift sits under Pkg/
+        root = lift_path.parents[len(_PKG_LIFT.parts) - 1]  # up out of the member path
+        assert root.name.startswith("sil-lift-")  # the temp dir, not somewhere above it
         written = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
-    assert written == ["Pkg/test20080407.lift"]  # no media, no companion
+    assert written == [_PKG_LIFT.as_posix()]  # no media, no companion
 
 
 def test_lift_source_skips_the_aggregate_size_cap(
