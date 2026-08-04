@@ -220,3 +220,110 @@ def test_schema_invalid_content_is_carried_not_dropped() -> None:
     ]
     assert lang_less, "expected the schema-invalid lang-less etymology form to load"
     assert str(lang_less[0].text)  # its text content survives
+
+
+# --- byte-passthrough capture, and when the reader refuses to capture ------------
+#
+# Spans are captured only when the bytes can be trusted; on any doubt the reader
+# captures nothing and `save()` falls back to canonical serialization —
+# semantically complete, no longer byte-identical. Every corpus fixture is
+# scannable UTF-8, so only hand-written documents reach the bail-outs.
+
+# A DOCTYPE makes the scanner bail out: entities could redefine what the bytes mean.
+DOCTYPE_LIFT = b"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE lift>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+"""
+
+# Two <header>s parse fine, but then the scanned root children no longer line up
+# with the model, so the scan is distrusted wholesale.
+TWO_HEADERS_LIFT = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<header><description><form lang="en"><text>first</text></form></description></header>
+<header><description><form lang="en"><text>second</text></form></description></header>
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+"""
+
+# Byte scanning assumes an ASCII-compatible encoding; UTF-16 is not one.
+UTF16_LIFT = """<?xml version="1.0" encoding="UTF-16"?>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+""".encode("utf-16")
+
+DOCTYPE_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE lift-ranges>
+<lift-ranges>
+<range id="etymology"><range-element id="borrowed"/></range>
+</lift-ranges>
+"""
+
+UTF16_RANGES = """<?xml version="1.0" encoding="UTF-16"?>
+<lift-ranges>
+<range id="etymology"><range-element id="borrowed"/></range>
+</lift-ranges>
+""".encode("utf-16")
+
+
+@pytest.mark.parametrize(
+    ("data", "name"),
+    [
+        (DOCTYPE_LIFT, "doctype.lift"),
+        (TWO_HEADERS_LIFT, "two-headers.lift"),
+        (UTF16_LIFT, "utf16.lift"),
+    ],
+    ids=["doctype", "two-headers", "utf-16"],
+)
+def test_untrustworthy_bytes_load_but_save_canonically(
+    data: bytes, name: str, tmp_path: Path
+) -> None:
+    source = tmp_path / name
+    source.write_bytes(data)
+    lexicon = sil_lift.load(source)
+    assert [entry.id for entry in lexicon.entries] == ["one"]
+
+    out = tmp_path / "out.lift"
+    lexicon.save(out)
+    assert out.read_bytes() != data, "expected the canonical fallback, not passthrough"
+
+    reloaded = sil_lift.load(out)
+    assert reloaded.entries == lexicon.entries
+    assert reloaded.header == lexicon.header
+
+
+@pytest.mark.parametrize(
+    ("data", "id_"),
+    [(DOCTYPE_RANGES, "doctype"), (UTF16_RANGES, "utf-16")],
+    ids=["doctype", "utf-16"],
+)
+def test_untrustworthy_companion_bytes_load_but_save_canonically(
+    data: bytes, id_: str, tmp_path: Path
+) -> None:
+    """Same bail-outs, on the `.lift-ranges` side of the folder."""
+    companion = f"{id_}.lift-ranges"
+    (tmp_path / companion).write_bytes(data)
+    source = tmp_path / f"{id_}.lift"
+    source.write_bytes(
+        f"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<header><ranges><range id="etymology" href="{companion}"/></ranges></header>
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+""".encode()
+    )
+    lexicon = sil_lift.load(source)
+    (ranges_file,) = lexicon.ranges_files.values()
+    assert [range_.id for range_ in ranges_file.ranges] == ["etymology"]
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    lexicon.save(out_dir / f"{id_}.lift")
+    written = (out_dir / companion).read_bytes()
+    assert written != data, "expected the canonical fallback, not passthrough"
+
+    reloaded = sil_lift.load(out_dir / f"{id_}.lift")
+    (reloaded_ranges,) = reloaded.ranges_files.values()
+    assert reloaded_ranges.ranges == ranges_file.ranges
