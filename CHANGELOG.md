@@ -18,16 +18,6 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
-### Fixed
-
-- Companion `.lift-ranges` files now resolve when the folder's filenames
-  disagree in case (`Dict.LIFT` beside `Dict.lift-ranges`, or the reverse).
-  Such a folder loads on Windows and macOS, whose filesystems fold case, but
-  on Linux the companion was silently skipped and its ranges went missing.
-  A candidate that matches no file exactly now falls back to one whose name
-  differs only in case; where several fold together the lexicographically
-  first wins, so resolution is stable across runs.
-
 ## [0.1.0] - 2026-07-TBD
 
 ### Added
@@ -58,13 +48,14 @@ releases may contain breaking changes.
   against the most recent `save()`.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
-  (`Lexicon.ranges_files`), `save()` writes companions together,
-  `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
-  build-from-scratch helpers `Lexicon.add_ranges_file()` /
-  `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
-  header-references a new companion beside the `.lift`); vendored
-  `schemas/lift-ranges-0.13.rng` — the first schema for standalone
-  ranges documents.
+  (`Lexicon.ranges_files`, resolving a companion whose filename differs from
+  the `.lift` only in case, as Windows-authored folders often do), `save()`
+  writes companions together, `all_ranges()` merged view, `media_refs()` /
+  `missing_media()` helpers, build-from-scratch helpers
+  `Lexicon.add_ranges_file()` / `RangesFile.add_range()` /
+  `Range.add_element()` (`save()` writes and header-references a new companion
+  beside the `.lift`); vendored `schemas/lift-ranges-0.13.rng` — the first
+  schema for standalone ranges documents.
 - Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
