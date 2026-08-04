@@ -324,6 +324,38 @@ def _normalize_href(href: str) -> Path | None:
     return Path(normalized)
 
 
+def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Path | None:
+    """``candidate`` if it is a file, else one whose name differs only in case.
+
+    LIFT folders are written on Windows, where the filesystem folds case, and
+    read everywhere. A folder whose ``.lift`` and ``.lift-ranges`` disagree in
+    case (``Dict.LIFT`` beside ``Dict.lift-ranges``) resolves there and, before
+    this fallback, silently did not on a case-sensitive filesystem.
+
+    The fallback fires only where the exact name missed, so a case-folding
+    filesystem never reaches it and nothing changes there. Where several names
+    fold together, the lexicographically first wins — arbitrary, but stable
+    across runs, which "whatever the directory yields first" would not be.
+    ``listings`` caches one directory read per folder.
+    """
+    try:
+        if candidate.is_file():
+            return candidate
+    except OSError:
+        return None
+    folder = candidate.parent
+    if folder not in listings:
+        entries: dict[str, Path] = {}
+        try:
+            for path in sorted(folder.iterdir()):
+                if path.is_file():
+                    entries.setdefault(path.name.lower(), path)
+        except OSError:
+            pass  # unreadable folder: no candidate resolves out of it
+        listings[folder] = entries
+    return listings[folder].get(candidate.name.lower())
+
+
 def _same_dir(left: Path, right: Path | None) -> bool:
     """Whether two paths denote the same directory, spelling aside.
 
@@ -382,7 +414,10 @@ class Lexicon:
         ``range/@href`` both the href resolved as a path relative to the
         ``.lift`` file and its bare basename in the same directory (FLEx
         hrefs are usually dangling absolute ``file://C:/...`` paths from the
-        exporting machine, so the basename is what resolves locally).
+        exporting machine, so the basename is what resolves locally). A
+        candidate no file matches exactly still resolves to one whose name
+        differs only in case, so a folder authored on Windows loads the same
+        way on a case-sensitive filesystem.
 
         A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
         to a temporary directory (kept alive for the returned lexicon's
@@ -416,14 +451,17 @@ class Lexicon:
             basename = range_.href.replace("\\", "/").rpartition("/")[2]
             if basename:
                 candidates.append(base / basename)
+        listings: dict[Path, dict[str, Path]] = {}
         for candidate in candidates:
+            found = _existing_file(candidate, listings)
+            if found is None:
+                continue
             try:
-                resolved = candidate.resolve()
-                exists = candidate.is_file()
+                resolved = found.resolve()
             except OSError:
                 continue
-            if exists and resolved not in self.ranges_files:
-                self.ranges_files[resolved] = RangesFile.load(candidate)
+            if resolved not in self.ranges_files:
+                self.ranges_files[resolved] = RangesFile.load(found)
 
     def save(self, path: str | os.PathLike[str] | None = None) -> None:
         """Write the ``.lift`` file and every tracked ``.lift-ranges`` companion.
