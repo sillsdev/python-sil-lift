@@ -62,11 +62,10 @@ def _select_lift_member(names: Iterable[str]) -> str:
     and extraction overwrites, so what lands on disk is a single file.
 
     The suffix match is case-insensitive, so a ``.LIFT`` member resolves the
-    same way on every platform rather than only where the filesystem is
-    case-folding. Such a package loads, but on a case-sensitive filesystem its
-    conventional sibling companion does not resolve (that candidate is derived
-    from the suffix, giving ``.LIFT-ranges``); a header ``range/@href`` still
-    resolves normally, which is how real exports reference the companion.
+    same way on every platform rather than only where the filesystem happens to
+    case-fold. How such a name then finds its companion is not this layer's
+    concern: it is the same question a case-variant ``.lift`` in a plain folder
+    raises, and ``Lexicon._resolve_ranges`` is where it is answered.
     """
     lifts = list(
         dict.fromkeys(  # de-duplicate, preserving listing order
