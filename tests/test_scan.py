@@ -1,0 +1,124 @@
+"""Direct tests for the byte-span scanner's happy path and its conservative
+bail-out branches.
+
+``_scan.scan`` underpins byte-identity passthrough: it returns a ``ScanResult``
+locating each root child's exact bytes, or ``None`` for anything it cannot scan
+safely (malformed/truncated markup, DOCTYPE, or an unterminated construct), in
+which case the writer falls back to canonical serialization. The corpus is all
+well-formed LIFT, so those ``None`` paths were previously unexercised; these
+tests feed hand-crafted byte strings to prove the safety net actually fires.
+"""
+
+from __future__ import annotations
+
+from sil_lift._scan import ScanResult, scan
+
+# --- happy path (incl. exotic-but-valid CDATA / PI / self-closing root) ---
+
+
+def test_scans_simple_document() -> None:
+    data = b'<?xml version="1.0"?>\n<lift version="0.13"><entry id="a"></entry></lift>'
+    result = scan(data)
+    assert result is not None
+    assert isinstance(result, ScanResult)
+    assert not result.root_self_closing
+    assert [c.tag for c in result.children] == ["entry"]
+    span = result.children[0]
+    assert data[span.start : span.end] == b'<entry id="a"></entry>'
+
+
+def test_self_closing_root_returns_empty_children() -> None:
+    result = scan(b'<lift version="0.13"/>')
+    assert result is not None
+    assert result.root_self_closing
+    assert result.children == []
+
+
+def test_cdata_root_child_is_skipped() -> None:
+    data = b'<lift version="0.13"><![CDATA[<not a tag>]]><entry id="a"></entry></lift>'
+    result = scan(data)
+    assert result is not None
+    assert [c.tag for c in result.children] == ["entry"]
+
+
+def test_cdata_inside_element_is_skipped() -> None:
+    data = b'<lift version="0.13"><entry id="a"><![CDATA[</entry>]]></entry></lift>'
+    result = scan(data)
+    assert result is not None
+    # The CDATA-embedded "</entry>" must not be mistaken for the real end tag.
+    span = result.children[0]
+    assert data[span.start : span.end] == b'<entry id="a"><![CDATA[</entry>]]></entry>'
+
+
+def test_processing_instructions_are_skipped() -> None:
+    data = b'<lift version="0.13"><?php ?><entry id="a"><?pi?></entry></lift>'
+    result = scan(data)
+    assert result is not None
+    assert [c.tag for c in result.children] == ["entry"]
+
+
+def test_comment_root_child_is_skipped() -> None:
+    data = b'<lift version="0.13"><!-- note --><entry id="a"></entry></lift>'
+    result = scan(data)
+    assert result is not None
+    assert [c.tag for c in result.children] == ["entry"]
+
+
+def test_nested_same_name_elements_track_depth() -> None:
+    data = b'<lift version="0.13"><entry id="a"><entry id="inner"/></entry></lift>'
+    result = scan(data)
+    assert result is not None
+    assert len(result.children) == 1
+    span = result.children[0]
+    assert data[span.start : span.end].endswith(b"</entry>")
+
+
+# --- conservative bail-outs: every one must return None ---
+
+
+def test_no_markup_at_all() -> None:
+    assert scan(b"no markup here") is None
+
+
+def test_doctype_in_prolog() -> None:
+    assert scan(b'<!DOCTYPE lift>\n<lift version="0.13"></lift>') is None
+
+
+def test_doctype_as_root_child() -> None:
+    assert scan(b'<lift version="0.13"><!DOCTYPE x><entry id="a"/></lift>') is None
+
+
+def test_doctype_inside_element() -> None:
+    assert scan(b'<lift version="0.13"><entry id="a"><!ENTITY x></entry></lift>') is None
+
+
+def test_truncated_root_open_tag() -> None:
+    assert scan(b'<lift version="0.13"') is None
+
+
+def test_truncated_child_start_tag() -> None:
+    assert scan(b'<lift version="0.13"><entry id="a"') is None
+
+
+def test_truncated_child_end_tag() -> None:
+    assert scan(b'<lift version="0.13"><entry id="a"></entry') is None
+
+
+def test_unclosed_nested_element() -> None:
+    assert scan(b'<lift version="0.13"><entry id="a"><sense>') is None
+
+
+def test_missing_root_close_tag() -> None:
+    assert scan(b'<lift version="0.13"><entry id="a"></entry>') is None
+
+
+def test_unterminated_comment_in_prolog() -> None:
+    assert scan(b"<!-- never closed") is None
+
+
+def test_unterminated_comment_root_child() -> None:
+    assert scan(b'<lift version="0.13"><!-- never closed') is None
+
+
+def test_unterminated_comment_inside_element() -> None:
+    assert scan(b'<lift version="0.13"><entry id="a"><!-- never closed</entry></lift>') is None
