@@ -45,8 +45,10 @@ releases may contain breaking changes.
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
   package files through verbatim); `validate`, `stats`, `check-media`, and
-  `export` accept a `.zip` path on the CLI. Extraction rejects path-traversal
-  members and is capped (entry count and a 10 GiB uncompressed total) against
+  `export` accept a `.zip` path on the CLI, and the streaming two (`stats`,
+  `export`) unpack only the `.lift` rather than the whole package. Extraction
+  rejects path-traversal members and is capped (entry count, a 10 GiB
+  uncompressed total for a full extraction, and every file written) against
   zip bombs.
 - Validation: `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning an addressable `Problem` stream
