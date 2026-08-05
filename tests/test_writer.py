@@ -1,3 +1,4 @@
+import itertools
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
@@ -437,6 +438,11 @@ def _remove_entry(lexicon: sil_lift.Lexicon) -> None:
     del lexicon.entries[0]
 
 
+def _duplicate_entry(lexicon: sil_lift.Lexicon) -> None:
+    """Append an entry the document already has — the object, not a copy."""
+    lexicon.entries.append(lexicon.entries[0])
+
+
 def _reverse_entries(lexicon: sil_lift.Lexicon) -> None:
     lexicon.entries.reverse()
 
@@ -453,33 +459,96 @@ def _add_root_residue(lexicon: sil_lift.Lexicon) -> None:
     lexicon.extra._attrs["x-marker"] = "1"
 
 
+Mutation = Callable[[sil_lift.Lexicon], None]
+
+CONDITIONS: list[tuple[Mutation, set[str]]] = [
+    (_edit_entry, {"entries"}),
+    (_append_entry, {"added"}),
+    (_duplicate_entry, {"added"}),
+    (_remove_entry, {"removed"}),
+    (_reverse_entries, {"reordered"}),
+    (_edit_header, {"header"}),
+    (_change_producer, {"root"}),
+    (_add_root_residue, {"root"}),
+]
+
+SAMPLE = CORPUS_DIR / "misc" / "sample.0.13.lift"
+
+
 @pytest.mark.parametrize(
     ("mutate", "expected"),
-    [
-        (_edit_entry, {"entries"}),
-        (_append_entry, {"added"}),
-        (_remove_entry, {"removed"}),
-        (_reverse_entries, {"reordered"}),
-        (_edit_header, {"header"}),
-        (_change_producer, {"root"}),
-        (_add_root_residue, {"root"}),
-    ],
+    CONDITIONS,
     ids=lambda value: value.__name__.lstrip("_") if callable(value) else str(sorted(value)),
 )
 def test_changes_isolates_each_document_level_condition(
-    mutate: Callable[[sil_lift.Lexicon], None], expected: set[str]
+    mutate: Mutation, expected: set[str]
 ) -> None:
     """Each condition is detected, and reported by that field alone."""
     from sil_lift._writer import render_document
 
-    path = CORPUS_DIR / "misc" / "sample.0.13.lift"
-    lexicon = sil_lift.load(path)
+    lexicon = sil_lift.load(SAMPLE)
     mutate(lexicon)
 
     changes = lexicon.changes()
     assert changes
     assert _signals(changes) == expected
-    assert render_document(lexicon) != path.read_bytes()
+    assert render_document(lexicon) != SAMPLE.read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    list(itertools.combinations([mutate for mutate, _ in CONDITIONS], 2)),
+    ids=lambda mutate: mutate.__name__.lstrip("_"),
+)
+def test_changes_tracks_the_render_through_combined_mutations(
+    first: Mutation, second: Mutation
+) -> None:
+    """Conditions in combination still agree with what the writer emits.
+
+    One at a time, a hand-written guard can match the writer by coincidence.
+    Pairs cover the interactions — a removal alongside a duplicate, a reorder
+    on top of an addition — where a set-based comparison starts cancelling
+    itself out.
+    """
+    from sil_lift._writer import render_document
+
+    lexicon = sil_lift.load(SAMPLE)
+    first(lexicon)
+    second(lexicon)
+
+    rewritten = render_document(lexicon) != SAMPLE.read_bytes()
+    assert bool(lexicon.changes()) == rewritten
+    assert rewritten  # every pair really does change the document
+
+
+def test_a_duplicated_entry_is_added_and_written_twice() -> None:
+    """Appending the object itself, which a set difference would swallow."""
+    from sil_lift._writer import render_document
+
+    lexicon = sil_lift.load(SAMPLE)
+    original = render_document(lexicon)
+    lexicon.entries.append(lexicon.entries[0])
+
+    changes = lexicon.changes()
+    assert _ids(changes.added) == [id(lexicon.entries[0])]
+    assert changes.entries == []  # the content is untouched; there is just more of it
+    assert render_document(lexicon).count(b"<entry ") == original.count(b"<entry ") + 1
+
+
+def test_a_duplicated_range_is_added_and_written_twice() -> None:
+    """The same hole on the companion side of the guard."""
+    from sil_lift._writer import render_ranges_document
+
+    lexicon = sil_lift.load(CORPUS_DIR / "flex" / "AllFLExFields" / "AllFLExFields.lift")
+    ranges_file = next(iter(lexicon.ranges_files.values()))
+    original = render_ranges_document(ranges_file)
+    ranges_file.ranges.append(ranges_file.ranges[0])
+
+    changes = ranges_file.changes()
+    assert changes
+    assert _ids(changes.added) == [id(ranges_file.ranges[0])]
+    assert _signals(lexicon.changes()) == {"ranges"}
+    assert render_ranges_document(ranges_file).count(b"<range ") == original.count(b"<range ") + 1
 
 
 def test_changes_reports_a_companion_edit_the_lift_itself_does_not_show() -> None:

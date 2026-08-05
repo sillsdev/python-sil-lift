@@ -36,14 +36,16 @@ releases may contain breaking changes.
   digests. `Lexicon.changed_entries()` reports entries whose content differs
   (an entry's digest covers its whole subtree, so an edit at any depth reports
   the entry containing it, while an identical rewrite or a `sort()` reports
-  nothing); `added_entries()` and `removed_entries()` report the rest, and
-  need no serialization. `Lexicon.changes()` and `RangesFile.changes()` return
-  `Changes` / `RangesChanges`, covering entry content, additions, removals,
-  reordering, the header, the root element, and every tracked companion — each
-  truthy exactly when `save()` would not reproduce the source bytes, so
-  `if not lex.changes():` is a correct guard for skipping a write.
-  Comparison is always against the loaded document, never against the most
-  recent `save()`.
+  nothing); `added_entries()` and `removed_entries()` report the rest — an
+  entry already in the document, appended a second time, counts as an addition
+  — and need no serialization. `Lexicon.changes()` and `RangesFile.changes()`
+  return `Changes` / `RangesChanges`, covering entry content, additions,
+  removals, reordering, the header, the root element, and every tracked
+  companion — each truthy exactly when `save()` would not reproduce the source
+  bytes, so `if not lex.changes():` is a correct guard for skipping an
+  in-place write (content, not destination: a `save(path)` into another
+  directory writes there regardless). Comparison is always against the loaded
+  document, never against the most recent `save()`.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`), `save()` writes companions together,

@@ -276,7 +276,7 @@ class Changes:
     """Everything that differs between a lexicon and the document it was loaded from.
 
     Truthy exactly when :meth:`Lexicon.save` would not reproduce the source
-    bytes, which makes it the correct guard for skipping a write —
+    bytes, which makes it the correct guard for skipping an in-place write —
     :meth:`Lexicon.changed_entries` alone is not, since it covers only entry
     content.
 
@@ -303,11 +303,6 @@ class Changes:
             or self.root
             or any(self.ranges.values())
         )
-
-
-def _reordered(current: list[int], original: list[int]) -> bool:
-    """Same members in a different sequence (identities, so duplicates count)."""
-    return current != original and sorted(current) == sorted(original)
 
 
 class RangesFile:
@@ -374,7 +369,7 @@ class RangesFile:
         Truthy exactly when :meth:`save` would not reproduce the source bytes.
         Costs one canonical serialization pass over the ranges.
         """
-        from ._writer import range_digest
+        from ._writer import node_diff, range_digest
 
         source = self._source
         if source is None:
@@ -387,7 +382,10 @@ class RangesFile:
                 baseline=False,
             )
         digests = {id(record.range): record.digest for record in source.range_records}
-        present = {id(range_) for range_ in self.ranges}
+        added, removed, reordered = node_diff(
+            [id(range_) for range_ in self.ranges],
+            [id(record.range) for record in source.range_records],
+        )
         return RangesChanges(
             ranges=[
                 range_
@@ -395,14 +393,9 @@ class RangesFile:
                 if (digest := digests.get(id(range_))) is not None
                 and range_digest(range_) != digest
             ],
-            added=[range_ for range_ in self.ranges if id(range_) not in digests],
-            removed=[
-                record.range for record in source.range_records if id(record.range) not in present
-            ],
-            reordered=_reordered(
-                [id(range_) for range_ in self.ranges],
-                [id(record.range) for record in source.range_records],
-            ),
+            added=[self.ranges[index] for index in added],
+            removed=[source.range_records[index].range for index in removed],
+            reordered=reordered,
             root=(
                 dict(self.extra._attrs) != source.root_extra_attrs
                 or self.extra._nodes != source.root_extra_snapshot._nodes
@@ -640,17 +633,34 @@ class Lexicon:
             if (digest := digests.get(id(entry))) is not None and entry_digest(entry) != digest
         ]
 
+    def _entry_diff(self) -> tuple[list[Entry], list[Entry], bool]:
+        """Added entries, removed entries, and whether the survivors were reordered."""
+        from ._writer import node_diff
+
+        source = self._source
+        if source is None:
+            return [], [], False
+        added, removed, reordered = node_diff(
+            [id(entry) for entry in self.entries],
+            [id(record.entry) for record in source.entry_records],
+        )
+        return (
+            [self.entries[index] for index in added],
+            [source.entry_records[index].entry for index in removed],
+            reordered,
+        )
+
     def added_entries(self) -> list[Entry]:
         """Entries in the lexicon that were not in the loaded document.
+
+        An entry the document already held, appended a second time, counts as
+        an addition too: the list gained an occurrence, and :meth:`save` writes
+        the entry out twice.
 
         Empty when there is no byte baseline: nothing is known to be new, since
         nothing is known to have been there before. Needs no serialization.
         """
-        source = self._source
-        if source is None:
-            return []
-        known = {id(record.entry) for record in source.entry_records}
-        return [entry for entry in self.entries if id(entry) not in known]
+        return self._entry_diff()[0]
 
     def removed_entries(self) -> list[Entry]:
         """Entries from the loaded document that are no longer in the lexicon.
@@ -659,11 +669,7 @@ class Lexicon:
         a removed entry is returned intact rather than merely counted. Empty
         when there is no byte baseline. Needs no serialization.
         """
-        source = self._source
-        if source is None:
-            return []
-        present = {id(entry) for entry in self.entries}
-        return [record.entry for record in source.entry_records if id(record.entry) not in present]
+        return self._entry_diff()[1]
 
     def _header_changed(self) -> bool:
         from ._writer import header_digest
@@ -689,10 +695,15 @@ class Lexicon:
         """Everything that differs between this lexicon and the document it was loaded from.
 
         Truthy exactly when :meth:`save` would not reproduce the source bytes,
-        which makes it the correct guard for skipping a write::
+        which makes it the correct guard for skipping an in-place write::
 
             if not lex.changes():
                 return
+
+        Content only, so it says nothing about the destination: a ``save(path)``
+        into another directory writes the document and its companions there
+        whatever this reports, and skipping that is a lost copy, not a saved
+        one.
 
         The most expensive query here: it serializes the entries, the header,
         and every tracked companion's ranges. When only one part is wanted,
@@ -700,16 +711,12 @@ class Lexicon:
         :meth:`removed_entries` answer individually, and the latter two need no
         serialization at all.
         """
+        added, removed, reordered = self._entry_diff()
         return Changes(
             entries=self.changed_entries(),
-            added=self.added_entries(),
-            removed=self.removed_entries(),
-            reordered=_reordered(
-                [id(entry) for entry in self.entries],
-                [id(record.entry) for record in self._source.entry_records]
-                if self._source is not None
-                else [],
-            ),
+            added=added,
+            removed=removed,
+            reordered=reordered,
             header=self._header_changed(),
             root=self._root_changed(),
             ranges={path: file.changes() for path, file in self.ranges_files.items()},
