@@ -47,6 +47,11 @@ def _comments(data: bytes) -> list[str]:
     return sorted(c.text or "" for c in root.iter() if isinstance(c, etree._Comment))
 
 
+def _residue_items(extra: sil_lift.Extras) -> list[str]:
+    """What residue a node carries, sorted: to_string's order is not a contract."""
+    return sorted(extra.to_string().splitlines())
+
+
 @pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
 def test_unchanged_save_is_byte_identical(path: Path, tmp_path: Path) -> None:
     lexicon = sil_lift.load(path)
@@ -226,9 +231,13 @@ def test_textual_residue_survives_touched_reserialization(tmp_path: Path) -> Non
     form = entry.lexical_unit.forms[0]
     sense = entry.senses[0]
 
-    assert entry.extra.to_string() == "stray text\n<?sil-lift keep me?>"
-    assert form.extra.to_string() == "<?inline pi?>\n<!-- in mixed -->\n<text>second</text>"
-    assert sense.extra.to_string() == "trailing\n"
+    assert _residue_items(entry.extra) == ["<?sil-lift keep me?>", "stray text"]
+    assert _residue_items(form.extra) == [
+        "<!-- in mixed -->",
+        "<?inline pi?>",
+        "<text>second</text>",
+    ]
+    assert sense.extra.to_string() == "trailing\n"  # one item: no order to pin
 
     out = tmp_path / "roundtrip.lift"
     lexicon.save(out)
@@ -243,17 +252,25 @@ def test_textual_residue_survives_touched_reserialization(tmp_path: Path) -> Non
         b"<?inline pi?>",
         b"<!-- in mixed -->",
         b"<text>second</text>",
+        b"trailing",
     ):
         assert fragment in result, fragment
-    # Character data recorded after a sibling comes back as that sibling's tail.
+
+    # Survival is the promise; which sibling the data ends up next to is not.
+    # Today the writer maps a recorded position onto the modelled children it
+    # finds (_append_text), so character data recorded after a sibling re-attaches
+    # as that sibling's tail — and would land elsewhere if the number of preceding
+    # modelled children changed.
     assert b"</gloss>trailing" in result
 
     # Text and PI residue is re-read as residue, not silently promoted or lost.
     # (The form's two <text> siblings swap roles on the way back in — the model
-    # takes the first, the other becomes residue — so it is compared by content.)
+    # takes the first, the other becomes residue.)
     reloaded_entry = sil_lift.load(out).entries[0]
     assert reloaded_entry.extra == entry.extra
     assert reloaded_entry.senses[0].extra == sense.extra
-    assert reloaded_entry.lexical_unit.forms[0].extra.to_string() == (
-        "<?inline pi?>\n<!-- in mixed -->\n<text>one</text>"
-    )
+    assert _residue_items(reloaded_entry.lexical_unit.forms[0].extra) == [
+        "<!-- in mixed -->",
+        "<?inline pi?>",
+        "<text>one</text>",
+    ]

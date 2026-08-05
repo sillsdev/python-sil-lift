@@ -69,13 +69,21 @@ def test_populated_extras_repr_counts_attrs_and_nodes(tmp_path: Path) -> None:
     assert repr(entry.extra) == "Extras(2 attrs, 2 nodes)"
 
 
-def test_to_string_dumps_attrs_then_nodes(tmp_path: Path) -> None:
+def test_to_string_dumps_every_carried_item_one_per_line(tmp_path: Path) -> None:
+    """Attributes render as @name='value', nodes as their XML, one item per line.
+
+    Their order is deliberately not asserted: to_string is a debug dump, not a
+    serialization format, so how residue collection happens to order attributes
+    and nodes today is not something callers may rely on.
+    """
     entry = _load(tmp_path, RESIDUE).entries[0]
-    assert entry.extra.to_string() == (
-        "@x-flavor='strawberry'\n"
-        "@x-color='red'\n"
-        "<!-- note -->\n"
-        '<x-unknown a="1">payload</x-unknown>'
+    assert sorted(entry.extra.to_string().splitlines()) == sorted(
+        [
+            "@x-flavor='strawberry'",
+            "@x-color='red'",
+            "<!-- note -->",
+            '<x-unknown a="1">payload</x-unknown>',
+        ]
     )
 
 
