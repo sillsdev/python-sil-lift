@@ -418,10 +418,14 @@ def test_changes_is_falsy_only_when_the_render_reproduces_the_source(path: Path)
     from sil_lift._writer import render_document, render_ranges_document
 
     lexicon = sil_lift.load(path)
+    # Stated up front so a future fixture the scanner declines (a UTF-16 file,
+    # say) fails saying it has no baseline rather than accusing the guard.
+    assert lexicon._source is not None, f"{corpus_id(path)}: corpus fixtures are byte-scannable"
     assert not lexicon.changes()
     assert render_document(lexicon) == path.read_bytes()
     for ranges_file in lexicon.ranges_files.values():
         assert ranges_file.path is not None
+        assert ranges_file._source is not None, f"{ranges_file.path.name}: no byte baseline"
         assert not ranges_file.changes()
         assert render_ranges_document(ranges_file) == ranges_file.path.read_bytes()
 

@@ -255,7 +255,8 @@ class RangesChanges:
     truthy: the file will be written in full.
 
     ``ranges`` names each range once, even one aliased into the list twice;
-    the repeat is reported by ``added``.
+    the repeat is reported by ``added``. ``reordered`` answers only where
+    membership held, as on :class:`Changes`.
     """
 
     ranges: list[Range]  # content differs from the source
@@ -288,6 +289,11 @@ class Changes:
     "nothing to write"; but that path can land back on the source bytes for a
     document already in canonical form, so a truthy result means the write is
     not provably unnecessary rather than certainly needed.
+
+    ``reordered`` answers only where membership held. An addition or a removal
+    re-serializes the document on its own, so a permutation alongside one is
+    not reported separately — enough for the guard, short of a full account of
+    what happened.
 
     ``baseline`` is False when no byte snapshot was captured, in which case
     ``entries`` lists every entry, ``added`` and ``removed`` are empty (nothing
@@ -735,6 +741,12 @@ class Lexicon:
         :meth:`changed_entries`, :meth:`added_entries`, and
         :meth:`removed_entries` answer individually, and the latter two need no
         serialization at all.
+
+        It is not a shortcut around :meth:`save` — it costs more than the save
+        it guards. Deciding passthrough digests every entry again, and nothing
+        is cached between the two calls, so guarding a write that turns out to
+        be needed roughly doubles the work. What the guard buys is not writing:
+        an untouched mtime, no spurious diff, nothing downstream woken up.
         """
         added, removed, reordered = self._entry_diff()
         return Changes(
