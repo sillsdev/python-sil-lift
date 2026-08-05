@@ -34,13 +34,14 @@ releases may contain breaking changes.
   byte-identity tests plus Hypothesis round-trip properties.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
-  (`Lexicon.ranges_files`), `save()` writes companions together,
-  `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
-  build-from-scratch helpers `Lexicon.add_ranges_file()` /
-  `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
-  header-references a new companion beside the `.lift`); vendored
-  `schemas/lift-ranges-0.13.rng` — the first schema for standalone
-  ranges documents.
+  (`Lexicon.ranges_files`, resolving a companion whose filename differs from
+  the `.lift` only in case, as Windows-authored folders often do), `save()`
+  writes companions together, `all_ranges()` merged view, `media_refs()` /
+  `missing_media()` helpers, build-from-scratch helpers
+  `Lexicon.add_ranges_file()` / `RangesFile.add_range()` /
+  `Range.add_element()` (`save()` writes and header-references a new companion
+  beside the `.lift`); vendored `schemas/lift-ranges-0.13.rng` — the first
+  schema for standalone ranges documents.
 - Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
