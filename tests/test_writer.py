@@ -340,7 +340,7 @@ def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> 
 
 
 def test_added_entries_owns_appended_entries_and_changed_entries_does_not() -> None:
-    """The three entry queries do not overlap: an addition is not a content change."""
+    """Each query answers its own question: an appended entry is new, not changed."""
     lexicon = sil_lift.load(CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift")
     added = sil_lift.Entry(id="brand-new")
     lexicon.entries.append(added)
@@ -409,7 +409,7 @@ def _signals(changes: sil_lift.Changes) -> set[str]:
 
 
 @pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
-def test_changes_is_falsy_exactly_when_the_render_reproduces_the_source(path: Path) -> None:
+def test_changes_is_falsy_only_when_the_render_reproduces_the_source(path: Path) -> None:
     """The contract that makes changes() a correct write guard.
 
     The dangerous direction is a falsy result beside differing output, which
@@ -533,6 +533,76 @@ def test_a_duplicated_entry_is_added_and_written_twice() -> None:
     assert _ids(changes.added) == [id(lexicon.entries[0])]
     assert changes.entries == []  # the content is untouched; there is just more of it
     assert render_document(lexicon).count(b"<entry ") == original.count(b"<entry ") + 1
+
+
+def test_each_repeat_beyond_the_first_is_its_own_addition() -> None:
+    """Occurrences are counted, not collapsed, however many there are."""
+    from sil_lift._writer import render_document
+
+    lexicon = sil_lift.load(SAMPLE)
+    entry = lexicon.entries[0]
+    original = render_document(lexicon)
+    lexicon.entries.extend([entry, entry])
+
+    assert _ids(lexicon.changes().added) == [id(entry), id(entry)]
+    assert render_document(lexicon).count(b"<entry ") == original.count(b"<entry ") + 2
+
+
+def test_an_edited_entry_is_reported_once_however_often_it_is_repeated() -> None:
+    """changed_entries() answers per entry; the repeat is the addition's business."""
+    lexicon = sil_lift.load(SAMPLE)
+    entry = lexicon.entries[0]
+    lexicon.entries.append(entry)
+    entry.lexical_unit["en"] = "edited"
+
+    changes = lexicon.changes()
+    assert _ids(changes.entries) == [id(entry)]
+    assert _ids(changes.added) == [id(entry)]
+
+
+def test_dropping_a_repeat_restores_the_source() -> None:
+    """The mirror of the addition rule: a repeat removed is a repeat un-added."""
+    from sil_lift._writer import render_document
+
+    lexicon = sil_lift.load(SAMPLE)
+    lexicon.entries.append(lexicon.entries[0])
+    lexicon.entries.pop()
+
+    assert not lexicon.changes()
+    assert render_document(lexicon) == SAMPLE.read_bytes()
+
+
+def test_a_node_is_removed_only_once_no_occurrence_is_left() -> None:
+    """Dropping one of two aliased occurrences is a move, not a deletion."""
+    lexicon = sil_lift.load(SAMPLE)
+    entry = lexicon.entries[0]
+    lexicon.entries.append(entry)
+    del lexicon.entries[0]  # the original position; the repeat at the end survives
+
+    changes = lexicon.changes()
+    assert _signals(changes) == {"reordered"}
+    assert changes.removed == []
+
+    del lexicon.entries[-1]  # now nothing of it is left
+    assert _ids(lexicon.changes().removed) == [id(entry)]
+
+
+def test_changes_can_be_truthy_where_the_render_still_reproduces_the_source() -> None:
+    """The guarantee is one-way, and this is the harmless direction.
+
+    Root-level residue sends the writer down the canonical path, and for a
+    document already in canonical form that path lands back on the source
+    bytes. The cost is a redundant write, never a skipped one.
+    """
+    from sil_lift._extras import _ExtraNode
+    from sil_lift._writer import render_document
+
+    path = CORPUS_DIR / "spec-examples" / "0.13" / "minimal.lift"
+    lexicon = sil_lift.load(path)
+    lexicon.extra._nodes.append(_ExtraNode(kind="text", xml="\n", index=0))
+
+    assert lexicon.changes()
+    assert render_document(lexicon) == path.read_bytes()
 
 
 def test_a_duplicated_range_is_added_and_written_twice() -> None:

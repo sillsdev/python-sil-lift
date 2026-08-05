@@ -60,6 +60,7 @@ __all__ = [
     "canonical_ranges_document",
     "entry_digest",
     "header_digest",
+    "node_diff",
     "range_digest",
     "render_document",
     "render_ranges_document",
@@ -687,7 +688,10 @@ def node_diff(current: list[int], original: list[int]) -> tuple[list[int], list[
     node the document already has aliases the object rather than copying it.
     An occurrence beyond the recorded one is therefore an addition — a set
     difference would swallow it, and the document would still be written with
-    the node twice.
+    the node twice. The mirror holds on the other side: a recorded node counts
+    as removed only once no occurrence of it is left, so dropping one of two
+    aliased occurrences leaves the list reordered, or unchanged if the
+    occurrence dropped was the repeat.
 
     This is what ``Lexicon.changes`` and ``RangesFile.changes`` report as
     ``added`` / ``removed`` / ``reordered``, and what :func:`_nodes_aligned`

@@ -253,6 +253,9 @@ class RangesChanges:
     from scratch, or a source the passthrough layer declined to scan). Nothing
     can be compared then, so ``ranges`` lists everything and the object is
     truthy: the file will be written in full.
+
+    ``ranges`` names each range once, even one aliased into the list twice;
+    the repeat is reported by ``added``.
     """
 
     ranges: list[Range]  # content differs from the source
@@ -275,10 +278,16 @@ class RangesChanges:
 class Changes:
     """Everything that differs between a lexicon and the document it was loaded from.
 
-    Truthy exactly when :meth:`Lexicon.save` would not reproduce the source
-    bytes, which makes it the correct guard for skipping an in-place write —
+    Falsy only when :meth:`Lexicon.save` would reproduce the source bytes,
+    which makes it the correct guard for skipping an in-place write —
     :meth:`Lexicon.changed_entries` alone is not, since it covers only entry
     content.
+
+    The guarantee is one-way. Every condition that sends the writer down its
+    canonical path is reported here, so a falsy result is never a wrong
+    "nothing to write"; but that path can land back on the source bytes for a
+    document already in canonical form, so a truthy result means the write is
+    not provably unnecessary rather than certainly needed.
 
     ``baseline`` is False when no byte snapshot was captured, in which case
     ``entries`` lists every entry, ``added`` and ``removed`` are empty (nothing
@@ -366,15 +375,18 @@ class RangesFile:
     def changes(self) -> RangesChanges:
         """Everything that differs between this companion and the file it was read from.
 
-        Truthy exactly when :meth:`save` would not reproduce the source bytes.
-        Costs one canonical serialization pass over the ranges.
+        Falsy only when :meth:`save` would reproduce the source bytes, one-way
+        in the same safe direction as :class:`Changes`. Costs one canonical
+        serialization pass over the ranges.
         """
         from ._writer import node_diff, range_digest
 
         source = self._source
+        # Keyed by identity: a range aliased into the list twice is one range.
+        unique = list({id(range_): range_ for range_ in self.ranges}.values())
         if source is None:
             return RangesChanges(
-                ranges=list(self.ranges),
+                ranges=unique,
                 added=[],
                 removed=[],
                 reordered=False,
@@ -389,7 +401,7 @@ class RangesFile:
         return RangesChanges(
             ranges=[
                 range_
-                for range_ in self.ranges
+                for range_ in unique
                 if (digest := digests.get(id(range_))) is not None
                 and range_digest(range_) != digest
             ],
@@ -603,6 +615,10 @@ class Lexicon:
         Writing back an identical value reports nothing, and neither does
         reordering (see :meth:`sort`).
 
+        One report per entry, not per occurrence: an entry aliased into the
+        list twice is named once here, and the repeat is an addition (see
+        :meth:`added_entries`), so a count of this list is a count of entries.
+
         Content changes only. Entries added since loading are reported by
         :meth:`added_entries` and removed ones by :meth:`removed_entries`; for
         everything that makes :meth:`save` differ from the source — including
@@ -624,12 +640,14 @@ class Lexicon:
         from ._writer import entry_digest
 
         source = self._source
+        # Keyed by identity: an entry aliased into the list twice is one entry.
+        entries = list({id(entry): entry for entry in self.entries}.values())
         if source is None:
-            return list(self.entries)
+            return entries
         digests = {id(record.entry): record.digest for record in source.entry_records}
         return [
             entry
-            for entry in self.entries
+            for entry in entries
             if (digest := digests.get(id(entry))) is not None and entry_digest(entry) != digest
         ]
 
@@ -666,8 +684,13 @@ class Lexicon:
         """Entries from the loaded document that are no longer in the lexicon.
 
         The entry objects survive because the parse-time records hold them, so
-        a removed entry is returned intact rather than merely counted. Empty
-        when there is no byte baseline. Needs no serialization.
+        a removed entry is returned intact rather than merely counted.
+
+        The mirror of the addition rule: an entry aliased into the list twice
+        is removed only once no occurrence is left. Dropping just one leaves
+        the list reordered, or unchanged if what went was the repeat.
+
+        Empty when there is no byte baseline. Needs no serialization.
         """
         return self._entry_diff()[1]
 
@@ -694,11 +717,13 @@ class Lexicon:
     def changes(self) -> Changes:
         """Everything that differs between this lexicon and the document it was loaded from.
 
-        Truthy exactly when :meth:`save` would not reproduce the source bytes,
-        which makes it the correct guard for skipping an in-place write::
+        Falsy only when :meth:`save` would reproduce the source bytes, which
+        makes it the correct guard for skipping an in-place write::
 
             if not lex.changes():
                 return
+
+        One-way, and in the safe direction — see :class:`Changes`.
 
         Content only, so it says nothing about the destination: a ``save(path)``
         into another directory writes the document and its companions there
