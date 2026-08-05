@@ -220,3 +220,145 @@ def test_schema_invalid_content_is_carried_not_dropped() -> None:
     ]
     assert lang_less, "expected the schema-invalid lang-less etymology form to load"
     assert str(lang_less[0].text)  # its text content survives
+
+
+# --- passthrough bail-outs ------------------------------------------------------
+
+# A DOCTYPE stops the scanner: entities could redefine what the bytes mean.
+DOCTYPE_LIFT = b"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE lift>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+"""
+
+# Two <header>s parse fine, but leave the scanned root children out of step with
+# the model, which distrusts the whole scan.
+TWO_HEADERS_LIFT = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<header><description><form lang="en"><text>first</text></form></description></header>
+<header><description><form lang="en"><text>second</text></form></description></header>
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+"""
+
+# Byte scanning assumes an ASCII-compatible encoding; UTF-16 is not one.
+UTF16_LIFT = """<?xml version="1.0" encoding="UTF-16"?>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+""".encode("utf-16")
+
+DOCTYPE_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE lift-ranges>
+<lift-ranges>
+<range id="etymology"><range-element id="borrowed"/></range>
+</lift-ranges>
+"""
+
+UTF16_RANGES = """<?xml version="1.0" encoding="UTF-16"?>
+<lift-ranges>
+<range id="etymology"><range-element id="borrowed"/></range>
+</lift-ranges>
+""".encode("utf-16")
+
+
+@pytest.mark.parametrize(
+    ("data", "name"),
+    [
+        (DOCTYPE_LIFT, "doctype.lift"),
+        (TWO_HEADERS_LIFT, "two-headers.lift"),
+        (UTF16_LIFT, "utf16.lift"),
+    ],
+    ids=["doctype", "two-headers", "utf-16"],
+)
+def test_untrustworthy_bytes_load_but_save_canonically(
+    data: bytes, name: str, tmp_path: Path
+) -> None:
+    source = tmp_path / name
+    source.write_bytes(data)
+    lexicon = sil_lift.load(source)
+    assert [entry.id for entry in lexicon.entries] == ["one"]
+
+    out = tmp_path / "out.lift"
+    lexicon.save(out)
+    assert out.read_bytes() != data, "expected the canonical fallback, not passthrough"
+
+    reloaded = sil_lift.load(out)
+    assert reloaded.entries == lexicon.entries
+    assert reloaded.header == lexicon.header
+
+
+@pytest.mark.parametrize(
+    ("data", "id_"),
+    [(DOCTYPE_RANGES, "doctype"), (UTF16_RANGES, "utf-16")],
+    ids=["doctype", "utf-16"],
+)
+def test_untrustworthy_companion_bytes_load_but_save_canonically(
+    data: bytes, id_: str, tmp_path: Path
+) -> None:
+    """Same bail-outs, on the `.lift-ranges` side of the folder."""
+    companion = f"{id_}.lift-ranges"
+    (tmp_path / companion).write_bytes(data)
+    source = tmp_path / f"{id_}.lift"
+    source.write_bytes(
+        f"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<header><ranges><range id="etymology" href="{companion}"/></ranges></header>
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+""".encode()
+    )
+    lexicon = sil_lift.load(source)
+    (ranges_file,) = lexicon.ranges_files.values()
+    assert [range_.id for range_ in ranges_file.ranges] == ["etymology"]
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    lexicon.save(out_dir / f"{id_}.lift")
+    written = (out_dir / companion).read_bytes()
+    assert written != data, "expected the canonical fallback, not passthrough"
+
+    reloaded = sil_lift.load(out_dir / f"{id_}.lift")
+    (reloaded_ranges,) = reloaded.ranges_files.values()
+    assert reloaded_ranges.ranges == ranges_file.ranges
+
+
+# A junk date and a junk order: unparseable values a typed field cannot hold.
+# "2001-02-03 04:05:06" is the in-between case — not a date, but a valid datetime.
+UNPARSEABLE_ATTRS = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+<relation type="synonym" ref="two" order="first"/>
+<note dateCreated="2001-02-03 04:05:06" dateModified="whenever">
+<form lang="en"><text>n</text></form></note>
+</entry>
+</lift>
+"""
+
+
+def test_unparseable_date_and_order_attributes_become_residue(tmp_path: Path) -> None:
+    source = tmp_path / "junk-attrs.lift"
+    source.write_bytes(UNPARSEABLE_ATTRS)
+    lexicon = sil_lift.load(source)
+    entry = lexicon.entries[0]
+    (relation,) = entry.relations
+    (note,) = entry.notes
+
+    assert relation.order is None
+    assert relation.extra.to_string() == "@order='first'"
+    assert note.date_modified is None
+    assert note.extra.to_string() == "@dateModified='whenever'"
+    assert note.date_created == datetime(2001, 2, 3, 4, 5, 6)
+
+    out = tmp_path / "out.lift"
+    lexicon.save(out)
+    assert out.read_bytes() == UNPARSEABLE_ATTRS  # untouched entry: exact bytes
+
+    entry.senses.append(sil_lift.Sense(id="s1"))  # force this entry to re-serialize
+    lexicon.save(out)
+    touched = out.read_bytes()
+    assert b'order="first"' in touched
+    assert b'dateModified="whenever"' in touched
+    # The datetime round-trips through the typed field, so it normalizes to ISO.
+    assert b'dateCreated="2001-02-03T04:05:06"' in touched

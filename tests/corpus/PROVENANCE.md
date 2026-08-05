@@ -89,9 +89,10 @@ that script; committed so tests don't depend on regeneration.
   at fetch time)
 - **License**: MIT
 - 4.8 MB / 3507 entries (`producer="SIL.FLEx 9.1.15.658"`, `version="0.13"`) \+
-  1.5 MB ranges companion. Credit Nate Marti (SIL Cameroon) if used in any
-  published material. Upstream `WritingSystems/` not taken (the AllFLExFields
-  fixture already covers LDML-carry).
+  1.5 MB ranges companion. **Credit SIL Central African Republic** as the source
+  if used in any published material (confirmed 2026-07-29 with the `lift-utils`
+  author). Upstream `WritingSystems/` not taken (the AllFLExFields fixture already
+  covers LDML-carry).
 
 ## Not fetchable as files
 

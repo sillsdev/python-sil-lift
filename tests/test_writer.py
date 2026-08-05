@@ -48,6 +48,11 @@ def _comments(data: bytes) -> list[str]:
     return sorted(c.text or "" for c in root.iter() if isinstance(c, etree._Comment))
 
 
+def _residue_items(extra: sil_lift.Extras) -> list[str]:
+    """What residue a node carries, sorted: to_string's order is not a contract."""
+    return sorted(extra.to_string().splitlines())
+
+
 @pytest.mark.parametrize("path", LOADABLE, ids=corpus_id)
 def test_unchanged_save_is_byte_identical(path: Path, tmp_path: Path) -> None:
     lexicon = sil_lift.load(path)
@@ -202,6 +207,74 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
     assert _semantic_bytes(result) != b""  # well-formed enough to canonicalize
 
 
+# Residue that is neither an element nor an attribute: a processing instruction,
+# stray character data in element-only contexts (both as an element's leading text
+# and as a later child's tail), a comment and a PI inside <text>'s mixed content,
+# and a second <text> in one <form>.
+TEXTUAL_RESIDUE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<entry id="one">stray text<?sil-lift keep me?>
+<lexical-unit><form lang="en"><text>on<?inline pi?>e<!-- in mixed --></text>
+<text>second</text></form></lexical-unit>
+<sense id="s1">
+<gloss lang="en"><text>ONE</text></gloss><gloss lang="fr"><text>UN</text></gloss>trailing
+</sense>
+</entry>
+</lift>
+"""
+
+
+def test_textual_residue_survives_touched_reserialization(tmp_path: Path) -> None:
+    source = tmp_path / "textual.lift"
+    source.write_bytes(TEXTUAL_RESIDUE)
+    lexicon = sil_lift.load(source)
+    entry = lexicon.entries[0]
+    form = entry.lexical_unit.forms[0]
+    sense = entry.senses[0]
+
+    assert _residue_items(entry.extra) == ["<?sil-lift keep me?>", "stray text"]
+    assert _residue_items(form.extra) == [
+        "<!-- in mixed -->",
+        "<?inline pi?>",
+        "<text>second</text>",
+    ]
+    assert sense.extra.to_string() == "trailing\n"  # one item: no order to pin
+
+    out = tmp_path / "roundtrip.lift"
+    lexicon.save(out)
+    assert out.read_bytes() == TEXTUAL_RESIDUE  # untouched: byte-identical
+
+    sense.glosses[0].text = sil_lift.Text(["ONE (edited)"])
+    lexicon.save(out)
+    result = out.read_bytes()
+    for fragment in (
+        b"stray text",
+        b"<?sil-lift keep me?>",
+        b"<?inline pi?>",
+        b"<!-- in mixed -->",
+        b"<text>second</text>",
+        b"trailing",
+    ):
+        assert fragment in result, fragment
+
+    # Survival is the promise; the sibling it lands next to is not. A recorded
+    # position maps onto whatever modelled children the writer finds, so this holds
+    # only while the number of children preceding the residue does.
+    assert b"</gloss>trailing" in result
+
+    # Text and PI residue is re-read as residue, not silently promoted or lost.
+    # (The form's two <text> siblings swap roles on the way back in — the model
+    # takes the first, the other becomes residue.)
+    reloaded_entry = sil_lift.load(out).entries[0]
+    assert reloaded_entry.extra == entry.extra
+    assert reloaded_entry.senses[0].extra == sense.extra
+    assert _residue_items(reloaded_entry.lexical_unit.forms[0].extra) == [
+        "<!-- in mixed -->",
+        "<?inline pi?>",
+        "<text>one</text>",
+    ]
+
+
 def _ids(items: Sequence[object]) -> list[int]:
     """Compare reported nodes by identity.
 
@@ -254,6 +327,17 @@ def test_changed_entries_reports_only_the_edited_entry() -> None:
     assert _ids(lexicon.changed_entries()) == [id(target)]
 
 
+def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> None:
+    """Changed means changed since load, so saving does not clear the report."""
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
+    lexicon = sil_lift.load(source)
+    entry = lexicon.entries[0]
+    entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
+    lexicon.save(tmp_path / "out.lift")
+
+    assert _ids(lexicon.changed_entries()) == [id(entry)]
+
+
 def test_added_entries_owns_appended_entries_and_changed_entries_does_not() -> None:
     """The three entry queries do not overlap: an addition is not a content change."""
     lexicon = sil_lift.load(CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift")
@@ -276,17 +360,6 @@ def test_removed_entries_returns_the_removed_object_itself() -> None:
     assert removed[0] is victim  # intact, not merely named
     assert lexicon.changed_entries() == []
     assert lexicon.added_entries() == []
-
-
-def test_changed_entries_compares_against_load_not_last_save(tmp_path: Path) -> None:
-    """Changed means changed since load, so saving does not clear the report."""
-    source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
-    lexicon = sil_lift.load(source)
-    entry = lexicon.entries[0]
-    entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
-    lexicon.save(tmp_path / "out.lift")
-
-    assert _ids(lexicon.changed_entries()) == [id(entry)]
 
 
 def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path: Path) -> None:
