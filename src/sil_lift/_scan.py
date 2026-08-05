@@ -6,6 +6,12 @@ bytes, which requires knowing each top-level ``<entry>``'s (and
 so this module walks the raw bytes with a small state machine that understands
 tags, quoted attribute values, comments, CDATA sections, and PIs.
 
+What it exists for is byte identity, not diagnostics — ``docs/en/fidelity.md``
+states the guarantee it underpins. Problem reporting needs only the line an
+element starts on and takes that from lxml's ``sourceline`` (see
+``_validate._line``); a span needs the end offset too, which no parser API
+exposes.
+
 It is deliberately conservative: anything unexpected (DOCTYPE, malformed
 nesting, non-ASCII-compatible encoding — checked by the caller) returns
 ``None`` and the writer falls back to canonical serialization, which keeps
