@@ -256,11 +256,9 @@ def test_textual_residue_survives_touched_reserialization(tmp_path: Path) -> Non
     ):
         assert fragment in result, fragment
 
-    # Survival is the promise; which sibling the data ends up next to is not.
-    # Today the writer maps a recorded position onto the modelled children it
-    # finds (_append_text), so character data recorded after a sibling re-attaches
-    # as that sibling's tail — and would land elsewhere if the number of preceding
-    # modelled children changed.
+    # Survival is the promise; the sibling it lands next to is not. A recorded
+    # position maps onto whatever modelled children the writer finds, so this holds
+    # only while the number of children preceding the residue does.
     assert b"</gloss>trailing" in result
 
     # Text and PI residue is re-read as residue, not silently promoted or lost.

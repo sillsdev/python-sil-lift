@@ -222,14 +222,9 @@ def test_schema_invalid_content_is_carried_not_dropped() -> None:
     assert str(lang_less[0].text)  # its text content survives
 
 
-# --- byte-passthrough capture, and when the reader refuses to capture ------------
-#
-# Spans are captured only when the bytes can be trusted; on any doubt the reader
-# captures nothing and `save()` falls back to canonical serialization —
-# semantically complete, no longer byte-identical. Every corpus fixture is
-# scannable UTF-8, so only hand-written documents reach the bail-outs.
+# --- passthrough bail-outs ------------------------------------------------------
 
-# A DOCTYPE makes the scanner bail out: entities could redefine what the bytes mean.
+# A DOCTYPE stops the scanner: entities could redefine what the bytes mean.
 DOCTYPE_LIFT = b"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE lift>
 <lift version="0.13">
@@ -237,8 +232,8 @@ DOCTYPE_LIFT = b"""<?xml version="1.0" encoding="UTF-8"?>
 </lift>
 """
 
-# Two <header>s parse fine, but then the scanned root children no longer line up
-# with the model, so the scan is distrusted wholesale.
+# Two <header>s parse fine, but leave the scanned root children out of step with
+# the model, which distrusts the whole scan.
 TWO_HEADERS_LIFT = b"""<?xml version="1.0" encoding="UTF-8"?>
 <lift version="0.13">
 <header><description><form lang="en"><text>first</text></form></description></header>
