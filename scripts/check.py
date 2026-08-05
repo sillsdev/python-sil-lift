@@ -1,5 +1,5 @@
 """Run everything CI runs, in one command: lint, format check, type-check, and
-tests under the 95% coverage floor.
+tests with a coverage floor.
 
 Usage: python scripts/check.py
 """
