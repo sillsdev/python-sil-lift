@@ -740,7 +740,9 @@ class Lexicon:
         Content only, so it says nothing about the destination: a ``save(path)``
         into another directory writes the document and its companions there
         whatever this reports, and skipping that is a lost copy, not a saved
-        one.
+        one. Never guard :meth:`save_zip` with it — that has no in-place form,
+        its archive is never byte-reproducible, and it carries package files
+        (media, ``WritingSystems/``, ...) that nothing here inspects.
 
         The most expensive query here: it serializes the entries, the header,
         and every tracked companion's ranges. When only one part is wanted,
