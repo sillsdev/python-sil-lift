@@ -251,8 +251,11 @@ class RangesChanges:
 
     ``baseline`` is False when no byte snapshot was captured (a companion built
     from scratch, or a source the passthrough layer declined to scan). Nothing
-    can be compared then, so ``ranges`` lists everything and the object is
-    truthy: the file will be written in full.
+    can be compared then, so the fields say what :meth:`RangesFile.save` will
+    write rather than what differs: ``ranges`` lists everything, while
+    ``added``, ``removed``, and ``root`` stay empty or False — nothing is known
+    to have been there before. The object is truthy either way: the file will
+    be written in full.
 
     ``ranges`` names each range once, even one aliased into the list twice;
     the repeat is reported by ``added``. ``reordered`` answers only where
@@ -295,9 +298,12 @@ class Changes:
     not reported separately — enough for the guard, short of a full account of
     what happened.
 
-    ``baseline`` is False when no byte snapshot was captured, in which case
-    ``entries`` lists every entry, ``added`` and ``removed`` are empty (nothing
-    is known either way), and the object is truthy.
+    ``baseline`` is False when no byte snapshot was captured. Nothing can be
+    compared then, so the fields say what :meth:`Lexicon.save` will write
+    rather than what differs: ``entries`` lists every entry and ``header`` is
+    True if there is a header to emit, while ``added``, ``removed``, and
+    ``root`` stay empty or False — nothing is known to have been there before.
+    The object is truthy either way.
     """
 
     entries: list[Entry]  # content differs from the source
