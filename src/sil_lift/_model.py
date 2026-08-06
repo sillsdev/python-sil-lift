@@ -614,16 +614,15 @@ class Lexicon:
         sort_lexicon(self)
 
     def changed_entries(self) -> list[Entry]:
-        """Entries present at load whose content now differs from the loaded document.
+        """Entries currently in the lexicon whose content differs from the document as loaded.
 
         An entry's digest covers its whole subtree, so an edit at any depth —
         a gloss on a nested subsense included — reports the containing entry.
-        Writing back an identical value reports nothing, and neither does
-        reordering (see :meth:`sort`).
+        Assigning a field the value it already had reports nothing, and neither
+        does reordering (see :meth:`sort`).
 
-        One report per entry, not per occurrence: an entry aliased into the
-        list twice is named once here, and the repeat is an addition (see
-        :meth:`added_entries`), so a count of this list is a count of entries.
+        The comparison is always against the document as loaded, never against
+        the most recent :meth:`save`, so an entry stays reported once changed.
 
         Content changes only. Entries added since loading are reported by
         :meth:`added_entries` and removed ones by :meth:`removed_entries`; for
@@ -632,8 +631,9 @@ class Lexicon:
         :meth:`changes`. An empty result here does not mean the document would
         round-trip byte-identically.
 
-        The comparison is always against the document as loaded, never against
-        the most recent :meth:`save`, so an entry stays reported once changed.
+        One report per entry, not per occurrence: an entry aliased into the
+        list twice is named once here, and the repeat is an addition (see
+        :meth:`added_entries`), so a count of this list is a count of entries.
 
         Every entry is reported when there is no byte baseline to compare
         against — a lexicon built from scratch, and equally one whose source
