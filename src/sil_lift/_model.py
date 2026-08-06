@@ -258,8 +258,9 @@ class RangesChanges:
     be written in full.
 
     ``ranges`` names each range once, even one aliased into the list twice;
-    the repeat is reported by ``added``. ``reordered`` answers only where
-    membership held, as on :class:`Changes`.
+    against a baseline the repeat is reported by ``added``, and without one it
+    is not reported at all, though :meth:`RangesFile.save` still writes it.
+    ``reordered`` answers only where membership held, as on :class:`Changes`.
     """
 
     ranges: list[Range]  # content differs from the source
@@ -638,8 +639,11 @@ class Lexicon:
         round-trip byte-identically.
 
         One report per entry, not per occurrence: an entry aliased into the
-        list twice is named once here, and the repeat is an addition (see
-        :meth:`added_entries`), so a count of this list is a count of entries.
+        list twice is named once here, so a count of this list is a count of
+        entries. Against a baseline the repeat is an addition (see
+        :meth:`added_entries`), which accounts for every occurrence exactly
+        once; without a baseline, nothing is reported as added, so the repeat
+        goes unnamed even though :meth:`save` writes it.
 
         Every entry is reported when there is no byte baseline to compare
         against — a lexicon built from scratch, and equally one whose source
