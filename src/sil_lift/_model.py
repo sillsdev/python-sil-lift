@@ -4,7 +4,7 @@ Shapes follow the LIFT 0.13 RNG inventory exactly. Extensibility is a
 three-way split: the eight fully-extensible elements derive from
 ``_Extensible``; the usage ``<field>`` gets the field-less variant
 ``_ExtensibleNoFields`` (no field-in-field recursion); ``GrammaticalInfo`` is
-the outlier with bare traits only. Typed attributes that fail to parse
+the exception, with bare traits only. Typed attributes that fail to parse
 (malformed dates/integers in real-world files) are preserved verbatim in the
 node's ``extra`` and the model field stays ``None``.
 """
@@ -52,7 +52,7 @@ __all__ = [
 
 @dataclass(slots=True, kw_only=True)
 class _ExtensibleNoFields:
-    """The extensible bundle minus ``<field>``: dates, annotations, traits, LIFT residue."""
+    """The extensible fields minus ``<field>``: dates, annotations, traits, LIFT residue."""
 
     date_created: datetime | date | None = None
     date_modified: datetime | date | None = None
@@ -63,7 +63,7 @@ class _ExtensibleNoFields:
 
 @dataclass(slots=True, kw_only=True)
 class _Extensible(_ExtensibleNoFields):
-    """The full extensible bundle (entry, sense, note, example, ...)."""
+    """The full set of extensible fields (entry, sense, note, example, ...)."""
 
     fields: list[Field] = field(default_factory=list)
 
@@ -78,7 +78,7 @@ class Field(_ExtensibleNoFields):
 
 @dataclass(slots=True)
 class GrammaticalInfo:
-    """A ``<grammatical-info value=...>``; the extensibility outlier — traits only, no fields."""
+    """A ``<grammatical-info value=...>``; the extensibility exception — traits only, no fields."""
 
     value: str
     traits: list[Trait] = field(default_factory=list)

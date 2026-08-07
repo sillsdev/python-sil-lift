@@ -1,11 +1,11 @@
-"""Canonical sort: a native implementation, LiftSorter-informed.
+"""Canonical sort: a native implementation based on LiftSorter's rules.
 
-The C# oracle (libpalaso ``SIL.Lift/LiftSorter.cs`` @ 4840de8) sorts entries
-by case-insensitive guid, orders header children description → ranges →
-fields, sorts ranges/range-elements by id and header field definitions by
-tag, keeps senses in file order, and never re-indents ``text``/``span``.
-sil-lift mirrors those rules with two deliberate strengthenings and one
-narrowing:
+The C# oracle — the reference implementation this sort is checked against
+(libpalaso ``SIL.Lift/LiftSorter.cs`` @ 4840de8) — sorts entries by
+case-insensitive guid, orders header children description → ranges → fields,
+sorts ranges/range-elements by id and header field definitions by tag, keeps
+senses in file order, and never re-indents ``text``/``span``. sil-lift mirrors
+those rules, with two deliberately stricter than LiftSorter's and one looser:
 
 - entries sort by (guid, id), both case-folded — files whose entries lack
   guids still sort deterministically (LiftSorter assumes a guid);

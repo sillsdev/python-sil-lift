@@ -52,7 +52,7 @@ def test_sort_mirrors_liftsorter_rules(tmp_path: Path) -> None:
     source.write_bytes(UNSORTED)
     lexicon = sil_lift.load(source)
     lexicon.sort()
-    # Entries by casefolded guid (guidless first: empty key), LiftSorter-style.
+    # Entries by casefolded guid (guidless first: empty key), as LiftSorter does.
     assert [e.id for e in lexicon.entries] == ["no-guid", "first", "mid", "last"]
     # Header ranges by casefolded id; range-elements by casefolded id.
     assert [r.id for r in lexicon.header.ranges] == ["Alpha", "zoo"]
@@ -100,7 +100,7 @@ def test_canonicalize_is_deterministic_and_idempotent(tmp_path: Path) -> None:
     assert first.read_bytes() == second.read_bytes()  # deterministic across runs
     third = tmp_path / "c3.lift"
     canonicalize(first, third)
-    assert third.read_bytes() == first.read_bytes()  # sort . sort = sort
+    assert third.read_bytes() == first.read_bytes()  # sorting twice changes nothing
 
 
 def _entries_sorted(data: bytes) -> bytes:

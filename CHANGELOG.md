@@ -70,8 +70,8 @@ releases may contain breaking changes.
   available up front) and `open_writer()` (header \+ one canonical chunk per
   entry; byte-identical to `canonical_document` output by construction, and
   optionally writing a `.lift-ranges` companion via `ranges=`), both
-  over the same `Entry` types as full-document mode and O(one entry) in
-  memory (verified on a ~340 MB generated file).
+  over the same `Entry` types as full-document mode, holding one entry in
+  memory at a time (verified on a ~340 MB generated file).
 - The `sil-lift` CLI (stdlib-only, installed with the package):
   `validate` / `stats` / `sort` / `check-media`, plus `export` — one row per
   leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages

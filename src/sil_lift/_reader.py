@@ -257,7 +257,7 @@ def _take_int(attrs: dict[str, str], key: str, extra: Extras) -> int | None:
 def _parse_mixed(el: etree._Element, host_extra: Extras) -> list[str | Span]:
     """Mixed content of <text>/<span>: text and nested spans, in order.
 
-    Comments/PIs/unknown elements inside mixed content are hoisted to the
+    Comments/PIs/unknown elements inside mixed content are moved to the
     nearest host node's residue (position within the run is not preserved —
     untouched-entry passthrough covers exact bytes).
     """

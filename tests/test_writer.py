@@ -68,7 +68,8 @@ def test_semantic_roundtrip(path: Path, tmp_path: Path) -> None:
     lexicon = sil_lift.load(path)
     canonical = canonical_document(lexicon)
     assert _semantic_bytes(canonical) == _semantic_bytes(path.read_bytes())
-    # Comments survive re-serialization (order-insensitively; anchors are clamped).
+    # Comments survive re-serialization (order-insensitively; recorded positions
+    # are clamped).
     assert _comments(canonical) == _comments(path.read_bytes())
 
 

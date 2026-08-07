@@ -432,9 +432,10 @@ def _semantic_problems(
                 )
 
     # Header <range href> references (relative) that resolve to no companion.
-    # Absolute/file:// hrefs are FLEx's dangling-by-design pattern (resolved by
-    # basename when the companion is colocated) and are not judged here; this
-    # catches an exporter that writes a relative href but not the file.
+    # Absolute/file:// hrefs are ones FLEx writes knowing they will not resolve
+    # (they are resolved by basename when the companion is in the same folder)
+    # and are not checked here; this catches an exporter that writes a relative
+    # href but not the file.
     if lexicon.path is not None:
         base = lexicon.path.parent
         for range_ in lexicon.header.ranges:
@@ -461,7 +462,7 @@ def _semantic_problems(
     # entry- and sense-direct ones, since real FLEx exports nest traits like
     # is-primary/complex-form-type inside <relation> and morph-type inside
     # <variant> (_iter_traits/_iter_grammatical_infos walk the whole entry).
-    # Only ranges that actually enumerate elements can vouch for values;
+    # Only ranges that actually enumerate elements can confirm a value;
     # empty values skipped (FLEx writes them). Comparison is NFC-normalized:
     # FLEx writes the .lift in NFC but the companion .lift-ranges in NFD
     # within the same export.

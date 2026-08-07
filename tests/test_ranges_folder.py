@@ -94,7 +94,7 @@ def test_save_to_the_same_directory_spelled_differently_keeps_companions(
 ) -> None:
     """A relative target naming the load directory is not a relocation.
 
-    The companion lives in a subfolder, so a spurious relocation would fork it:
+    The companion lives in a subfolder, so a spurious relocation would split it in two:
     the edit would land beside the .lift while the header href still points at
     the now-stale original.
     """

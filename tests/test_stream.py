@@ -222,6 +222,6 @@ def test_large_file_streams_in_bounded_memory(tmp_path: Path) -> None:
     assert out.stat().st_size > size // 2  # the copy really contains the data
 
     if baseline is not None:
-        # O(one entry): far below file size (full DOM would exceed it severalfold).
+        # Bounded memory: far below file size (a full DOM would exceed it severalfold).
         limit = 100 * 1024 * 1024 if _PERF else 60 * 1024 * 1024
         assert peak_delta < limit, f"working-set delta {peak_delta / 1e6:.0f} MB"

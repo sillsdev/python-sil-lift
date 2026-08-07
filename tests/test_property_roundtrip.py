@@ -2,7 +2,7 @@
 
 Two properties over generated LIFT documents:
 
-1. **Serialize/parse fixpoint**: canonical bytes survive a parse→serialize
+1. **Serialize/parse stability**: canonical bytes survive a parse→serialize
    cycle unchanged.
 2. **Passthrough**: an on-disk document saved with no edits is byte-identical;
    with one entry touched, every untouched entry's bytes appear verbatim.
@@ -115,7 +115,7 @@ def _lexicons(draw: st.DrawFn) -> Lexicon:
 
 
 @given(_lexicons())
-def test_serialize_parse_fixpoint(lexicon: Lexicon) -> None:
+def test_serialize_parse_is_stable(lexicon: Lexicon) -> None:
     first = canonical_document(lexicon)
     reparsed = parse_root(etree.fromstring(first))
     assert canonical_document(reparsed) == first
