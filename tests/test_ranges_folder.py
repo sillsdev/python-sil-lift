@@ -245,7 +245,7 @@ def test_normalize_href(href: str, expected: Path | None) -> None:
 
 
 # The DOCTYPE stops the scanner, so this companion has no byte spans to reuse and
-# saving must re-serialize it canonically, root-level residue included.
+# saving must re-serialize it canonically, root-level LIFT residue included.
 UNSCANNABLE_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE lift-ranges>
 <lift-ranges>

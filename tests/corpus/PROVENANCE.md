@@ -53,8 +53,8 @@ that script; committed so tests don't depend on regeneration.
   at fetch time)
 - **License**: MIT
 - A FLEx export (`producer="SIL.FLEx 8.0.9.41689"`) exercising all FLEx fields —
-  the reference file for residue/round-trip tests. **Deliberately not taken**:
-  the upstream `audio/Kalimba.mp3` (8.4 MB), `pictures/Desert.jpg`, and
+  the reference file for LIFT residue and round-trip tests. **Deliberately not
+  taken**: the upstream `audio/Kalimba.mp3` (8.4 MB), `pictures/Desert.jpg`, and
   `others/Hydrangeas.jpg` — Windows sample-file filler with no test value beyond
   existence; media-existence tests use the Moma folder fixture instead. The
   LDML files are carried (never parsed — out of scope) as folder-layout data.

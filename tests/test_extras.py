@@ -4,7 +4,7 @@ The fidelity tests already exercise carrying out-of-schema content through the
 reader/writer; these cover the two human-readable helpers, which no round-trip
 test invokes.
 
-The residue under test is produced by parsing hand-written documents rather than
+The LIFT residue under test is produced by parsing hand-written documents rather than
 by populating Extras' fields directly, so everything asserted here is reachable
 from the public surface (construction, bool, repr, to_string, equality) that
 `_extras`' module docstring promises while leaving the internal representation

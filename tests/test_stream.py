@@ -141,7 +141,7 @@ def test_streaming_write_matches_canonical_document(tmp_path: Path) -> None:
 
     source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
     lexicon = sil_lift.load(source, resolve_ranges=False)
-    lexicon.extra._nodes.clear()  # streaming carries no root-level residue
+    lexicon.extra._nodes.clear()  # streaming carries no root-level LIFT residue
     out = tmp_path / "streamed.lift"
     with open_writer(out, header=lexicon.header, producer=lexicon.producer) as writer:
         for entry in lexicon.entries:

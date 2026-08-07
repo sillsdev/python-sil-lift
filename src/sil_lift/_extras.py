@@ -1,9 +1,16 @@
-"""The opaque out-of-schema residue bucket.
+"""Where LIFT residue is kept: content the LIFT 0.13 schema does not define.
 
 Every model node carries an ``Extras`` holding whatever the parser found that the
 LIFT 0.13 schema does not define: unknown attributes, unknown child elements, XML
 comments/processing instructions, and stray text in element-only contexts. The
 writer re-emits it so nothing is dropped.
+
+FieldWorks calls this LIFT residue and keeps it much the same way — content that
+does not map onto its model is serialized into a ``<lift-residue>`` blob held in
+a ``LiftResidue`` field — so that is the name used throughout this package. Take
+care with the bare word: in FieldWorks "residue" on its own means the
+``import-residue`` field, a user-visible LIFT field recording what a standard
+format import could not place, which is a different thing entirely.
 
 The public surface is deliberately tiny — equality, repr, emptiness, to_string()
 — so the internal representation stays swappable and no lxml type ever leaks.
@@ -18,7 +25,7 @@ __all__ = ["Extras"]
 class _ExtraNode:
     kind: str  # "element" | "comment" | "pi" | "text"
     xml: str  # serialized fragment (for "text": the raw character data)
-    # Child position in the original parent — a re-emit anchor, not content:
+    # Child position in the original parent — a recorded position, not content:
     # the same residue at a slightly different position is still equal.
     index: int = field(compare=False, default=0)
 

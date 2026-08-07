@@ -84,7 +84,7 @@ def test_full_entry_spot_check() -> None:
     assert str(spans[0]) == "not"
     assert "not limited" in " ".join(str(text).split())
 
-    # The top-of-file MDF comment is residue on the lexicon, not lost.
+    # The top-of-file comment is LIFT residue on the lexicon, not lost.
     assert lexicon.extra
 
 
@@ -121,6 +121,9 @@ def test_all_flex_fields_spot_check() -> None:
     assert header.ranges[0].id == "dialect"
     assert header.ranges[0].href is not None
     assert header.ranges[0].href.startswith("file://C:/")
+    # "import-residue" here is the LIFT field of that name — what a standard
+    # format import could not place — and has nothing to do with the LIFT
+    # residue this library carries in Extras. FieldWorks keeps them apart too.
     assert [f.tag for f in header.fields] == [
         "cv-pattern",
         "tone",
@@ -131,7 +134,7 @@ def test_all_flex_fields_spot_check() -> None:
         "scientific-name",
     ]
     # The two comments inside <ranges> are carried as the <ranges> wrapper's
-    # own residue, not hoisted onto the header.
+    # own residue, not moved up onto the header.
     assert header.ranges_extra
     assert not header.extra
 

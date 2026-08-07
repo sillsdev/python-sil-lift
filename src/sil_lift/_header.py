@@ -72,7 +72,7 @@ class Range:
 class Header:
     """The optional ``<header>``: description, ranges, field definitions.
 
-    ``ranges_extra`` / ``fields_extra`` carry out-of-schema residue found on
+    ``ranges_extra`` / ``fields_extra`` carry out-of-schema LIFT residue found on
     the ``<ranges>`` / ``<fields>`` wrapper elements themselves (unknown
     attributes, stray nodes). Those wrappers have no model object of their
     own, so their residue is kept apart from the header's and re-emitted onto

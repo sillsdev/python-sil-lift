@@ -4,8 +4,8 @@ Two paths out of a :class:`~sil_lift._model.Lexicon`:
 
 - **Canonical serialization** (``canonical_document``): deterministic,
   documented shape — UTF-8, LF, 2-space indent, fixed child grouping and
-  attribute order per element, ``Extras`` residue re-emitted at (clamped)
-  original positions.
+  attribute order per element, LIFT residue from ``Extras`` re-emitted at
+  (clamped) original positions.
 
 - **Passthrough assembly** (``render_document`` when the lexicon came from a
   file): the byte regions between/around top-level spans ("matrix") are copied

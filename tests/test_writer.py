@@ -48,7 +48,7 @@ def _comments(data: bytes) -> list[str]:
 
 
 def _residue_items(extra: sil_lift.Extras) -> list[str]:
-    """What residue a node carries, sorted: to_string's order is not a contract."""
+    """What LIFT residue a node carries, sorted: to_string's order is not a contract."""
     return sorted(extra.to_string().splitlines())
 
 

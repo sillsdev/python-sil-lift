@@ -177,7 +177,7 @@ def parse_root(root: etree._Element, *, path: Path | None = None) -> Lexicon:
     return lexicon
 
 
-# --- residue plumbing ---------------------------------------------------------
+# --- LIFT residue plumbing ----------------------------------------------------
 
 
 def _push_node(extra: Extras, el: etree._Element, index: int | None = None) -> None:

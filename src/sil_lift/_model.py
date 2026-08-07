@@ -52,7 +52,7 @@ __all__ = [
 
 @dataclass(slots=True, kw_only=True)
 class _ExtensibleNoFields:
-    """The extensible bundle minus ``<field>``: dates, annotations, traits, residue."""
+    """The extensible bundle minus ``<field>``: dates, annotations, traits, LIFT residue."""
 
     date_created: datetime | date | None = None
     date_modified: datetime | date | None = None
