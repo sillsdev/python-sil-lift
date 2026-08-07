@@ -1,6 +1,6 @@
 # Agent notes for sil-lift
 
-Read and follow [CONTRIBUTING.md](CONTRIBUTING.md) in full — its byte-exact
+Read and follow [CONTRIBUTING.md](CONTRIBUTING.md) in full — its byte-identical
 corpus rules and fidelity contract are essential to avoid silently breaking this
 repo.
 

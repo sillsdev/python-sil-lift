@@ -35,7 +35,7 @@ Releases are cut by publishing a GitHub Release with a `vX.Y.Z` SemVer tag
 matching `__version__`. A release-triggered workflow builds the distribution,
 verifies that the tag and version match, and publishes to PyPI.
 
-## The test corpus is byte-exact — never hand-edit it
+## The test corpus is byte-identical — never hand-edit it
 
 The fidelity tests assert that saving writes back the **exact bytes** of
 `tests/corpus/` fixtures. Consequences:

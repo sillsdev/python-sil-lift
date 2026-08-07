@@ -84,7 +84,8 @@ def test_full_entry_spot_check() -> None:
     assert str(spans[0]) == "not"
     assert "not limited" in " ".join(str(text).split())
 
-    # The top-of-file comment is LIFT residue on the lexicon, not lost.
+    # The top-of-file Multi-Dictionary Formatter comment is LIFT residue on the
+    # lexicon, not lost.
     assert lexicon.extra
 
 

@@ -9,7 +9,8 @@ from test_writer import _semantic_bytes
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
-# header.lift is excluded: raw-RNG-invalid per PROVENANCE.md (file://C:/ hrefs).
+# header.lift is excluded: invalid against the raw RELAX NG (RNG) schema per
+# PROVENANCE.md (file://C:/ hrefs).
 RNG_VALID = [
     "spec-examples/0.13/full-entry.lift",
     "spec-examples/0.13/subsenses.lift",

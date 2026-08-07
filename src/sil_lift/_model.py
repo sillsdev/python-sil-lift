@@ -1,6 +1,6 @@
 """Entry-side model: Entry, Sense, and everything below them, plus Lexicon.
 
-Shapes follow the LIFT 0.13 RNG inventory exactly. Extensibility is a
+Shapes follow the LIFT 0.13 RELAX NG (RNG) inventory exactly. Extensibility is a
 three-way split: the eight fully-extensible elements derive from
 ``_Extensible``; the usage ``<field>`` gets the field-less variant
 ``_ExtensibleNoFields`` (no field-in-field recursion); ``GrammaticalInfo`` is
@@ -197,7 +197,7 @@ class Sense(_Extensible):
     subsenses: list[Sense] = field(default_factory=list)
 
     def gloss(self, lang: str) -> Text | None:
-        """The gloss text in ``lang``, or None (first match; glosses are form-shaped)."""
+        """The gloss text in ``lang``, or None (first match; each ``<gloss>`` has its own lang)."""
         for gloss_form in self.glosses:
             if gloss_form.lang == lang:
                 return gloss_form.text
@@ -206,7 +206,7 @@ class Sense(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Entry(_Extensible):
-    """An ``<entry>``. A set ``date_deleted`` marks a tombstone."""
+    """An ``<entry>``. A set ``date_deleted`` marks it deleted (a tombstone)."""
 
     id: str | None = None
     guid: str | None = None

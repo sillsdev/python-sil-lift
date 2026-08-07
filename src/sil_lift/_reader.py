@@ -2,11 +2,13 @@
 
 Parsing never rejects schema-invalid-but-well-formed LIFT 0.13: anything the
 model does not define lands verbatim in the nearest node's ``Extras`` (unknown
-attributes/elements, comments, PIs, stray text, malformed typed attributes).
+attributes/elements, comments, processing instructions, stray text, malformed
+typed attributes).
 The only refusals are non-XML input, a non-``<lift>`` root, and a version
 other than 0.13.
 
-The RNG uses interleave everywhere, so child order is never assumed: every
+The RELAX NG grammar uses interleave everywhere, so child order is never
+assumed: every
 parser dispatches children by tag, whatever their order.
 """
 

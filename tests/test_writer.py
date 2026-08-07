@@ -20,7 +20,8 @@ def _normalize(el: etree._Element) -> None:
     """Make interleave-equivalent documents compare equal.
 
     Outside mixed content: drop ignorable whitespace, then stable-sort children
-    by tag — the RNG uses interleave everywhere, so cross-type sibling order is
+    by tag — the RELAX NG (RNG) grammar uses interleave everywhere, so cross-type
+    sibling order is
     not semantically significant, while relative order within one tag (a
     repeated list) is preserved by the stable sort.
     """
@@ -209,7 +210,8 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
 
 # Residue that is neither an element nor an attribute: a processing instruction,
 # stray character data in element-only contexts (both as an element's leading text
-# and as a later child's tail), a comment and a PI inside <text>'s mixed content,
+# and as a later child's tail), a comment and a processing instruction inside
+# <text>'s mixed content,
 # and a second <text> in one <form>.
 TEXTUAL_RESIDUE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <lift version="0.13">

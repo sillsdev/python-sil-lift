@@ -13,7 +13,8 @@ from __future__ import annotations
 
 from sil_lift._scan import ScanResult, scan
 
-# --- happy path (incl. exotic-but-valid CDATA / PI / self-closing root) ---
+# --- happy path (incl. exotic-but-valid CDATA / processing instruction /
+# self-closing root) ---
 
 
 def test_scans_simple_document() -> None:

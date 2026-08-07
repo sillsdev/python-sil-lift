@@ -132,7 +132,8 @@ def scan(data: bytes) -> ScanResult | None:
     """Locate the root open tag and every root child's byte region, or None."""
     n = len(data)
     pos = 0
-    # Prolog: BOM, XML declaration, comments, PIs — until the root start tag.
+    # Prolog: byte-order mark, XML declaration, comments, processing
+    # instructions — until the root start tag.
     while True:
         lt = data.find(b"<", pos)
         if lt < 0:
