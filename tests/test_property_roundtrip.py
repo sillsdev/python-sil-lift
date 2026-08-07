@@ -149,11 +149,11 @@ def test_untouched_entries_stay_byte_identical_under_edit(lexicon: Lexicon) -> N
         loaded.save(out)
         result = out.read_bytes()
 
-        spans = scan(data)
-        assert spans is not None
-        entry_spans = [s for s in spans.children if s.tag == "entry"]
-        for span in entry_spans[1:]:  # every untouched entry survives verbatim
-            assert data[span.start : span.end] in result
+        scanned = scan(data)
+        assert scanned is not None
+        entry_regions = [r for r in scanned.children if r.tag == "entry"]
+        for region in entry_regions[1:]:  # every untouched entry survives verbatim
+            assert data[region.start : region.end] in result
 
         reloaded = sil_lift.load(out)
         assert str(reloaded.entries[0].lexical_unit["qaa-x-touch"]) == "touched"

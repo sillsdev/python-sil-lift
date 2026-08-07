@@ -138,12 +138,12 @@ def test_ranges_edit_saves_back_to_the_right_file(tmp_path: Path) -> None:
     assert result != original
     from sil_lift._scan import scan
 
-    spans = scan(original)
-    assert spans is not None
-    range_spans = [s for s in spans.children if s.tag == "range"]
-    assert len(range_spans) == 16
-    for span in range_spans[1:]:  # etymology is the first range in the file
-        assert original[span.start : span.end] in result
+    scanned = scan(original)
+    assert scanned is not None
+    range_regions = [r for r in scanned.children if r.tag == "range"]
+    assert len(range_regions) == 16
+    for region in range_regions[1:]:  # etymology is the first range in the file
+        assert original[region.start : region.end] in result
 
     reloaded = RangesFile.load(tmp_path / "sango.lift-ranges")
     edited = reloaded.find("etymology")
@@ -244,7 +244,7 @@ def test_normalize_href(href: str, expected: Path | None) -> None:
     assert _normalize_href(href) == expected
 
 
-# The DOCTYPE stops the scanner, so this companion has no byte spans to reuse and
+# The DOCTYPE stops the scanner, so this companion has no byte regions to reuse and
 # saving must re-serialize it canonically, root-level LIFT residue included.
 UNSCANNABLE_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE lift-ranges>

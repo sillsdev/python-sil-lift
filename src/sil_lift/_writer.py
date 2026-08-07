@@ -1,4 +1,4 @@
-"""Canonical serializer + the passthrough layer.
+"""Canonical serializer + byte reuse.
 
 Two paths out of a :class:`~sil_lift._model.Lexicon`:
 
@@ -7,11 +7,11 @@ Two paths out of a :class:`~sil_lift._model.Lexicon`:
   attribute order per element, LIFT residue from ``Extras`` re-emitted at
   (clamped) original positions.
 
-- **Passthrough assembly** (``render_document`` when the lexicon came from a
-  file): the byte regions between/around top-level spans ("matrix") are copied
-  verbatim from the source; an entry/header whose model still serializes to
-  its parse-time snapshot is emitted from its original bytes; only touched
-  nodes are re-serialized canonically. A fully-unchanged document therefore
+- **Byte reuse** (``render_document`` when the lexicon came from a file): the
+  bytes between and around the top-level child regions are copied verbatim
+  from the source; an entry/header whose model still serializes to its
+  parse-time snapshot is emitted from its original bytes; only touched nodes
+  are re-serialized canonically. A fully-unchanged document therefore
   reassembles byte-identically.
 
 Snapshots are sha256 digests of canonical bytes, taken at parse time.
@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from datetime import date, datetime
 
     from ._extras import _ExtraNode
-    from ._scan import ChildSpan
+    from ._scan import ChildRegion
 
 __all__ = [
     "canonical_document",
@@ -67,7 +67,7 @@ __all__ = [
 _FRAGMENT_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
-# --- fidelity bookkeeping (created by the reader, consumed here) -----------------
+# --- byte-reuse state (created by the reader, consumed here) ---------------------
 
 
 @dataclass(slots=True)
@@ -82,8 +82,8 @@ class _SourceInfo:
     root_open_start: int
     root_open_end: int
     root_self_closing: bool
-    children: list[ChildSpan]  # all root children, document order
-    entry_records: list[_EntryRecord]  # parallel to the "entry" spans in children
+    children: list[ChildRegion]  # all root children, document order
+    entry_records: list[_EntryRecord]  # parallel to the "entry" regions in children
     header_digest: bytes | None  # set iff a <header> element existed in the source
     producer: str | None
     root_extra_attrs: dict[str, str]
@@ -102,8 +102,8 @@ class _RangesSourceInfo:
     root_open_start: int
     root_open_end: int
     root_self_closing: bool
-    children: list[ChildSpan]
-    range_records: list[_RangeRecord]  # parallel to the "range" spans in children
+    children: list[ChildRegion]
+    range_records: list[_RangeRecord]  # parallel to the "range" regions in children
     root_extra_attrs: dict[str, str]
     root_extra_snapshot: Extras
 
@@ -660,20 +660,21 @@ def canonical_document(
         chunks.insert(position, node.xml.encode("utf-8") + b"\n")
     parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', _root_open_bytes(lexicon), b"\n"]
     # Each chunk's trailing newline is the inter-chunk separator. Byte-reused
-    # (untouched) spans end at ">", so top them up to avoid gluing neighbors.
+    # (untouched) regions end at ">", so append the newline they lack — without
+    # it the chunk would run straight into its neighbor.
     parts.extend(chunk if chunk.endswith(b"\n") else chunk + b"\n" for chunk in chunks)
     parts.append(b"</lift>\n")
     return b"".join(parts)
 
 
-def _slot_bytes(chunk: bytes) -> bytes:
-    """Fit a re-serialized node into a passthrough matrix slot.
+def _fit_between_regions(chunk: bytes) -> bytes:
+    """Trim a re-serialized node so it fits between the reused source bytes.
 
     In :func:`canonical_document` a node's chunk ends with a newline that *is*
-    the separator between chunks. In the passthrough path the surrounding
-    matrix already supplies those separators, so a re-serialized (touched)
-    node's trailing newline would double up into a blank line. Original-byte
-    spans reused verbatim end at ``>`` and are unaffected.
+    the separator between chunks. On the byte-reuse path the surrounding source
+    bytes already supply those separators, so a re-serialized (touched) node's
+    trailing newline would double up into a blank line. Regions reused verbatim
+    end at ``>`` and are unaffected.
     """
     return chunk[:-1] if chunk.endswith(b"\n") else chunk
 
@@ -692,27 +693,27 @@ def _header_bytes_fn(source: _SourceInfo) -> Callable[[Header], bytes]:
             source.header_digest is not None
             and hashlib.sha256(current).digest() == source.header_digest
         ):
-            for span in source.children:
-                if span.tag == "header":
-                    return source.data[span.start : span.end]
+            for region in source.children:
+                if region.tag == "header":
+                    return source.data[region.start : region.end]
         return current
 
     return fn
 
 
 def _entry_bytes_fn(source: _SourceInfo) -> Callable[[Entry], bytes]:
-    spans = [span for span in source.children if span.tag == "entry"]
+    regions = [region for region in source.children if region.tag == "entry"]
     by_identity = {
-        id(record.entry): (record, span)
-        for record, span in zip(source.entry_records, spans, strict=True)
+        id(record.entry): (record, region)
+        for record, region in zip(source.entry_records, regions, strict=True)
     }
 
     def fn(entry: Entry) -> bytes:
         found = by_identity.get(id(entry))
         if found is not None:
-            record, span = found
+            record, region = found
             if entry_digest(entry) == record.digest:
-                return source.data[span.start : span.end]
+                return source.data[region.start : region.end]
         return canonical_entry_bytes(entry)
 
     return fn
@@ -727,8 +728,8 @@ def render_document(lexicon: Lexicon) -> bytes:
     entry_fn = _entry_bytes_fn(source)
     header_fn = _header_bytes_fn(source)
 
-    # Root-level residue edits invalidate the matrix regions (comments etc.
-    # live in both places); fall back to canonical with per-node byte reuse.
+    # Root-level residue edits invalidate the bytes between regions (comments
+    # etc. live in both places); fall back to canonical with per-node byte reuse.
     if lexicon.extra._nodes != source.root_extra_snapshot._nodes:
         return canonical_document(lexicon, entry_fn, header_fn)
 
@@ -752,23 +753,23 @@ def render_document(lexicon: Lexicon) -> bytes:
         parts.append(_root_open_bytes(lexicon))
     position = source.root_open_end
 
-    had_header = any(span.tag == "header" for span in source.children)
+    had_header = any(region.tag == "header" for region in source.children)
     if not had_header and lexicon.header:
-        parts.append(b"\n" + _slot_bytes(header_fn(lexicon.header)))
+        parts.append(b"\n" + _fit_between_regions(header_fn(lexicon.header)))
 
     entry_index = 0
-    for span in source.children:
-        parts.append(data[position : span.start])
-        if span.tag == "header":
+    for region in source.children:
+        parts.append(data[position : region.start])
+        if region.tag == "header":
             # Unconditional (even for a now-empty Header): the digest check
             # inside header_fn restores the original bytes when unchanged.
-            parts.append(_slot_bytes(header_fn(lexicon.header)))
-        elif span.tag == "entry":
-            parts.append(_slot_bytes(entry_fn(lexicon.entries[entry_index])))
+            parts.append(_fit_between_regions(header_fn(lexicon.header)))
+        elif region.tag == "entry":
+            parts.append(_fit_between_regions(entry_fn(lexicon.entries[entry_index])))
             entry_index += 1
         else:
-            parts.append(data[span.start : span.end])
-        position = span.end
+            parts.append(data[region.start : region.end])
+        position = region.end
     parts.append(data[position:])
     return b"".join(parts)
 
@@ -790,25 +791,26 @@ def canonical_ranges_document(
     root = _element("lift-ranges", [], ranges_file.extra)
     serialized = etree.tostring(root, encoding="unicode").encode("utf-8")
     parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', serialized[:-2] + b">", b"\n"]
-    # See canonical_document: top up reused spans so neighbors don't glue.
+    # See canonical_document: reused regions need the newline they lack, or the
+    # chunk runs into its neighbor.
     parts.extend(chunk if chunk.endswith(b"\n") else chunk + b"\n" for chunk in chunks)
     parts.append(b"</lift-ranges>\n")
     return b"".join(parts)
 
 
 def _range_bytes_fn(source: _RangesSourceInfo) -> Callable[[Range], bytes]:
-    spans = [span for span in source.children if span.tag == "range"]
+    regions = [region for region in source.children if region.tag == "range"]
     by_identity = {
-        id(record.range): (record, span)
-        for record, span in zip(source.range_records, spans, strict=True)
+        id(record.range): (record, region)
+        for record, region in zip(source.range_records, regions, strict=True)
     }
 
     def fn(range_: Range) -> bytes:
         found = by_identity.get(id(range_))
         if found is not None:
-            record, span = found
+            record, region = found
             if range_digest(range_) == record.digest:
-                return source.data[span.start : span.end]
+                return source.data[region.start : region.end]
         return _node_bytes(_range_el(range_))
 
     return fn
@@ -846,13 +848,13 @@ def render_ranges_document(ranges_file: RangesFile) -> bytes:
         parts.append(serialized[:-2] + b">")
     position = source.root_open_end
     range_index = 0
-    for span in source.children:
-        parts.append(data[position : span.start])
-        if span.tag == "range":
-            parts.append(_slot_bytes(range_fn(ranges_file.ranges[range_index])))
+    for region in source.children:
+        parts.append(data[position : region.start])
+        if region.tag == "range":
+            parts.append(_fit_between_regions(range_fn(ranges_file.ranges[range_index])))
             range_index += 1
         else:
-            parts.append(data[span.start : span.end])
-        position = span.end
+            parts.append(data[region.start : region.end])
+        position = region.end
     parts.append(data[position:])
     return b"".join(parts)

@@ -1,7 +1,7 @@
-"""Direct tests for the byte-span scanner's happy path and its conservative
+"""Direct tests for the byte-region scanner's happy path and its conservative
 bail-out branches.
 
-``_scan.scan`` underpins byte-identity passthrough: it returns a ``ScanResult``
+``_scan.scan`` underpins byte-identity reuse: it returns a ``ScanResult``
 locating each root child's exact bytes, or ``None`` for anything it cannot scan
 safely (malformed/truncated markup, DOCTYPE, or an unterminated construct), in
 which case the writer falls back to canonical serialization. The corpus is all
@@ -46,8 +46,8 @@ def test_cdata_inside_element_is_skipped() -> None:
     result = scan(data)
     assert result is not None
     # The CDATA-embedded "</entry>" must not be mistaken for the real end tag.
-    span = result.children[0]
-    assert data[span.start : span.end] == b'<entry id="a"><![CDATA[</entry>]]></entry>'
+    region = result.children[0]
+    assert data[region.start : region.end] == b'<entry id="a"><![CDATA[</entry>]]></entry>'
 
 
 def test_processing_instructions_are_skipped() -> None:

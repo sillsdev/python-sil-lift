@@ -82,10 +82,10 @@ def test_sort_then_save_keeps_untouched_entries_verbatim(tmp_path: Path) -> None
 
     from sil_lift._scan import scan
 
-    spans = scan(UNSORTED)
-    assert spans is not None
-    for span in (s for s in spans.children if s.tag == "entry"):
-        assert UNSORTED[span.start : span.end] in result  # bytes moved, not rewritten
+    scanned = scan(UNSORTED)
+    assert scanned is not None
+    for region in (r for r in scanned.children if r.tag == "entry"):
+        assert UNSORTED[region.start : region.end] in result  # bytes moved, not rewritten
     reloaded = sil_lift.load(out)
     assert [e.id for e in reloaded.entries] == ["no-guid", "first", "mid", "last"]
 

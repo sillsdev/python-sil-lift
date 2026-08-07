@@ -85,17 +85,17 @@ def test_touching_one_entry_leaves_other_entry_bytes_verbatim(tmp_path: Path) ->
     # Locate the first entry's original bytes; they must appear verbatim.
     from sil_lift._scan import scan
 
-    spans = scan(original)
-    assert spans is not None
-    entry_spans = [s for s in spans.children if s.tag == "entry"]
-    first_bytes = original[entry_spans[0].start : entry_spans[0].end]
-    second_bytes = original[entry_spans[1].start : entry_spans[1].end]
+    scanned = scan(original)
+    assert scanned is not None
+    entry_regions = [r for r in scanned.children if r.tag == "entry"]
+    first_bytes = original[entry_regions[0].start : entry_regions[0].end]
+    second_bytes = original[entry_regions[1].start : entry_regions[1].end]
     assert first_bytes in result
     assert second_bytes not in result  # the touched entry was re-serialized
     assert b"B Word (edited)" in result
 
     # Everything before the second entry is untouched.
-    assert result[: entry_spans[1].start] == original[: entry_spans[1].start]
+    assert result[: entry_regions[1].start] == original[: entry_regions[1].start]
 
     reloaded = sil_lift.load(out)
     assert str(reloaded.entries[1].senses[0].glosses[0].text) == "B Word (edited)"

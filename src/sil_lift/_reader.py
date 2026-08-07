@@ -93,8 +93,8 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
     result = scan(data)
     if result is None:
         return
-    range_spans = [span for span in result.children if span.tag == "range"]
-    if len(range_spans) != len(ranges_file.ranges):
+    range_regions = [region for region in result.children if region.tag == "range"]
+    if len(range_regions) != len(ranges_file.ranges):
         return
     ranges_file._source = _RangesSourceInfo(
         data=data,
@@ -109,7 +109,7 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
 
 
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
-    """Capture what the passthrough layer needs; on any doubt, capture nothing.
+    """Capture what byte reuse needs; on any doubt, capture nothing.
 
     Without source info the writer falls back to canonical serialization —
     semantically complete, just not byte-preserving.
@@ -125,9 +125,9 @@ def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
     result = scan(data)
     if result is None:
         return
-    entry_spans = [span for span in result.children if span.tag == "entry"]
-    header_spans = [span for span in result.children if span.tag == "header"]
-    if len(entry_spans) != len(lexicon.entries) or len(header_spans) > 1:
+    entry_regions = [region for region in result.children if region.tag == "entry"]
+    header_regions = [region for region in result.children if region.tag == "header"]
+    if len(entry_regions) != len(lexicon.entries) or len(header_regions) > 1:
         return  # scanner and parser disagree: distrust the scan
     lexicon._source = _SourceInfo(
         data=data,
@@ -136,7 +136,7 @@ def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
         root_self_closing=result.root_self_closing,
         children=result.children,
         entry_records=[_EntryRecord(entry, entry_digest(entry)) for entry in lexicon.entries],
-        header_digest=header_digest(lexicon.header) if header_spans else None,
+        header_digest=header_digest(lexicon.header) if header_regions else None,
         producer=lexicon.producer,
         root_extra_attrs=dict(lexicon.extra._attrs),
         root_extra_snapshot=copy.deepcopy(lexicon.extra),
