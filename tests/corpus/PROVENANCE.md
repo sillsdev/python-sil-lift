@@ -52,9 +52,10 @@ that script; committed so tests don't depend on regeneration.
 - **Commit**: `6ea4d7b0d39c0263f531e13246d5942550bf58ba` (HEAD of default branch
   at fetch time)
 - **License**: MIT
-- A FLEx export (`producer="SIL.FLEx 8.0.9.41689"`) exercising all FLEx fields —
-  the reference file for residue/round-trip tests. **Deliberately not taken**:
-  the upstream `audio/Kalimba.mp3` (8.4 MB), `pictures/Desert.jpg`, and
+- A FieldWorks Language Explorer (FLEx) export (`producer="SIL.FLEx 8.0.9.41689"`)
+  exercising all FLEx fields — the reference file for LIFT residue and
+  round-trip tests. **Deliberately not taken**: the upstream
+  `audio/Kalimba.mp3` (8.4 MB), `pictures/Desert.jpg`, and
   `others/Hydrangeas.jpg` — Windows sample-file filler with no test value beyond
   existence; media-existence tests use the Moma folder fixture instead. The
   LDML files are carried (never parsed — out of scope) as folder-layout data.
@@ -106,7 +107,8 @@ that script; committed so tests don't depend on regeneration.
 
 ## Known RNG-invalid fixtures (kept deliberately)
 
-Validated 2026-07-14 against the vendored `lift-0.13.rng` via `lxml.etree.RelaxNG`.
+Validated 2026-07-14 against the vendored RELAX NG grammar (`lift-0.13.rng`,
+abbreviated RNG throughout this file) via `lxml.etree.RelaxNG`.
 Two real-world quirk classes make some fixtures schema-invalid; they are kept
 as-is — the library's losslessness contract must carry exactly this kind of
 content, and the validator needs realistic subjects:
@@ -143,8 +145,9 @@ hrefs, which pass). `tests/test_corpus.py` locks in both lists.
 
 Both real FLEx `.lift-ranges` companions (`flex/AllFLExFields/AllFLExFields.lift-ranges`,
 `large/sango/sango.lift-ranges`) genuinely reuse the same `guid` under two
-different range names: FLEx aliases its part-of-speech possibility list under
-both `grammatical-info` and `from-part-of-speech` (identical range-element ids
+different range names: FLEx aliases its part-of-speech possibility list — its
+name for a controlled vocabulary, which LIFT calls a range — under both
+`grammatical-info` and `from-part-of-speech` (identical range-element ids
 and guids under each), and separately aliases a custom list under both
 `Publications`/`do-not-publish-in` (same range guid). This is a real defect by
 LIFT's own rules — the RNG never declares `guid` unique, but the C# `Validator`

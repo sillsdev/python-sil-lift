@@ -1,6 +1,6 @@
 # The LIFT folder: ranges and media
 
-A LIFT lexicon is usually a _folder_: the `.lift` file, one or more `.lift-ranges` companions, and `audio/` / `pictures/` media.
+A LIFT lexicon is usually a _folder_: the `.lift` file, one or more `.lift-ranges` companions (sidecar files, in the general term), and `audio/` / `pictures/` media.
 
 ## Ranges
 

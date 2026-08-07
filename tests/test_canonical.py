@@ -9,7 +9,8 @@ from test_writer import _semantic_bytes
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
-# header.lift is excluded: raw-RNG-invalid per PROVENANCE.md (file://C:/ hrefs).
+# header.lift is excluded: invalid against the raw RELAX NG (RNG) schema per
+# PROVENANCE.md (file://C:/ hrefs).
 RNG_VALID = [
     "spec-examples/0.13/full-entry.lift",
     "spec-examples/0.13/subsenses.lift",
@@ -52,7 +53,7 @@ def test_sort_mirrors_liftsorter_rules(tmp_path: Path) -> None:
     source.write_bytes(UNSORTED)
     lexicon = sil_lift.load(source)
     lexicon.sort()
-    # Entries by casefolded guid (guidless first: empty key), LiftSorter-style.
+    # Entries by casefolded guid (guidless first: empty key), as LiftSorter does.
     assert [e.id for e in lexicon.entries] == ["no-guid", "first", "mid", "last"]
     # Header ranges by casefolded id; range-elements by casefolded id.
     assert [r.id for r in lexicon.header.ranges] == ["Alpha", "zoo"]
@@ -82,10 +83,10 @@ def test_sort_then_save_keeps_untouched_entries_verbatim(tmp_path: Path) -> None
 
     from sil_lift._scan import scan
 
-    spans = scan(UNSORTED)
-    assert spans is not None
-    for span in (s for s in spans.children if s.tag == "entry"):
-        assert UNSORTED[span.start : span.end] in result  # bytes moved, not rewritten
+    scanned = scan(UNSORTED)
+    assert scanned is not None
+    for region in (r for r in scanned.children if r.tag == "entry"):
+        assert UNSORTED[region.start : region.end] in result  # bytes moved, not rewritten
     reloaded = sil_lift.load(out)
     assert [e.id for e in reloaded.entries] == ["no-guid", "first", "mid", "last"]
 
@@ -100,7 +101,7 @@ def test_canonicalize_is_deterministic_and_idempotent(tmp_path: Path) -> None:
     assert first.read_bytes() == second.read_bytes()  # deterministic across runs
     third = tmp_path / "c3.lift"
     canonicalize(first, third)
-    assert third.read_bytes() == first.read_bytes()  # sort . sort = sort
+    assert third.read_bytes() == first.read_bytes()  # sorting twice changes nothing
 
 
 def _entries_sorted(data: bytes) -> bytes:

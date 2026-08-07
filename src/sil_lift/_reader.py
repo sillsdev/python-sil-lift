@@ -2,11 +2,13 @@
 
 Parsing never rejects schema-invalid-but-well-formed LIFT 0.13: anything the
 model does not define lands verbatim in the nearest node's ``Extras`` (unknown
-attributes/elements, comments, PIs, stray text, malformed typed attributes).
+attributes/elements, comments, processing instructions, stray text, malformed
+typed attributes).
 The only refusals are non-XML input, a non-``<lift>`` root, and a version
 other than 0.13.
 
-The RNG uses interleave everywhere, so child order is never assumed: every
+The RELAX NG grammar uses interleave everywhere, so child order is never
+assumed: every
 parser dispatches children by tag, whatever their order.
 """
 
@@ -93,8 +95,8 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
     result = scan(data)
     if result is None:
         return
-    range_spans = [span for span in result.children if span.tag == "range"]
-    if len(range_spans) != len(ranges_file.ranges):
+    range_regions = [region for region in result.children if region.tag == "range"]
+    if len(range_regions) != len(ranges_file.ranges):
         return
     ranges_file._source = _RangesSourceInfo(
         data=data,
@@ -109,7 +111,7 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
 
 
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
-    """Capture what the passthrough layer needs; on any doubt, capture nothing.
+    """Capture what byte reuse needs; on any doubt, capture nothing.
 
     Without source info the writer falls back to canonical serialization —
     semantically complete, just not byte-preserving.
@@ -125,9 +127,9 @@ def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
     result = scan(data)
     if result is None:
         return
-    entry_spans = [span for span in result.children if span.tag == "entry"]
-    header_spans = [span for span in result.children if span.tag == "header"]
-    if len(entry_spans) != len(lexicon.entries) or len(header_spans) > 1:
+    entry_regions = [region for region in result.children if region.tag == "entry"]
+    header_regions = [region for region in result.children if region.tag == "header"]
+    if len(entry_regions) != len(lexicon.entries) or len(header_regions) > 1:
         return  # scanner and parser disagree: distrust the scan
     lexicon._source = _SourceInfo(
         data=data,
@@ -136,7 +138,7 @@ def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
         root_self_closing=result.root_self_closing,
         children=result.children,
         entry_records=[_EntryRecord(entry, entry_digest(entry)) for entry in lexicon.entries],
-        header_digest=header_digest(lexicon.header) if header_spans else None,
+        header_digest=header_digest(lexicon.header) if header_regions else None,
         producer=lexicon.producer,
         root_extra_attrs=dict(lexicon.extra._attrs),
         root_extra_snapshot=copy.deepcopy(lexicon.extra),
@@ -177,7 +179,7 @@ def parse_root(root: etree._Element, *, path: Path | None = None) -> Lexicon:
     return lexicon
 
 
-# --- residue plumbing ---------------------------------------------------------
+# --- LIFT residue plumbing ----------------------------------------------------
 
 
 def _push_node(extra: Extras, el: etree._Element, index: int | None = None) -> None:
@@ -257,7 +259,7 @@ def _take_int(attrs: dict[str, str], key: str, extra: Extras) -> int | None:
 def _parse_mixed(el: etree._Element, host_extra: Extras) -> list[str | Span]:
     """Mixed content of <text>/<span>: text and nested spans, in order.
 
-    Comments/PIs/unknown elements inside mixed content are hoisted to the
+    Comments/PIs/unknown elements inside mixed content are moved to the
     nearest host node's residue (position within the run is not preserved —
     untouched-entry passthrough covers exact bytes).
     """

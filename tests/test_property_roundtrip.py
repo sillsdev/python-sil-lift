@@ -2,7 +2,7 @@
 
 Two properties over generated LIFT documents:
 
-1. **Serialize/parse fixpoint**: canonical bytes survive a parse→serialize
+1. **Serialize/parse stability**: canonical bytes survive a parse→serialize
    cycle unchanged.
 2. **Passthrough**: an on-disk document saved with no edits is byte-identical;
    with one entry touched, every untouched entry's bytes appear verbatim.
@@ -115,7 +115,7 @@ def _lexicons(draw: st.DrawFn) -> Lexicon:
 
 
 @given(_lexicons())
-def test_serialize_parse_fixpoint(lexicon: Lexicon) -> None:
+def test_serialize_parse_is_stable(lexicon: Lexicon) -> None:
     first = canonical_document(lexicon)
     reparsed = parse_root(etree.fromstring(first))
     assert canonical_document(reparsed) == first
@@ -149,11 +149,11 @@ def test_untouched_entries_stay_byte_identical_under_edit(lexicon: Lexicon) -> N
         loaded.save(out)
         result = out.read_bytes()
 
-        spans = scan(data)
-        assert spans is not None
-        entry_spans = [s for s in spans.children if s.tag == "entry"]
-        for span in entry_spans[1:]:  # every untouched entry survives verbatim
-            assert data[span.start : span.end] in result
+        scanned = scan(data)
+        assert scanned is not None
+        entry_regions = [r for r in scanned.children if r.tag == "entry"]
+        for region in entry_regions[1:]:  # every untouched entry survives verbatim
+            assert data[region.start : region.end] in result
 
         reloaded = sil_lift.load(out)
         assert str(reloaded.entries[0].lexical_unit["qaa-x-touch"]) == "touched"

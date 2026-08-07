@@ -141,7 +141,7 @@ def test_streaming_write_matches_canonical_document(tmp_path: Path) -> None:
 
     source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
     lexicon = sil_lift.load(source, resolve_ranges=False)
-    lexicon.extra._nodes.clear()  # streaming carries no root-level residue
+    lexicon.extra._nodes.clear()  # streaming carries no root-level LIFT residue
     out = tmp_path / "streamed.lift"
     with open_writer(out, header=lexicon.header, producer=lexicon.producer) as writer:
         for entry in lexicon.entries:
@@ -222,6 +222,6 @@ def test_large_file_streams_in_bounded_memory(tmp_path: Path) -> None:
     assert out.stat().st_size > size // 2  # the copy really contains the data
 
     if baseline is not None:
-        # O(one entry): far below file size (full DOM would exceed it severalfold).
+        # Bounded memory: far below file size (a full DOM would exceed it severalfold).
         limit = 100 * 1024 * 1024 if _PERF else 60 * 1024 * 1024
         assert peak_delta < limit, f"working-set delta {peak_delta / 1e6:.0f} MB"

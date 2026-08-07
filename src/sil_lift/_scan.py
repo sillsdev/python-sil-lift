@@ -1,15 +1,19 @@
-"""Byte-span scanner: locate the exact source bytes of each root child.
+"""Byte-region scanner: locate the exact source bytes of each root child.
 
-The passthrough layer emits untouched entries verbatim from their original
-bytes, which requires knowing each top-level ``<entry>``'s (and
-``<header>``'s) exact byte span in the source. lxml exposes no byte offsets,
-so this module walks the raw bytes with a small state machine that understands
-tags, quoted attribute values, comments, CDATA sections, and PIs.
+The writer emits untouched entries verbatim from their original bytes, which
+requires knowing each top-level ``<entry>``'s (and ``<header>``'s) exact byte
+region in the source. lxml exposes no byte offsets, so this module walks the
+raw bytes with a small state machine that understands tags, quoted attribute
+values, comments, CDATA sections, and processing instructions.
+
+"Region" rather than "span" throughout: LIFT has a ``<span>`` element for
+inline markup, modelled as :class:`~sil_lift.Span`, and the two would
+otherwise collide in the reader and writer — which handle both.
 
 What it exists for is byte identity, not diagnostics — ``docs/en/fidelity.md``
 states the guarantee it underpins. Problem reporting needs only the line an
 element starts on and takes that from lxml's ``sourceline`` (see
-``_validate._line``); a span needs the end offset too, which no parser API
+``_validate._line``); a region needs the end offset too, which no parser API
 exposes.
 
 It is deliberately conservative: anything unexpected (DOCTYPE, malformed
@@ -22,11 +26,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-__all__ = ["ChildSpan", "ScanResult", "scan"]
+__all__ = ["ChildRegion", "ScanResult", "scan"]
 
 
 @dataclass(slots=True)
-class ChildSpan:
+class ChildRegion:
     tag: str  # "header", "entry", or any other root-child tag
     start: int
     end: int  # exclusive
@@ -37,7 +41,7 @@ class ScanResult:
     root_open_start: int
     root_open_end: int  # exclusive; end of the <lift ...> open tag
     root_self_closing: bool
-    children: list[ChildSpan]  # document order; empty for a self-closing root
+    children: list[ChildRegion]  # document order; empty for a self-closing root
 
 
 def _skip_comment(data: bytes, i: int) -> int | None:
@@ -125,10 +129,11 @@ def _skip_element(data: bytes, i: int) -> int | None:
 
 
 def scan(data: bytes) -> ScanResult | None:
-    """Locate the root open tag and every root child's byte span, or None."""
+    """Locate the root open tag and every root child's byte region, or None."""
     n = len(data)
     pos = 0
-    # Prolog: BOM, XML declaration, comments, PIs — until the root start tag.
+    # Prolog: byte-order mark, XML declaration, comments, processing
+    # instructions — until the root start tag.
     while True:
         lt = data.find(b"<", pos)
         if lt < 0:
@@ -169,7 +174,7 @@ def scan(data: bytes) -> ScanResult | None:
         elif data.startswith(b"<?", lt):
             nxt = _skip_pi(data, lt)
         elif data.startswith(b"</", lt):
-            return result  # root close tag; trailing bytes are matrix
+            return result  # root close tag; the trailing bytes are copied as they are
         elif data.startswith(b"<!", lt):
             return None
         else:
@@ -177,7 +182,7 @@ def scan(data: bytes) -> ScanResult | None:
             end = _skip_element(data, lt)
             if end is None or end > n:
                 return None
-            result.children.append(ChildSpan(tag=tag, start=lt, end=end))
+            result.children.append(ChildRegion(tag=tag, start=lt, end=end))
             nxt = end
         if nxt is None:
             return None

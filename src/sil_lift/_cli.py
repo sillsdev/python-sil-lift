@@ -1,8 +1,9 @@
 """The ``sil-lift`` command line: validate / stats / sort / check-media / export.
 
-A LiftTools-style utility exercising every scope pillar end-to-end: validation
-(all three layers), streaming reads (stats, export), the canonical sort + write
-path (sort), and the folder/media model (check-media). Deliberately stdlib-only.
+A utility in the spirit of LiftTools, exercising every major capability
+end-to-end: validation (all three layers), streaming reads (stats, export), the
+canonical sort + write path (sort), and the folder/media model (check-media).
+Deliberately stdlib-only.
 
 ``validate`` is a supported interface for automation: its exit codes and
 ``--format json`` schema are covered by tests and change only under SemVer.
@@ -168,7 +169,7 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
     base = lexicon.path.parent if lexicon.path is not None else Path(args.path).parent
     for ref in lexicon.media_refs():
         relative = _normalize_href(ref.href)
-        if relative is None:  # remote/absolute hrefs can't vouch for local files
+        if relative is None:  # remote/absolute hrefs can't confirm a local file
             continue
         referenced.add((base / relative).resolve())
         subfolder = "audio" if ref.kind == "media" else "pictures"

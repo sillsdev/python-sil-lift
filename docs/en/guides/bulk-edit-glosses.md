@@ -49,7 +49,7 @@ A few things worth noting:
 
 - `Sense.subsenses` is itself a `list[Sense]`, so `iter_senses` recurses into it — a bulk edit that only walked `entry.senses` would silently skip any gloss nested under a subsense.
 - `gloss.text` is a `Text`, not a plain string: `str(gloss.text)` flattens it for matching, and the replacement is written back with `sil_lift.Text([new])` rather than mutating the string in place.
-- Validating in memory (`lex.iter_problems()`) serializes the edited state first, so it correctly reflects the edit before anything is written to disk. Aborting on any `"error"`-level `Problem` — warnings are left for the caller to judge — means a bad edit never reaches `save()`.
+- Validating in memory (`lex.iter_problems()`) serializes the edited state first, so it correctly reflects the edit before anything is written to disk. Aborting on any `"error"`-level `Problem` — warnings are left for the caller to decide about — means a bad edit never reaches `save()`.
 
 Glosses aren't the only thing worth touching this way. The same `Multitext` mapping surface applies to definitions and every other multilingual field on an entry or sense:
 

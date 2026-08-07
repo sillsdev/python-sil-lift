@@ -1,10 +1,10 @@
 """Entry-side model: Entry, Sense, and everything below them, plus Lexicon.
 
-Shapes follow the LIFT 0.13 RNG inventory exactly. Extensibility is a
+Shapes follow the LIFT 0.13 RELAX NG (RNG) inventory exactly. Extensibility is a
 three-way split: the eight fully-extensible elements derive from
 ``_Extensible``; the usage ``<field>`` gets the field-less variant
 ``_ExtensibleNoFields`` (no field-in-field recursion); ``GrammaticalInfo`` is
-the outlier with bare traits only. Typed attributes that fail to parse
+the exception, with bare traits only. Typed attributes that fail to parse
 (malformed dates/integers in real-world files) are preserved verbatim in the
 node's ``extra`` and the model field stays ``None``.
 """
@@ -52,7 +52,7 @@ __all__ = [
 
 @dataclass(slots=True, kw_only=True)
 class _ExtensibleNoFields:
-    """The extensible bundle minus ``<field>``: dates, annotations, traits, residue."""
+    """The extensible fields minus ``<field>``: dates, annotations, traits, LIFT residue."""
 
     date_created: datetime | date | None = None
     date_modified: datetime | date | None = None
@@ -63,7 +63,7 @@ class _ExtensibleNoFields:
 
 @dataclass(slots=True, kw_only=True)
 class _Extensible(_ExtensibleNoFields):
-    """The full extensible bundle (entry, sense, note, example, ...)."""
+    """The full set of extensible fields (entry, sense, note, example, ...)."""
 
     fields: list[Field] = field(default_factory=list)
 
@@ -78,7 +78,7 @@ class Field(_ExtensibleNoFields):
 
 @dataclass(slots=True)
 class GrammaticalInfo:
-    """A ``<grammatical-info value=...>``; the extensibility outlier — traits only, no fields."""
+    """A ``<grammatical-info value=...>``; the extensibility exception — traits only, no fields."""
 
     value: str
     traits: list[Trait] = field(default_factory=list)
@@ -133,7 +133,7 @@ class Relation(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Etymology(_Extensible):
-    """An ``<etymology type=... source=...>``; glosses are form-shaped, not multitext-shaped."""
+    """An ``<etymology type=... source=...>``; each gloss carries its own lang."""
 
     type: str
     source: str
@@ -197,7 +197,7 @@ class Sense(_Extensible):
     subsenses: list[Sense] = field(default_factory=list)
 
     def gloss(self, lang: str) -> Text | None:
-        """The gloss text in ``lang``, or None (first match; glosses are form-shaped)."""
+        """The gloss text in ``lang``, or None (first match; each ``<gloss>`` has its own lang)."""
         for gloss_form in self.glosses:
             if gloss_form.lang == lang:
                 return gloss_form.text
@@ -206,7 +206,7 @@ class Sense(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Entry(_Extensible):
-    """An ``<entry>``. A set ``date_deleted`` marks a tombstone."""
+    """An ``<entry>``. A set ``date_deleted`` marks it deleted (a tombstone)."""
 
     id: str | None = None
     guid: str | None = None

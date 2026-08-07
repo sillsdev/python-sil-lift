@@ -20,7 +20,8 @@ def _normalize(el: etree._Element) -> None:
     """Make interleave-equivalent documents compare equal.
 
     Outside mixed content: drop ignorable whitespace, then stable-sort children
-    by tag — the RNG uses interleave everywhere, so cross-type sibling order is
+    by tag — the RELAX NG (RNG) grammar uses interleave everywhere, so cross-type
+    sibling order is
     not semantically significant, while relative order within one tag (a
     repeated list) is preserved by the stable sort.
     """
@@ -48,7 +49,7 @@ def _comments(data: bytes) -> list[str]:
 
 
 def _residue_items(extra: sil_lift.Extras) -> list[str]:
-    """What residue a node carries, sorted: to_string's order is not a contract."""
+    """What LIFT residue a node carries, sorted: to_string's order is not a contract."""
     return sorted(extra.to_string().splitlines())
 
 
@@ -68,7 +69,8 @@ def test_semantic_roundtrip(path: Path, tmp_path: Path) -> None:
     lexicon = sil_lift.load(path)
     canonical = canonical_document(lexicon)
     assert _semantic_bytes(canonical) == _semantic_bytes(path.read_bytes())
-    # Comments survive re-serialization (order-insensitively; anchors are clamped).
+    # Comments survive re-serialization (order-insensitively; recorded positions
+    # are clamped).
     assert _comments(canonical) == _comments(path.read_bytes())
 
 
@@ -85,17 +87,17 @@ def test_touching_one_entry_leaves_other_entry_bytes_verbatim(tmp_path: Path) ->
     # Locate the first entry's original bytes; they must appear verbatim.
     from sil_lift._scan import scan
 
-    spans = scan(original)
-    assert spans is not None
-    entry_spans = [s for s in spans.children if s.tag == "entry"]
-    first_bytes = original[entry_spans[0].start : entry_spans[0].end]
-    second_bytes = original[entry_spans[1].start : entry_spans[1].end]
+    scanned = scan(original)
+    assert scanned is not None
+    entry_regions = [r for r in scanned.children if r.tag == "entry"]
+    first_bytes = original[entry_regions[0].start : entry_regions[0].end]
+    second_bytes = original[entry_regions[1].start : entry_regions[1].end]
     assert first_bytes in result
     assert second_bytes not in result  # the touched entry was re-serialized
     assert b"B Word (edited)" in result
 
     # Everything before the second entry is untouched.
-    assert result[: entry_spans[1].start] == original[: entry_spans[1].start]
+    assert result[: entry_regions[1].start] == original[: entry_regions[1].start]
 
     reloaded = sil_lift.load(out)
     assert str(reloaded.entries[1].senses[0].glosses[0].text) == "B Word (edited)"
@@ -208,7 +210,8 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
 
 # Residue that is neither an element nor an attribute: a processing instruction,
 # stray character data in element-only contexts (both as an element's leading text
-# and as a later child's tail), a comment and a PI inside <text>'s mixed content,
+# and as a later child's tail), a comment and a processing instruction inside
+# <text>'s mixed content,
 # and a second <text> in one <form>.
 TEXTUAL_RESIDUE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <lift version="0.13">

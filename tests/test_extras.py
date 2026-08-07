@@ -4,7 +4,7 @@ The fidelity tests already exercise carrying out-of-schema content through the
 reader/writer; these cover the two human-readable helpers, which no round-trip
 test invokes.
 
-The residue under test is produced by parsing hand-written documents rather than
+The LIFT residue under test is produced by parsing hand-written documents rather than
 by populating Extras' fields directly, so everything asserted here is reachable
 from the public surface (construction, bool, repr, to_string, equality) that
 `_extras`' module docstring promises while leaving the internal representation
@@ -88,6 +88,6 @@ def test_to_string_dumps_every_carried_item_one_per_line(tmp_path: Path) -> None
 
 
 def test_same_residue_at_different_positions_is_equal(tmp_path: Path) -> None:
-    """Child position is a re-emit anchor, not content -- it is not compared."""
+    """Child position is a recorded position, not content -- it is not compared."""
     one, two = _load(tmp_path, MOVED_RESIDUE).entries
     assert one.extra == two.extra
