@@ -14,20 +14,20 @@ sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in
 
 ## API shape
 
-`SIL.Lift`'s parser is callback-driven (`ILexiconMerger`): it pushes parse events at a consumer. sil-lift instead returns a plain object graph — typed dataclasses for every LIFT element — because Python scripters want objects, not callbacks. `SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but as an application model it represents only the constructs those apps use — so re-serializing through it can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below). The streaming API yields the _same_ `Entry` type, so there is no capability-reduced twin model.
+`SIL.Lift`'s parser is callback-driven (`ILexiconMerger`): it pushes parse events at a consumer. sil-lift instead returns a plain object graph — typed dataclasses for every LIFT element — because Python scripters want objects, not callbacks. `SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but as an application model it represents only the constructs those apps use — so re-serializing through it can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below). The streaming API yields the _same_ `Entry` type, so there is no second, cut-down model to learn.
 
 ## Round-trip fidelity
 
 The strongest deliberate difference. Saving with `SIL.Lift` re-serializes the whole document. sil-lift guarantees:
 
 - an unchanged document saves **byte-identically**, and
-- untouched entries keep their exact source bytes even when other entries change (Chorus-grade byte chunking, applied automatically).
+- untouched entries keep their exact source bytes even when other entries change — the same per-entry byte chunking Chorus uses, applied automatically.
 
 See [Fidelity guarantees](fidelity.md).
 
 ## Validation
 
-The C# `Validator` runs one RELAX NG pass and reports the first errors as strings. sil-lift reports a structured, entry/line-addressed `Problem` stream, and its schema layer knowingly diverges in three places:
+The C# `Validator` runs one RELAX NG pass and reports the first errors as strings. sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns, and its schema layer knowingly diverges in three places:
 
 - **Invalid URIs are warnings, not errors.** The C# RELAX NG engine never enforced the `anyURI` datatype, so FieldWorks (FLEx) has been writing `file://C:/...` hrefs into real lexicons for years. Rejecting those files would flag virtually every FLEx export.
 - **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by both C# and raw lxml validation.

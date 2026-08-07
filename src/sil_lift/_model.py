@@ -133,7 +133,7 @@ class Relation(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Etymology(_Extensible):
-    """An ``<etymology type=... source=...>``; glosses are form-shaped, not multitext-shaped."""
+    """An ``<etymology type=... source=...>``; each gloss carries its own lang."""
 
     type: str
     source: str

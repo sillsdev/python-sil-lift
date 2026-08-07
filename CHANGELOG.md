@@ -49,8 +49,8 @@ releases may contain breaking changes.
   members and is capped (entry count and a 10 GiB uncompressed total) against
   zip bombs.
 - Validation: `validate_file()` / `iter_problems()` /
-  `Lexicon.iter_problems()` returning an addressable `Problem` stream
-  (file/entry/line). RELAX NG layer with two documented deviations from raw
+  `Lexicon.iter_problems()` returning a `Problem` stream, each carrying the
+  file, entry, and line it concerns. RELAX NG layer with two documented deviations from raw
   libxml2 (href masking with `uri-not-rfc` warnings; tag-grouped validation to
   sidestep libxml2's interleave limitation); vendored ranges schema over
   companions; semantic checks: duplicate-guid (entries, and

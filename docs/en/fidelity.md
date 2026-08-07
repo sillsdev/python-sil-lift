@@ -1,6 +1,6 @@
 # Fidelity guarantees
 
-LIFT is an _interchange_ format: the cardinal rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
+LIFT is an _interchange_ format, so the first rule is **never drop what you do not understand**. `sil-lift`'s contract, verified by the test suite on every run (corpus files plus property-based generation):
 
 ## Reading
 
@@ -14,7 +14,7 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 
 - the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
 - the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately distrustful: any doubt means capturing no source bytes at all), or
+- the byte scanner and the parser disagree about the document's top-level structure — for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately conservative: on any doubt it captures no source bytes at all), or
 - the source was built in memory rather than loaded from a file.
 
 ## Saving an edited document
@@ -23,8 +23,11 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 - **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
 - Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
 
+!!! note "Canonical here is not W3C Canonical XML"
+    Canonical form on this page means `sil-lift`'s own documented shape, described in the bullet above. It is unrelated to [Canonical XML (C14N)](https://www.w3.org/TR/xml-c14n11/), which normalizes whitespace inside text nodes and would break the very guarantee this page makes — and unrelated again to libpalaso's `CanonicalXmlSettings`, which is a set of XML writer settings.
+
 ## Known approximations (touched nodes only)
 
-- Comments _inside_ a `<text>` run are preserved but hoisted next to the run, not at their exact character offset.
+- Comments _inside_ a `<text>` run are preserved but moved next to the run, not kept at their exact character offset.
 - Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
 - A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
