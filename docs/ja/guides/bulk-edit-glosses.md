@@ -14,14 +14,13 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """すべての意味（サブセンスを含む）を再帰的にイテレートする。"""
+    """すべての意味（サブ意味を含む）を再帰的にイテレートする。"""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
 
 
 edited_glosses = 0
-touched_entries = set()
 
 for entry in lex.entries:
     for sense in iter_senses(entry.senses):
@@ -33,7 +32,8 @@ for entry in lex.entries:
             if new != old:
                 gloss.text = sil_lift.Text([new])
                 edited_glosses += 1
-                touched_entries.add(entry.id)
+
+changed = lex.changed_entries()
 
 errors = [p for p in lex.iter_problems() if p.level == "error"]
 if errors:
@@ -42,13 +42,22 @@ if errors:
     sys.exit(f"aborting: {len(errors)} validation error(s), nothing saved")
 
 lex.save()
-print(f"edited {edited_glosses} gloss(es) across {len(touched_entries)} entry(ies)")
+print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
 ```
 
 いくつか注目すべき点があります：
 
 - `Sense.subsenses` 自体は `list[Sense]` であるため、`iter_senses` はこのリストを再帰的に処理します。もし `entry.senses` のみを走査する一括編集を行った場合、サブセンスの下にネストされた語義は、何の警告もなくスキップされてしまいます。
 - `gloss.text` は単なる文字列ではなく `Text` です。`str(gloss.text)` は照合のためにこれを平坦化し、置換結果は文字列そのものを変更するのではなく、`sil_lift.Text([new])` を使って書き戻されます。
+- `lex.changed_entries()` は、読み込まれたファイルと異なるエントリを報告します。 エントリのダイジェストはそのサブツリー全体を網羅しているため、ネストされたサブセンスを編集すると、そのサブセンスを含むエントリが報告されます。
+  - シリアライズされたコンテンツを比較するため、フィールドに以前と同じ値を割り当てても、そのことは報告されません。
+  - これはコンテンツの変更のみを報告します。`lex.added_entries()` および `lex.removed_entries()` は、読み込み以降に追加または削除されたエントリを対象としています。
+  - `id` が重複していたり、存在しなかったりしても（LIFT ではこれが許可されています）、エントリそのものを返します。
+  - 「数」として意味を持つのは、比較対象となるものが存在する場合に限られる。 パススルー層がソースのバイトスキャンを拒否した場合（ASCII互換ではないエンコーディングや、スキャナーとパーサーの不一致など）、基準となる状態が存在しないため、`changed_entries()` は _すべての_ エントリを報告します。 これはライトガードに関する正直な答えです。なぜなら、その場合は `save()` がファイル全体を再シリアル化するためですが、その結果、カウント値は編集部分のサイズではなく、レキシコンのサイズになってしまうからです。
+- `lex.changes()` は、ドキュメントに _何らかの変更_ があったかどうかを報告します。 これは、エントリだけでなく、ヘッダー、ルート要素、およびすべての `.lift-ranges` コンパニオンも対象としています。
+  - これは、`save()` がソースバイトを再現する場合にのみ偽となるため、不要な書き込みをスキップするには `if not lex.changes(): ...` という書き方が正しい。 この保証は一方向のみ有効です。つまり、書き換えられるはずのドキュメントについては「書き込む内容なし」と報告されることは決してありませんが、完全な再シリアル化を余儀なくされる変更であっても、元のバイト列に戻った場合でも、依然として報告されることがあります。
+  - これは保存先ではなく内容を比較するため、この方法ではインプレース保存のみを保護するようにしてください。`lex.save(some_other_dir / "dictionary.lift")` は、変更の有無にかかわらず、まだ何も格納されていない場所にドキュメントとその関連ファイルを書き込みます。
+  - It is a guard, not a speed-up — answering it digests every entry, which is the same work `save()` does to decide passthrough, so what you skip is the write itself (an untouched mtime, no spurious diff), not the effort of deciding.
 - メモリ内での検証（`lex.iter_problems()`）では、まず編集後の状態をシリアル化するため、ディスクへの書き込みが行われる前に、編集内容が正しく反映されます。 `"error"` レベルの `Problem` が発生した場合は処理を中止します（警告は呼び出し側が判断できるよう残されます）。これにより、不正な編集内容が `save()` に到達することはありません。
 
 この方法で触れてみる価値があるのは、グロスだけではありません。 この `Multitext` マッピング領域は、定義や、エントリや意味に含まれるその他のすべての多言語フィールドにも同様に適用されます：
