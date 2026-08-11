@@ -250,7 +250,7 @@ class RangesChanges:
     """What differs between a companion ``.lift-ranges`` and the file it was read from.
 
     ``baseline`` is False when no byte snapshot was captured (a companion built
-    from scratch, or a source the passthrough layer declined to scan). Nothing
+    from scratch, or a source the byte scanner declined to read). Nothing
     can be compared then, so the fields say what :meth:`RangesFile.save` will
     write rather than what differs: ``ranges`` lists everything, while
     ``added``, ``removed``, and ``root`` stay empty or False — nothing is known
@@ -260,14 +260,15 @@ class RangesChanges:
     ``ranges`` names each range once, even one aliased into the list twice;
     against a baseline the repeat is reported by ``added``, and without one it
     is not reported at all, though :meth:`RangesFile.save` still writes it.
-    ``reordered`` answers only where membership held, as on :class:`Changes`.
+    ``reordered`` answers only where the same ranges are still present, as on
+    :class:`Changes`.
     """
 
     ranges: list[Range]  # content differs from the source
     added: list[Range]
     removed: list[Range]
     reordered: bool  # same ranges, different order
-    root: bool  # root attributes or root-level residue
+    root: bool  # root attributes or root-level LIFT residue
     baseline: bool
 
     def __bool__(self) -> bool:
@@ -294,10 +295,10 @@ class Changes:
     document already in canonical form, so a truthy result means the write is
     not provably unnecessary rather than certainly needed.
 
-    ``reordered`` answers only where membership held. An addition or a removal
-    re-serializes the document on its own, so a permutation alongside one is
-    not reported separately — enough for the guard, short of a full account of
-    what happened.
+    ``reordered`` answers only where the same entries are still present. An
+    addition or a removal re-serializes the document on its own, so a
+    reordering alongside one is not reported separately — enough for the guard,
+    short of a full account of what happened.
 
     ``baseline`` is False when no byte snapshot was captured. Nothing can be
     compared then, so the fields say what :meth:`Lexicon.save` will write
@@ -312,8 +313,8 @@ class Changes:
     removed: list[Entry]
     reordered: bool  # same entries, different order
     header: bool
-    root: bool  # producer, root attributes, or root-level residue
-    ranges: dict[Path, RangesChanges]  # keyed by companion; ranges span several files
+    root: bool  # producer, root attributes, or root-level LIFT residue
+    ranges: dict[Path, RangesChanges]  # keyed by companion; ranges live in several files
     baseline: bool
 
     def __bool__(self) -> bool:
@@ -646,10 +647,10 @@ class Lexicon:
         goes unnamed even though :meth:`save` writes it.
 
         Every entry is reported when there is no byte baseline to compare
-        against — a lexicon built from scratch, and equally one whose source
-        the passthrough layer declined to scan (an encoding that is not
-        ASCII-compatible, or a scanner/parser disagreement). Both re-serialize
-        in full on :meth:`save`, so those entries genuinely are rewritten.
+        against — a lexicon built from scratch, and equally one whose source the
+        byte scanner declined to read (an encoding that is not ASCII-compatible,
+        or a scanner/parser disagreement). Both re-serialize in full on
+        :meth:`save`, so those entries genuinely are rewritten.
 
         Costs one canonical serialization pass over the entries.
         """
@@ -755,10 +756,11 @@ class Lexicon:
         serialization at all.
 
         It is not a shortcut around :meth:`save` — it costs more than the save
-        it guards. Deciding passthrough digests every entry again, and nothing
-        is cached between the two calls, so guarding a write that turns out to
-        be needed roughly doubles the work. What the guard buys is not writing:
-        an untouched mtime, no spurious diff, nothing downstream woken up.
+        it guards. Deciding which source bytes can be reused digests every entry
+        again, and nothing is cached between the two calls, so guarding a write
+        that turns out to be needed roughly doubles the work. What the guard
+        buys is not writing: an unchanged file-modification time, no spurious
+        diff, nothing downstream woken up.
         """
         added, removed, reordered = self._entry_diff()
         return Changes(

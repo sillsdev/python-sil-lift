@@ -687,12 +687,12 @@ def node_diff(current: list[int], original: list[int]) -> tuple[list[int], list[
     Node identities, in document order. ``original`` holds one identity per
     parsed node, all distinct; ``current`` may repeat one, since appending a
     node the document already has aliases the object rather than copying it.
-    An occurrence beyond the recorded one is therefore an addition — a set
-    difference would swallow it, and the document would still be written with
-    the node twice. The mirror holds on the other side: a recorded node counts
-    as removed only once no occurrence of it is left, so dropping one of two
-    aliased occurrences leaves the list reordered, or unchanged if the
-    occurrence dropped was the repeat.
+    An occurrence beyond the recorded one is therefore an addition — comparing
+    the two lists as sets would miss it, and the document would still be
+    written with the node twice. The mirror holds on the other side: a recorded
+    node counts as removed only once no occurrence of it is left, so dropping
+    one of two aliased occurrences leaves the list reordered, or unchanged if
+    the occurrence dropped was the repeat.
 
     This is what ``Lexicon.changes`` and ``RangesFile.changes`` report as
     ``added`` / ``removed`` / ``reordered``, and what :func:`_nodes_aligned`
@@ -710,12 +710,13 @@ def node_diff(current: list[int], original: list[int]) -> tuple[list[int], list[
 
 
 def _nodes_aligned(current: list[int], original: list[int]) -> bool:
-    """Whether the nodes still fill the source's slots one-for-one, in order.
+    """Whether the nodes still match the source's regions one-for-one, in order.
 
-    The passthrough matrix pairs slot *i* with node *i*, so an addition, a
-    removal, a reordering, or the same object repeated all send the document
-    down the canonical path instead — exactly the cases :func:`node_diff`
-    enumerates, which is how the change guard stays honest about them.
+    Byte reuse pairs the *i*th source region with the *i*th node, so an
+    addition, a removal, a reordering, or the same object repeated all send the
+    document down the canonical path instead — exactly the cases
+    :func:`node_diff` enumerates, which is how the change guard stays in step
+    with the writer.
     """
     return not any(node_diff(current, original))
 

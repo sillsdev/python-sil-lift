@@ -295,7 +295,7 @@ def test_changed_entries_is_empty_for_an_untouched_load(path: Path) -> None:
 
 
 def test_changed_entries_reports_the_entry_for_an_edit_at_any_depth() -> None:
-    """An entry's digest spans its subtree, so a subsense edit reports the entry."""
+    """An entry's digest covers its whole subtree, so a subsense edit reports the entry."""
     source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
     lexicon = sil_lift.load(source)
     entry = lexicon.entries[0]
@@ -382,8 +382,8 @@ def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path:
     assert lexicon._source is None
     assert _ids(lexicon.changed_entries()) == _ids(lexicon.entries)
 
-    # Nothing is known to be new or gone, so neither is claimed; the composite
-    # says why, and stays truthy because the file will be rewritten in full.
+    # Nothing is known to be new or gone, so neither is claimed; the whole-document
+    # report says why, and stays truthy because the file will be rewritten in full.
     assert lexicon.added_entries() == []
     assert lexicon.removed_entries() == []
     changes = lexicon.changes()
@@ -529,7 +529,7 @@ def test_changes_tracks_the_render_through_combined_mutations(
 
 
 def test_a_duplicated_entry_is_added_and_written_twice() -> None:
-    """Appending the object itself, which a set difference would swallow."""
+    """Appending the object itself, which comparing the lists as sets would miss."""
     from sil_lift._writer import render_document
 
     lexicon = sil_lift.load(SAMPLE)
@@ -597,7 +597,7 @@ def test_a_node_is_removed_only_once_no_occurrence_is_left() -> None:
 def test_changes_can_be_truthy_where_the_render_still_reproduces_the_source() -> None:
     """The guarantee is one-way, and this is the harmless direction.
 
-    Root-level residue sends the writer down the canonical path, and for a
+    Root-level LIFT residue sends the writer down the canonical path, and for a
     document already in canonical form that path lands back on the source
     bytes. The cost is a redundant write, never a skipped one.
     """
@@ -613,7 +613,7 @@ def test_changes_can_be_truthy_where_the_render_still_reproduces_the_source() ->
 
 
 def test_a_duplicated_range_is_added_and_written_twice() -> None:
-    """The same hole on the companion side of the guard."""
+    """The same gap on the companion side of the guard."""
     from sil_lift._writer import render_ranges_document
 
     lexicon = sil_lift.load(CORPUS_DIR / "flex" / "AllFLExFields" / "AllFLExFields.lift")
