@@ -1,9 +1,9 @@
 """Corpus sanity: fixtures stay exactly as PROVENANCE.md documents them.
 
-Every corpus XML file must be well-formed; RELAX NG (RNG) validity must match the
-documented
-lists (see "Known RNG-invalid fixtures" in tests/corpus/PROVENANCE.md) — a change
-in either direction means the corpus or the vendored schema drifted.
+Every corpus XML file must be well-formed; RELAX NG (RNG) validity must match
+the documented lists (see "Known RNG-invalid fixtures" in
+tests/corpus/PROVENANCE.md) — a change in either direction means the corpus or
+the vendored schema drifted.
 """
 
 from pathlib import Path

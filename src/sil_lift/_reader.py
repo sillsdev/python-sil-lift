@@ -3,13 +3,11 @@
 Parsing never rejects schema-invalid-but-well-formed LIFT 0.13: anything the
 model does not define lands verbatim in the nearest node's ``Extras`` (unknown
 attributes/elements, comments, processing instructions, stray text, malformed
-typed attributes).
-The only refusals are non-XML input, a non-``<lift>`` root, and a version
-other than 0.13.
+typed attributes). The only refusals are non-XML input, a non-``<lift>`` root,
+and a version other than 0.13.
 
 The RELAX NG grammar uses interleave everywhere, so child order is never
-assumed: every
-parser dispatches children by tag, whatever their order.
+assumed: every parser dispatches children by tag, whatever their order.
 """
 
 from __future__ import annotations
@@ -111,7 +109,7 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
 
 
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
-    """Capture what byte reuse needs; on any doubt, capture nothing.
+    """Capture the original bytes needed for byte reuse; on any doubt, capture nothing.
 
     Without source info the writer falls back to canonical serialization —
     semantically complete, just not byte-preserving.

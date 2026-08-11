@@ -64,10 +64,10 @@ releases may contain breaking changes.
   zip bombs.
 - Validation: `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning a `Problem` stream, each carrying the
-  file, entry, and line it concerns. RELAX NG layer with two documented deviations from raw
-  libxml2 (href masking with `uri-not-rfc` warnings; tag-grouped validation to
-  sidestep libxml2's interleave limitation); vendored ranges schema over
-  companions; semantic checks: duplicate-guid (entries, and
+  file, entry, and line it concerns. RELAX NG layer with two documented
+  deviations from raw libxml2 (href masking with `uri-not-rfc` warnings;
+  tag-grouped validation to sidestep libxml2's interleave limitation); vendored
+  ranges schema over companions; semantic checks: duplicate-guid (entries, and
   ranges/range-elements within their own document — matching the C#
   `Validator`'s document-wide guid scan), dangling-ref, range-parent,
   undefined-range-value (every grammatical-info and range-keyed trait

@@ -94,9 +94,9 @@ def test_save_to_the_same_directory_spelled_differently_keeps_companions(
 ) -> None:
     """A relative target naming the load directory is not a relocation.
 
-    The companion lives in a subfolder, so a spurious relocation would split it in two:
-    the edit would land beside the .lift while the header href still points at
-    the now-stale original.
+    The companion lives in a subfolder, so a spurious relocation would split it
+    in two: the edit would land beside the .lift while the header href still
+    points at the now-stale original.
     """
     subfolder = tmp_path / "sub"
     subfolder.mkdir()
@@ -244,8 +244,8 @@ def test_normalize_href(href: str, expected: Path | None) -> None:
     assert _normalize_href(href) == expected
 
 
-# The DOCTYPE stops the scanner, so this companion has no byte regions to reuse and
-# saving must re-serialize it canonically, root-level LIFT residue included.
+# The DOCTYPE stops the scanner, so this companion has no byte regions to reuse
+# and saving must re-serialize it canonically, root-level LIFT residue included.
 UNSCANNABLE_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE lift-ranges>
 <lift-ranges>

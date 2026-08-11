@@ -23,8 +23,8 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 - **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
 - Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
 
-!!! note "Canonical here is not W3C Canonical XML"
-    Canonical form on this page means `sil-lift`'s own documented shape, described in the bullet above. It is unrelated to [Canonical XML (C14N)](https://www.w3.org/TR/xml-c14n11/), which normalizes whitespace inside text nodes and would break the very guarantee this page makes — and unrelated again to libpalaso's `CanonicalXmlSettings`, which is a set of XML writer settings.
+!!! note "&quot;Canonical&quot; here is not related to any other Canonical XML"
+    Canonical form on this page means `sil-lift`'s own documented shape, described in a bullet above. It is unrelated to W3C's Canonical XML (C14N) process. It is unrelated to `SIL.Core`'s `CanonicalXmlSettings` class.
 
 ## Known approximations (touched nodes only)
 

@@ -54,11 +54,11 @@ that script; committed so tests don't depend on regeneration.
 - **License**: MIT
 - A FieldWorks Language Explorer (FLEx) export (`producer="SIL.FLEx 8.0.9.41689"`)
   exercising all FLEx fields — the reference file for LIFT residue and
-  round-trip tests. **Deliberately not taken**: the upstream
-  `audio/Kalimba.mp3` (8.4 MB), `pictures/Desert.jpg`, and
-  `others/Hydrangeas.jpg` — Windows sample-file filler with no test value beyond
-  existence; media-existence tests use the Moma folder fixture instead. The
-  LDML files are carried (never parsed — out of scope) as folder-layout data.
+  round-trip tests. **Deliberately not taken**: the upstream `audio/Kalimba.mp3`,
+  `pictures/Desert.jpg`, and `others/Hydrangeas.jpg` — Windows sample-file
+  filler with no test value beyond existence; media-existence tests use the Moma
+  folder fixture instead. The LDML files are carried (never parsed — out of
+  scope) as folder-layout data.
 
 ## folder/Moma/ — complete LIFT folder fixture
 
@@ -108,10 +108,10 @@ that script; committed so tests don't depend on regeneration.
 ## Known RNG-invalid fixtures (kept deliberately)
 
 Validated 2026-07-14 against the vendored RELAX NG grammar (`lift-0.13.rng`,
-abbreviated RNG throughout this file) via `lxml.etree.RelaxNG`.
-Two real-world quirk classes make some fixtures schema-invalid; they are kept
-as-is — the library's losslessness contract must carry exactly this kind of
-content, and the validator needs realistic subjects:
+abbreviated RNG throughout this file) via `lxml.etree.RelaxNG`. Two real-world
+quirk classes make some fixtures schema-invalid; they are kept as-is — the
+library's losslessness contract must carry exactly this kind of content, and
+the validator needs realistic subjects:
 
 1. **`<form>` without `@lang` inside `<etymology>`** — the RNG requires `@lang`
    on every form. Affects: `spec-examples/0.13/dialects.lift`,

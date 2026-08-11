@@ -7,9 +7,9 @@ subtree is built normally, serialized, and flushed — the byte layout is shared
 with the canonical serializer by construction, so full and streaming output
 never drift apart).
 
-Streaming mode reuses no source bytes: output is always canonical.
-Root-level LIFT residue (comments between entries) is not carried either — entries
-and the header are.
+Streaming mode reuses no source bytes: output is always canonical. Root-level
+LIFT residue (comments between entries) is not carried either — entries and the
+header are.
 """
 
 from __future__ import annotations

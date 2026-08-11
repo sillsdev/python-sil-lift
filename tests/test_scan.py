@@ -24,8 +24,8 @@ def test_scans_simple_document() -> None:
     assert isinstance(result, ScanResult)
     assert not result.root_self_closing
     assert [c.tag for c in result.children] == ["entry"]
-    span = result.children[0]
-    assert data[span.start : span.end] == b'<entry id="a"></entry>'
+    region = result.children[0]
+    assert data[region.start : region.end] == b'<entry id="a"></entry>'
 
 
 def test_self_closing_root_returns_empty_children() -> None:
@@ -70,8 +70,8 @@ def test_nested_same_name_elements_track_depth() -> None:
     result = scan(data)
     assert result is not None
     assert len(result.children) == 1
-    span = result.children[0]
-    assert data[span.start : span.end].endswith(b"</entry>")
+    region = result.children[0]
+    assert data[region.start : region.end].endswith(b"</entry>")
 
 
 # --- conservative bail-outs: every one must return None ---

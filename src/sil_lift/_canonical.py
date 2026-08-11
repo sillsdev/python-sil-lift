@@ -68,9 +68,9 @@ def canonicalize(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> No
     ranges, documented child grouping and attribute order, 2-space layout.
 
     Unlike :meth:`Lexicon.save`, the output is *entirely* re-serialized (no
-    byte passthrough) — that is the point: two canonicalized files diff
-    cleanly. Text content is never whitespace-normalized. The whole document
-    is held in memory (sorting requires it; the C# oracle buffers too).
+    byte-preserving passthrough) — that is the point: two canonicalized files
+    diff cleanly. Text content is never whitespace-normalized. The whole
+    document is held in memory (sorting requires it; the C# oracle buffers too).
 
     Only the ``.lift`` file is written: companion ``.lift-ranges`` files are
     neither read nor rewritten (the source is loaded with
