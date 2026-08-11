@@ -1,7 +1,7 @@
 """Entry-side model: Entry, Sense, and everything below them, plus Lexicon.
 
-Shapes follow the LIFT 0.13 RELAX NG (RNG) inventory exactly. Extensibility is a
-three-way split: the eight fully-extensible elements derive from
+Shapes follow the LIFT 0.13 RELAX NG (RNG) inventory exactly. Extensibility is
+a three-way split: the eight fully-extensible elements derive from
 ``_Extensible``; the usage ``<field>`` gets the field-less variant
 ``_ExtensibleNoFields`` (no field-in-field recursion); ``GrammaticalInfo`` is
 the exception, with bare traits only. Typed attributes that fail to parse

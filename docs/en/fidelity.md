@@ -24,7 +24,7 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 - Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
 
 !!! note "Canonical here is not W3C Canonical XML"
-    Canonical form on this page means `sil-lift`'s own documented shape, described in the bullet above. It is unrelated to [Canonical XML (C14N)](https://www.w3.org/TR/xml-c14n11/), which normalizes whitespace inside text nodes and would break the very guarantee this page makes — and unrelated again to libpalaso's `CanonicalXmlSettings`, which is a set of XML writer settings.
+    Canonical form on this page means `sil-lift`'s own documented shape, described in a bullet above. It is unrelated to [Canonical XML (C14N)](https://www.w3.org/TR/xml-c14n11/), which normalizes whitespace inside text nodes and would break the very guarantee this page makes — and unrelated again to libpalaso's `CanonicalXmlSettings`, which is a set of XML writer settings.
 
 ## Known approximations (touched nodes only)
 
