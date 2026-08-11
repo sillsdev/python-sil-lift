@@ -20,6 +20,7 @@ Snapshots are sha256 digests of canonical bytes, taken at parse time.
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -59,6 +60,7 @@ __all__ = [
     "canonical_ranges_document",
     "entry_digest",
     "header_digest",
+    "node_diff",
     "range_digest",
     "render_document",
     "render_ranges_document",
@@ -678,6 +680,45 @@ def _slot_bytes(chunk: bytes) -> bytes:
     return chunk[:-1] if chunk.endswith(b"\n") else chunk
 
 
+def node_diff(current: list[int], original: list[int]) -> tuple[list[int], list[int], bool]:
+    """Positions added, positions removed, and whether the survivors moved.
+
+    Node identities, in document order. ``original`` holds one identity per
+    parsed node, all distinct; ``current`` may repeat one, since appending a
+    node the document already has aliases the object rather than copying it.
+    An occurrence beyond the recorded one is therefore an addition — a set
+    difference would swallow it, and the document would still be written with
+    the node twice. The mirror holds on the other side: a recorded node counts
+    as removed only once no occurrence of it is left, so dropping one of two
+    aliased occurrences leaves the list reordered, or unchanged if the
+    occurrence dropped was the repeat.
+
+    This is what ``Lexicon.changes`` and ``RangesFile.changes`` report as
+    ``added`` / ``removed`` / ``reordered``, and what :func:`_nodes_aligned`
+    reduces to a yes/no, so the guard cannot fall out of step with the writer.
+    """
+    known = Counter(original)
+    seen: Counter[int] = Counter()
+    added: list[int] = []
+    for index, identity in enumerate(current):
+        seen[identity] += 1
+        if seen[identity] > known[identity]:
+            added.append(index)
+    removed = [index for index, identity in enumerate(original) if not seen[identity]]
+    return added, removed, not added and not removed and current != original
+
+
+def _nodes_aligned(current: list[int], original: list[int]) -> bool:
+    """Whether the nodes still fill the source's slots one-for-one, in order.
+
+    The passthrough matrix pairs slot *i* with node *i*, so an addition, a
+    removal, a reordering, or the same object repeated all send the document
+    down the canonical path instead — exactly the cases :func:`node_diff`
+    enumerates, which is how the change guard stays honest about them.
+    """
+    return not any(node_diff(current, original))
+
+
 def _root_unchanged(lexicon: Lexicon, source: _SourceInfo) -> bool:
     return (
         lexicon.producer == source.producer
@@ -737,11 +778,10 @@ def render_document(lexicon: Lexicon) -> bytes:
             return source.data
         return canonical_document(lexicon, entry_fn, header_fn)
 
-    aligned = len(lexicon.entries) == len(source.entry_records) and all(
-        current is record.entry
-        for current, record in zip(lexicon.entries, source.entry_records, strict=True)
-    )
-    if not aligned:
+    if not _nodes_aligned(
+        [id(entry) for entry in lexicon.entries],
+        [id(record.entry) for record in source.entry_records],
+    ):
         return canonical_document(lexicon, entry_fn, header_fn)
 
     data = source.data
@@ -829,11 +869,10 @@ def render_ranges_document(ranges_file: RangesFile) -> bytes:
             return source.data
         return canonical_ranges_document(ranges_file, range_fn)
 
-    aligned = len(ranges_file.ranges) == len(source.range_records) and all(
-        current is record.range
-        for current, record in zip(ranges_file.ranges, source.range_records, strict=True)
-    )
-    if not aligned:
+    if not _nodes_aligned(
+        [id(range_) for range_ in ranges_file.ranges],
+        [id(record.range) for record in source.range_records],
+    ):
         return canonical_ranges_document(ranges_file, range_fn)
 
     data = source.data
