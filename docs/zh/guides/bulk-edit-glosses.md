@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """返回每个词义，包括子词义（递归）。”""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -39,26 +39,26 @@ errors = [p for p in lex.iter_problems() if p.level == "error"]
 if errors:
     for problem in errors:
         print(problem)
-    sys.exit(f"aborting: {len(errors)} validation error(s), nothing saved")
+    sys.exit(f"中止：{len(errors)} 个验证错误，未保存任何内容")
 
 lex.save()
-print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
+print(f"已编辑 {edited_glosses} {len(changed)} 个条目中的释义")
 ```
 
 有几点值得注意：
 
 - `Sense.subsenses` 本身是一个 `list[Sense]`，因此 `iter_senses` 会递归遍历它——如果批量编辑操作仅遍历 `entry.senses`，则会无提示地跳过任何嵌套在子义项下的释义。
 - `gloss.text` 是一个 `Text` 对象，而不是普通的字符串：`str(gloss.text)` 会将其扁平化以便进行匹配，而替换后的内容会通过 `sil_lift.Text([new])` 写回，而不是直接修改原字符串。
-- `lex.changed_entries()` reports which entries differ from the file as loaded. Since an entry's digest covers its whole subtree, an edit to a nested subsense reports the entry that contains it.
-  - It compares serialized content, so assigning a field the value it already had isn't reported.
-  - It reports content changes only; `lex.added_entries()` and `lex.removed_entries()` cover entries that appeared or disappeared since loading.
-  - It returns the entries themselves, unaffected by `id` being duplicated or absent (which LIFT allows).
-  - As a count, it is meaningful only where there is something to compare against. When the passthrough layer declines to byte-scan the source — an encoding that is not ASCII-compatible, or a scanner/parser disagreement — there is no baseline, and `changed_entries()` reports _every_ entry. That is the honest answer for a write guard, since `save()` re-serializes the whole file in that case, but it means the count is the size of the lexicon rather than the size of the edit.
-- `lex.changes()` reports whether the document changed _at all_. It covers not just the entries, but also the header, the root element, and every `.lift-ranges` companion.
-  - It is falsy only when `save()` would reproduce the source bytes, which makes `if not lex.changes(): ...` the right way to skip an unnecessary write. The guarantee runs one way: it never reports "nothing to write" for a document that would be rewritten, while a change that forces a full re-serialization can land back on the original bytes and still be reported.
-  - It compares content, not destination, so guard only an in-place save with it: `lex.save(some_other_dir / "dictionary.lift")` writes the document and its companions to a location that has nothing in it yet, whether or not anything changed.
-  - It is a guard, not a speed-up — answering it digests every entry, which is the same work `save()` does to decide passthrough, so what you skip is the write itself (an untouched mtime, no spurious diff), not the effort of deciding.
-- 内存验证（`lex.iter_problems()`）会先将编辑后的状态序列化，因此能在将任何内容写入磁盘之前，准确反映编辑后的状态。 一旦遇到任何 `"error"` 级别的 `Problem` 就终止处理——警告信息将留给调用方自行判断——这意味着错误的编辑操作永远不会进入 `save()` 方法。
+- `lex.changed_entries()` 会报告哪些条目与加载的文件存在差异。 由于条目的摘要涵盖了其整个子树，因此对嵌套的子义项进行编辑时，系统会报告包含该子义项的条目。
+  - 它会比较序列化的内容，因此将某个字段赋值为其原有的值时，系统不会报告该操作。
+  - 它仅报告内容变更；`lex.added_entries()` 和 `lex.removed_entries()` 涵盖自加载以来新增或删除的条目。
+  - 它返回条目本身，不受 `id` 重复或缺失的影响（LIFT 允许这种情况）。
+  - 作为一种计数方式，只有在有可比较对象的情况下才有意义。 当字节扫描器无法读取源数据时（例如编码与 ASCII 不兼容，或者扫描器与解析器之间存在分歧），由于缺乏基准，`changed_entries()` 会报告 _所有_ 条目。 对于写保护而言，这确实是一个诚实的答案，因为在这种情况下 `save()` 会重新序列化整个文件，但这意味着计数值代表的是词汇表的大小，而不是编辑内容的大小。
+- `lex.changes()` 用于判断文档是否_有任何_更改。 它不仅涵盖了条目，还包括页眉、根元素以及所有 `.lift-ranges` 关联元素。
+  - 只有当 `save()` 能重现源字节时，该条件才会为假，因此 `if not lex.changes(): ...` 才是跳过不必要写入的正确方法。 该保证是单向的：对于本应被重写的文档，它绝不会报告“无内容可写”；而那些会触发完整重新序列化的更改，即使最终结果与原始字节完全一致，仍会被报告。
+  - 它比较的是内容，而非目标路径，因此仅应将其用于就地保存：`lex.save(some_other_dir / "dictionary.lift")` 会将文档及其相关文件写入一个目前尚无内容的目录，无论内容是否发生变化。
+  - 这是一种保护机制，而非加速手段——调用该函数会处理每个条目，这与 `save()` 决定哪些源字节可以复用的工作完全相同，因此你跳过的只是写入操作本身（文件修改时间保持不变，不会产生虚假差异），而非决策过程。
+- 内存验证（`lex.iter_problems()`）会先将编辑后的状态序列化，因此能在将任何内容写入磁盘之前，准确反映编辑后的状态。 一旦遇到任何 `"error"` 级别的 `Problem` 就会中止处理——警告信息将保留给调用方自行决定如何处理——这意味着错误的编辑操作永远不会进入 `save()` 方法。
 
 值得这样处理的不仅仅是光泽。 相同的 `Multitext` 映射规则同样适用于定义以及条目或词义中的所有其他多语言字段：
 
