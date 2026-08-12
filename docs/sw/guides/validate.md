@@ -22,7 +22,7 @@ Kila `Problem` ina `level` (`"error"`/`"warning"`), `code` thabiti, `message`, n
 
 ## Tabaka
 
-1. **RELAX NG** dhidi ya sarufi ya LIFT 0.13 (iliyotolewa na lift-standard).
+1. **RELAX NG** dhidi ya sarufi ya LIFT 0.13 (iliyotolewa kutoka lift-standard — nakala inayofanana byte kwa byte iliyowekwa katika kifurushi hiki).
 2. **Rangi za schema** — `lift-ranges-0.13.rng` ya mradi huu — juu ya kila kiambatisho cha `.lift-ranges` kinachofuatiliwa.
 3. **Ukaguzi wa semantiki** ambao sarufi haiwezi kuonyesha: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
