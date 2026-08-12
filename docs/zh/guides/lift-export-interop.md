@@ -24,7 +24,7 @@ sil-lift validate export.lift --strict --no-check-media --format json
 ```
 
 - `--strict` 会使警告（而不仅仅是错误）导致运行失败。
-- `--no-check-media` 会跳过文件系统的媒体存在性检查；当音频/照片文件在持续集成（CI）环境中未与 `.lift` 文件位于同一位置时，该检查产生的 `missing-media` 错误提示属于误报。
+- `--no-check-media` 会跳过文件系统的媒体存在性检查；当音频/照片文件与 CI 中的 `.lift` 文件不在同一文件夹时，该检查得出的 `missing-media` 结果属于误报。
 - `--format json` 会输出一个 JSON 对象（`{"problems": [...], "summary": {...}}`），而非可读文本；其退出代码和模式构成一个受支持且符合 SemVer 规范的接口（参见 [命令行指南](cli.md)）。
 - `--require-ids` 还会针对缺少 `guid` 的条目或缺少 `id` 的字段报错——这在后续重新导入时需要更新而非重复导入的情况下非常有用。
 
