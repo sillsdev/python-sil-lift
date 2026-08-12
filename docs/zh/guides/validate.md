@@ -22,7 +22,7 @@ problems = list(lex.iter_problems())
 
 ## 各层
 
-1. **RELAX NG** 基于 LIFT 0.13 语法（从 lift-standard 引入）。
+1. **RELAX NG** 基于 LIFT 0.13 语法（从 lift-standard 引入——这是一个与本包中提交的版本字节级完全一致的副本）。
 2. **范围模式** —— 本项目的 `lift-ranges-0.13.rng` —— 适用于所有被追踪的 `.lift-ranges` 伴生类。
 3. **语义检查**：语法无法表达以下情况：`duplicate-guid`、`dangling-ref`、`range-parent`、`undefined-range-value`、`duplicate-form-lang`、`missing-media`。
 
