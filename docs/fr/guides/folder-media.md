@@ -1,6 +1,6 @@
 # Le dossier LIFT : gammes et supports
 
-Un lexique LIFT se présente généralement sous la forme d'un _dossier_ : le fichier `.lift`, un ou plusieurs fichiers associés `.lift-ranges`, ainsi que les fichiers multimédias contenus dans les dossiers `audio/` et `pictures/`.
+Un lexique LIFT se présente généralement sous la forme d'un _dossier_ : le fichier `.lift`, un ou plusieurs fichiers associés `.lift-ranges` (fichiers « sidecar ») et les fichiers multimédias contenus dans les dossiers `audio/` et `pictures/`.
 
 ## Gammes
 
