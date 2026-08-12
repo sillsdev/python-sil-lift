@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """Yeyeza kila hisia, ikiwa ni pamoja na hisia ndogo (kwa kujirudia)."""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -49,16 +49,16 @@ Mambo machache ya kuzingatia:
 
 - `Sense.subsenses` ni `list[Sense]` yenyewe, kwa hivyo `iter_senses` inarudia ndani yake — uhariri wa jumla ambao ungepitia tu `entry.senses` ungeacha kimya kimya fasili yoyote iliyoko chini ya subsense.
 - `gloss.text` ni `Text`, si mfululizo wa kawaida: `str(gloss.text)` huifanya iwe mfululizo wa kawaida kwa ajili ya kulinganisha, na mbadala huandikwa tena kwa kutumia `sil_lift.Text([new])` badala ya kubadilisha mfululizo mahali pake.
-- `lex.changed_entries()` reports which entries differ from the file as loaded. Since an entry's digest covers its whole subtree, an edit to a nested subsense reports the entry that contains it.
-  - It compares serialized content, so assigning a field the value it already had isn't reported.
-  - It reports content changes only; `lex.added_entries()` and `lex.removed_entries()` cover entries that appeared or disappeared since loading.
-  - It returns the entries themselves, unaffected by `id` being duplicated or absent (which LIFT allows).
-  - As a count, it is meaningful only where there is something to compare against. When the passthrough layer declines to byte-scan the source — an encoding that is not ASCII-compatible, or a scanner/parser disagreement — there is no baseline, and `changed_entries()` reports _every_ entry. That is the honest answer for a write guard, since `save()` re-serializes the whole file in that case, but it means the count is the size of the lexicon rather than the size of the edit.
-- `lex.changes()` reports whether the document changed _at all_. It covers not just the entries, but also the header, the root element, and every `.lift-ranges` companion.
-  - It is falsy only when `save()` would reproduce the source bytes, which makes `if not lex.changes(): ...` the right way to skip an unnecessary write. The guarantee runs one way: it never reports "nothing to write" for a document that would be rewritten, while a change that forces a full re-serialization can land back on the original bytes and still be reported.
-  - It compares content, not destination, so guard only an in-place save with it: `lex.save(some_other_dir / "dictionary.lift")` writes the document and its companions to a location that has nothing in it yet, whether or not anything changed.
-  - It is a guard, not a speed-up — answering it digests every entry, which is the same work `save()` does to decide passthrough, so what you skip is the write itself (an untouched mtime, no spurious diff), not the effort of deciding.
-- Uhakiki katika kumbukumbu (`lex.iter_problems()`) huweka kwanza hali iliyohaririwa kwa mpangilio, hivyo inaonyesha kwa usahihi mabadiliko kabla ya chochote kuandikwa kwenye diski. Kukata shughuli kwa `Problem` yoyote ya kiwango cha `"error"` — maonyo huachwa kwa mtu anayeita ili ahukumu — kunamaanisha kuwa uhariri mbaya hauwahi kufikia `save()`.
+- `lex.changed_entries()` huripoti ni vipengee gani vinatofautiana na faili kama ilivyoandaliwa. Kwa kuwa muhtasari wa kijumla wa kipengee unajumuisha tawi lake lote, uhariri wa kipengele kidogo kilichojumuishwa huripoti kipengee kinachokijumuisha.
+  - Inalinganisha maudhui yaliyopangwa kwa mfululizo, hivyo kutoa uwanja thamani yake ya awali hakuripotiwi.
+  - Inaripoti mabadiliko ya maudhui pekee; `lex.added_entries()` na `lex.removed_entries()` zinashughulikia maingizo yaliyoonekana au yaliyotoweka tangu kupakia.
+  - Inarudisha maingizo yenyewe, bila kuathiriwa na `id` kurudiwa au kutokuwepo (jambo ambalo LIFT inaruhusu).
+  - Kama hesabu, ina maana tu pale panapokuwa na kitu cha kulinganisha nacho. Wakati skana ya baiti inapokataa kusoma chanzo — kodishaji ambao hauendani na ASCII, au kutokubaliana kwa skana na mchanganuzi — hakuna msingi, na `changed_entries()` inaripoti kila kitu. Hiyo ndiyo jibu la kweli kwa kizuiaji cha kuandika, kwa kuwa `save()` inasababisha kusajili tena faili nzima katika kesi hiyo, lakini hiyo inamaanisha kuwa hesabu ni ukubwa wa kamusi badala ya ukubwa wa uhariri.
+- `lex.changes()` huripoti kama hati imebadilika _kabisa_. Haijumuishi tu maingizo, bali pia kichwa, kipengele cha mizizi, na kila mwandani wa `.lift-ranges`.
+  - Ni uongo tu wakati `save()` ingezaa tena baiti za chanzo, jambo linalofanya `if not lex.changes(): ...` kuwa njia sahihi ya kuepuka uandishi usiohitajika. Dhamana inaendeshwa upande mmoja: hairipoti kamwe "hakuna cha kuandika" kwa hati ambayo ingeandikwa upya, wakati mabadiliko yanayolazimisha urekebishaji kamili wa mfululizo yanaweza kurudi kwenye baiti za awali na bado kuripotiwa.
+  - Inalinganisha yaliyomo, si mahali pa mwisho, kwa hivyo linda tu uhifadhi mahali pake: `lex.save(some_other_dir / "dictionary.lift")` huandika hati na viambatisho vyake kwenye eneo ambalo bado halina chochote, bila kujali kama kitu kimebadilika au la.
+  - Ni kizuizi, si kiongezi kasi — kujibu hufanyia uchambuzi kila kipengee, kazi ile ile ambayo `save()` hufanya ili kuamua ni baiti gani za chanzo inaweza kutumia tena, hivyo unachokikwepa ni uandishi wenyewe (muda wa mabadiliko ya faili haujabadilika, hakuna tofauti isiyo ya lazima), si jitihada za kuamua.
+- Uhakiki katika kumbukumbu (`lex.iter_problems()`) huweka kwanza hali iliyohaririwa kwa mpangilio, hivyo inaonyesha kwa usahihi mabadiliko kabla ya chochote kuandikwa kwenye diski. Kukata shughuli kwa `Problem` yoyote ya kiwango cha `"error"` — maonyo huachwa kwa mtu anayeita ili aamue — kunamaanisha kuwa uhariri mbaya hautawahi kufikia `save()`.
 
 Si glosi pekee ndizo zinazostahili kuguswa kwa njia hii. Uso uleule wa ramani wa `Multitext` unatumika kwa ufafanuzi na kila uwanja mwingine wa lugha nyingi kwenye kipengee au maana:
 
