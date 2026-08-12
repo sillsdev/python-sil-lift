@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """Выдает все значения, включая подзначения (рекурсивно)."""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -39,26 +39,26 @@ errors = [p for p in lex.iter_problems() if p.level == "error"]
 if errors:
     for problem in errors:
         print(problem)
-    sys.exit(f"aborting: {len(errors)} validation error(s), nothing saved")
+    sys.exit(f"прерывание: {len(errors)} ошибка(и) проверки, ничего не сохранено")
 
 lex.save()
-print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
+print(f"отредактировано {edited_glosses} глосса(рий) в {len(changed)} записи(ях)")
 ```
 
 Несколько моментов, на которые стоит обратить внимание:
 
 - `Sense.subsenses` само по себе представляет собой `list[Sense]`, поэтому `iter_senses` выполняет рекурсию по нему — при массовом редактировании, которое бы просматривало только `entry.senses`, любые глоссы, вложенные под подзначениями, были бы незаметно пропущены.
 - `gloss.text` — это объект типа `Text`, а не обычная строка: функция `str(gloss.text)` преобразует его в строку для сопоставления, а результат замены записывается обратно с помощью `sil_lift.Text([new])`, а не путем изменения исходной строки на месте.
-- `lex.changed_entries()` reports which entries differ from the file as loaded. Since an entry's digest covers its whole subtree, an edit to a nested subsense reports the entry that contains it.
-  - It compares serialized content, so assigning a field the value it already had isn't reported.
-  - It reports content changes only; `lex.added_entries()` and `lex.removed_entries()` cover entries that appeared or disappeared since loading.
-  - It returns the entries themselves, unaffected by `id` being duplicated or absent (which LIFT allows).
-  - As a count, it is meaningful only where there is something to compare against. When the passthrough layer declines to byte-scan the source — an encoding that is not ASCII-compatible, or a scanner/parser disagreement — there is no baseline, and `changed_entries()` reports _every_ entry. That is the honest answer for a write guard, since `save()` re-serializes the whole file in that case, but it means the count is the size of the lexicon rather than the size of the edit.
-- `lex.changes()` reports whether the document changed _at all_. It covers not just the entries, but also the header, the root element, and every `.lift-ranges` companion.
-  - It is falsy only when `save()` would reproduce the source bytes, which makes `if not lex.changes(): ...` the right way to skip an unnecessary write. The guarantee runs one way: it never reports "nothing to write" for a document that would be rewritten, while a change that forces a full re-serialization can land back on the original bytes and still be reported.
-  - It compares content, not destination, so guard only an in-place save with it: `lex.save(some_other_dir / "dictionary.lift")` writes the document and its companions to a location that has nothing in it yet, whether or not anything changed.
-  - It is a guard, not a speed-up — answering it digests every entry, which is the same work `save()` does to decide passthrough, so what you skip is the write itself (an untouched mtime, no spurious diff), not the effort of deciding.
-- При проверке в памяти (`lex.iter_problems()`) сначала выполняется сериализация отредактированного состояния, благодаря чему оно правильно отражает внесенные изменения ещё до записи на диск. Прерывание при возникновении любого объекта `Problem` уровня `"error"` — предупреждения оставляются на усмотрение вызывающего кода — означает, что некорректное изменение никогда не доходит до вызова `save()`.
+- Функция `lex.changed_entries()` выводит список записей, которые отличаются от содержимого загруженного файла. Поскольку дайджест записи охватывает всё её поддерево, при внесении изменений во вложенное подзначение об этом получает уведомление запись, в которой оно содержится.
+  - Он сравнивает сериализованные данные, поэтому присвоение полю значения, которое у него уже было, не фиксируется.
+  - Она сообщает только об изменениях в содержимом; функции `lex.added_entries()` и `lex.removed_entries()` охватывают записи, которые появились или исчезли с момента загрузки.
+  - Он возвращает сами записи, при этом не учитывая дубликаты или отсутствие `id` (что допускается в LIFT).
+  - В качестве показателя это имеет смысл только в том случае, если есть с чем сравнивать. Когда байтовый сканер отказывается считывать исходный код — из-за кодировки, несовместимой с ASCII, или из-за несогласованности между сканером и парсером — базовая линия отсутствует, и функция `changed_entries()` сообщает о _каждой_ записи. Это честный ответ в отношении защиты от записи, поскольку в данном случае функция `save()` повторно сериализует весь файл, но это означает, что подсчитанное значение отражает размер лексикона, а не размер внесенных изменений.
+- Функция `lex.changes()` сообщает, изменился ли документ _хотя бы немного_. Он охватывает не только записи, но и заголовок, корневой элемент, а также все элементы с классом `.lift-ranges`.
+  - Это будет ложным только в том случае, если `save()` воспроизводит исходные байты, что делает `if not lex.changes(): ...` правильным способом пропустить ненужную запись. Гарантия действует в одном направлении: она никогда не возвращает сообщение «нет данных для записи» для документа, который подлежит перезаписи, в то время как изменение, вызывающее полную повторную сериализацию, может привести к возврату исходных байтов и все равно будет отражено в отчете.
+  - Он сравнивает содержимое, а не место назначения, поэтому используйте его только для сохранения на месте: `lex.save(some_other_dir / "dictionary.lift")` записывает документ и сопутствующие файлы в пустое место, независимо от того, были ли внесены изменения.
+  - Это защитная мера, а не ускорение — при обработке этого вызова анализируется каждая запись, что соответствует той же работе, которую выполняет `save()` для определения, какие исходные байты можно повторно использовать. Таким образом, вы пропускаете именно саму запись (время изменения файла не изменяется, не возникает ложных различий), а не процесс принятия решения.
+- При проверке в памяти (`lex.iter_problems()`) сначала выполняется сериализация отредактированного состояния, благодаря чему оно правильно отражает внесенные изменения ещё до записи на диск. Прерывание при возникновении любого объекта `Problem` уровня `"error"` — предупреждения оставляются на усмотрение вызывающего модуля — означает, что некорректное изменение никогда не доходит до вызова `save()`.
 
 Не только глянцевые поверхности стоит обрабатывать таким образом. Та же самая поверхность сопоставления `Multitext` применяется к определениям и всем другим многоязычным полям в записи или значении:
 
