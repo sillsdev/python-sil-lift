@@ -1,6 +1,6 @@
 # La carpeta LIFT: gamas y soportes
 
-Un léxico de LIFT suele ser una _carpeta_: el archivo `.lift`, uno o varios archivos complementarios `.lift-ranges` y los archivos multimedia de las carpetas `audio/` y `pictures/`.
+Un léxico de LIFT suele ser una _carpeta_: el archivo `.lift`, uno o varios archivos complementarios `.lift-ranges` (archivos «sidecar») y los archivos multimedia de las carpetas `audio/` y `pictures/`.
 
 ## Gamas
 
