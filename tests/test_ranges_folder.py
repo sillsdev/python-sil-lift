@@ -228,8 +228,8 @@ def test_missing_media_flags_broken_ref(tmp_path: Path) -> None:
 def _write_case_variant_pair(folder: Path, lift_name: str, ranges_name: str) -> Path:
     """A loadable .lift plus companion under arbitrary filename casing.
 
-    Named off the fixture stem so the header's ``range/@href`` basename
-    candidate finds nothing — only the sibling candidate can resolve these.
+    Deliberately not named after the fixture, so the header's ``range/@href``
+    basename candidate finds nothing — only the sibling candidate resolves these.
     """
     folder.mkdir(parents=True, exist_ok=True)
     (folder / lift_name).write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
@@ -237,7 +237,7 @@ def _write_case_variant_pair(folder: Path, lift_name: str, ranges_name: str) -> 
     return folder / lift_name
 
 
-def _case_sensitive_fs(folder: Path) -> bool:
+def _case_sensitive_filesystem(folder: Path) -> bool:
     (folder / "CaseProbe").mkdir()
     return not (folder / "caseprobe").exists()
 
@@ -255,7 +255,7 @@ def test_companion_resolves_when_companion_suffix_is_uppercase(tmp_path: Path) -
 
 
 def test_case_folded_companions_resolve_deterministically(tmp_path: Path) -> None:
-    if not _case_sensitive_fs(tmp_path):
+    if not _case_sensitive_filesystem(tmp_path):
         pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
     # Neither spelling matches the Dict.LIFT-ranges candidate exactly, so the
     # tie-break picks one: lexicographically first, the same one every run.
@@ -267,7 +267,7 @@ def test_case_folded_companions_resolve_deterministically(tmp_path: Path) -> Non
 
 
 def test_absent_companion_stays_absent(tmp_path: Path) -> None:
-    # The fallback must not reach past a folder for a name that isn't in it.
+    # The fallback must not look outside the folder for a name not in it.
     folder = tmp_path / "pkg"
     folder.mkdir()
     (folder / "Dict.lift").write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
