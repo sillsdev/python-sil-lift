@@ -1,6 +1,6 @@
 # LIFT 文件夹：范围与媒体
 
-一个 LIFT 词汇表通常是一个 _文件夹_：包含一个 `.lift` 文件、一个或多个配套的 `.lift-ranges` 文件，以及 `audio/` / `pictures/` 目录中的媒体文件。
+一个 LIFT 词汇表通常是一个 _文件夹_：包含 `.lift` 文件、一个或多个 `.lift-ranges` 辅助文件（sidecar 文件），以及 `audio/` / `pictures/` 中的媒体文件。
 
 ## 范围
 
