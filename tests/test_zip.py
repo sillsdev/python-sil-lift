@@ -70,8 +70,9 @@ def test_zip_with_no_lift_errors(tmp_path: Path) -> None:
 
 
 def test_zip_tolerates_one_lift_stored_twice(tmp_path: Path) -> None:
-    # Some writers append a record rather than replace it, leaving the same
-    # path in the listing twice; extraction overwrites, so it is one file.
+    # Some writers add a second listing entry rather than replacing the first,
+    # leaving the same path in the listing twice; extraction overwrites, so it
+    # is one file.
     path = tmp_path / "dup.zip"
     with zipfile.ZipFile(path, "w") as archive:
         for arcname, src in PAIR.items():
@@ -166,12 +167,12 @@ def test_lift_source_extracts_only_the_lift(tmp_path: Path) -> None:
     assert written == [_PKG_LIFT.as_posix()]  # no media, no companion
 
 
-def test_lift_source_skips_the_aggregate_size_cap(
+def test_lift_source_skips_the_whole_package_size_cap(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # The cap guards bytes written to disk, and a streaming read writes one
-    # member — so a package whose media dwarfs the limit still streams, while
-    # the full extraction behind load() refuses it.
+    # member — so a package whose media is far larger than the limit still
+    # streams, while the full extraction behind load() refuses it.
     package = _package_with_media(tmp_path / "pkg.zip")
     monkeypatch.setattr("sil_lift._zip._MAX_UNCOMPRESSED_BYTES", 4000)
     with lift_source(package) as lift_path:

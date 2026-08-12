@@ -21,7 +21,7 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 `sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
 untouched (sort those separately with the `RangesFile` API).
 
-`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes. The streaming commands `stats` and `export` extract only the `.lift` itself, so they stay cheap on media-heavy packages; `validate` and `check-media` need the whole folder and unpack it.
+`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes. The streaming commands `stats` and `export` extract only the `.lift` itself, so they stay cheap on media-heavy packages; `validate` and `check-media` need the whole folder and extract all of it.
 
 Examples:
 

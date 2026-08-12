@@ -58,8 +58,9 @@ def _select_lift_member(names: Iterable[str]) -> str:
 
     Handles both the flat and folder-wrapped layouts, and ignores junk such as
     ``__MACOSX`` and dotfile entries that some zip tools add. One path stored
-    twice counts once — some writers append a record rather than replace it,
-    and extraction overwrites, so what lands on disk is a single file.
+    twice counts once — some writers add a second listing entry rather than
+    replacing the first, and extraction overwrites, so what lands on disk is a
+    single file.
 
     The suffix match is case-insensitive, so a ``.LIFT`` member resolves the
     same way on every platform rather than only where the filesystem happens to
@@ -94,11 +95,11 @@ def _safe_extract(zip_path: Path, dest: Path, *, only_lift: bool = False) -> str
     crafted archive's declared size can lie.
 
     ``only_lift`` narrows the write to the ``.lift`` itself, which is all a
-    streaming read needs. The aggregate declared-size check then has nothing to
-    guard and is left to full extraction, so a decompression bomb of a ``.lift``
-    is refused only once it has written ``_MAX_UNCOMPRESSED_BYTES`` — the same
-    worst-case temp usage as a full extraction, reached by one member instead of
-    the whole package.
+    streaming read needs. The up-front check of the whole listing's declared
+    sizes then has nothing to guard and is left to full extraction, so a zip
+    bomb hidden in the ``.lift`` is refused only once it has written
+    ``_MAX_UNCOMPRESSED_BYTES`` — the same worst-case temp usage as a full
+    extraction, reached by one member instead of the whole package.
     """
     dest_root = dest.resolve()
     try:
