@@ -1,6 +1,6 @@
 # A pasta LIFT: gamas e suportes
 
-Um léxico LIFT é normalmente uma _pasta_: o ficheiro `.lift`, um ou mais ficheiros complementares `.lift-ranges` e os ficheiros multimédia nas pastas `audio/` e `pictures/`.
+Um léxico LIFT é normalmente uma _pasta_: o ficheiro `.lift`, um ou mais ficheiros complementares `.lift-ranges` (ficheiros «sidecar») e os ficheiros multimédia nas pastas `audio/` e `pictures/`.
 
 ## Intervalos
 
