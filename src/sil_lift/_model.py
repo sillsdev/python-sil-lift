@@ -460,11 +460,11 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Pa
     case (``Dict.LIFT`` beside ``Dict.lift-ranges``) resolves there and, before
     this fallback, silently did not on a case-sensitive filesystem.
 
-    The fallback fires only where the exact name missed, so a case-folding
-    filesystem never reaches it and nothing changes there. Where several names
-    fold together, the lexicographically first wins — arbitrary, but stable
-    across runs, which "whatever the directory yields first" would not be.
-    ``listings`` caches one directory read per folder.
+    The fallback runs only where the exact name matched no file, so a
+    case-folding filesystem never reaches it and nothing changes there. Where
+    several names fold together, the lexicographically first wins — arbitrary,
+    but stable across runs, which "whatever the directory yields first" would
+    not be. ``listings`` caches one directory read per folder.
     """
     try:
         if candidate.is_file():
@@ -473,14 +473,14 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Pa
         return None
     folder = candidate.parent
     if folder not in listings:
-        entries: dict[str, Path] = {}
+        files: dict[str, Path] = {}
         try:
             for path in sorted(folder.iterdir()):
                 if path.is_file():
-                    entries.setdefault(path.name.lower(), path)
+                    files.setdefault(path.name.lower(), path)
         except OSError:
             pass  # unreadable folder: no candidate resolves out of it
-        listings[folder] = entries
+        listings[folder] = files
     return listings[folder].get(candidate.name.lower())
 
 
@@ -543,9 +543,9 @@ class Lexicon:
         ``.lift`` file and its bare basename in the same directory (FLEx
         hrefs are usually dangling absolute ``file://C:/...`` paths from the
         exporting machine, so the basename is what resolves locally). A
-        candidate no file matches exactly still resolves to one whose name
-        differs only in case, so a folder authored on Windows loads the same
-        way on a case-sensitive filesystem.
+        candidate that no file matches exactly still resolves to a file whose
+        name differs only in case, so a folder authored on Windows loads the
+        same way on a case-sensitive filesystem.
 
         A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
         to a temporary directory (kept alive for the returned lexicon's
