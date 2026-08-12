@@ -1,6 +1,6 @@
 # Folda ya LIFT: masafa na vyombo vya habari
 
-Kamusi ya LIFT kawaida ni _folda_: faili ya `.lift`, moja au zaidi ya faili za `.lift-ranges` zinazohusiana, na media za `audio/` / `pictures/`.
+Kamusi ya LIFT kawaida ni _folda_: faili ya `.lift`, moja au zaidi ya faili wasaidizi za `.lift-ranges` (faili za pembeni), na midia ya `audio/` / `pictures/`.
 
 ## Vipimo
 
