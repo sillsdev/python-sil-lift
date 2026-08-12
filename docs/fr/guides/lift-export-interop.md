@@ -24,7 +24,7 @@ sil-lift validate export.lift --strict --no-check-media --format json
 ```
 
 - L'option `--strict` fait en sorte que les avertissements (et pas seulement les erreurs) entraînent l'échec de l'exécution.
-- L'option `--no-check-media` permet d'ignorer la vérification de la présence des médias dans le système de fichiers, dont les résultats indiquant « `missing-media` » constituent un faux positif lorsque les fichiers audio/photo ne se trouvent pas dans le même répertoire que le fichier `.lift` dans l'environnement de CI.
+- L'option `--no-check-media` permet d'ignorer la vérification de la présence des médias dans le système de fichiers, dont les résultats indiquant « `missing-media` » constituent un faux positif lorsque les fichiers audio/photo ne se trouvent pas dans le même dossier que le fichier `.lift` dans l'environnement CI.
 - L'option `--format json` affiche un seul objet JSON (`{"problems": [...], "summary": {...}}`) au lieu d'un texte lisible par l'utilisateur ; ses codes de sortie et son schéma constituent une interface prise en charge et conforme à SemVer (voir [le guide de la ligne de commande](cli.md)).
 - `--require-ids` génère également des erreurs lorsque des entrées ne comportent pas de `guid` ou détecte l'absence d'un `id` — ce qui s'avère utile lorsqu'une réimportation ultérieure doit mettre à jour les données existantes plutôt que de les dupliquer.
 
