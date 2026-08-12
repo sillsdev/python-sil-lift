@@ -1,6 +1,6 @@
 # Der LIFT-Ordner: Sortimente und Medien
 
-Ein LIFT-Lexikon besteht in der Regel aus einem _Ordner_: der `.lift`-Datei, einer oder mehreren zugehörigen `.lift-ranges`-Dateien sowie den Medien in den Ordnern `audio/` und `pictures/`.
+Ein LIFT-Lexikon besteht in der Regel aus einem _Ordner_: der `.lift`-Datei, einer oder mehreren zugehörigen `.lift-ranges`-Dateien (Sidecar-Dateien) sowie den Mediendateien im Verzeichnis `audio/` bzw. `pictures/`.
 
 ## Bereiche
 
