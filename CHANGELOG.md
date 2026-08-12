@@ -61,9 +61,10 @@ releases may contain breaking changes.
   package files through verbatim); `validate`, `stats`, `check-media`, and
   `export` accept a `.zip` path on the CLI, and the streaming commands
   (`stats`, `export`) extract only the `.lift` rather than the whole package.
-  Extraction rejects path-traversal members and is capped (entry count,
-  a 10 GiB uncompressed total for a full extraction, and every file written)
-  against zip bombs.
+  Extraction rejects path-traversal members and is capped against zip bombs:
+  entry count; a 10 GiB declared uncompressed size (of the whole listing for
+  a full extraction, of the `.lift` alone for a streaming one); and the bytes
+  written as they stream (since a declared size can lie).
 - Validation: `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning a `Problem` stream, each carrying the
   file, entry, and line it concerns. RELAX NG layer with two documented

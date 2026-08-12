@@ -71,8 +71,7 @@ def test_zip_with_no_lift_errors(tmp_path: Path) -> None:
 
 def test_zip_tolerates_one_lift_stored_twice(tmp_path: Path) -> None:
     # Some writers add a second listing entry rather than replacing the first,
-    # leaving the same path in the listing twice; extraction overwrites, so it
-    # is one file.
+    # so the same path appears twice; extraction overwrites, leaving one file.
     path = tmp_path / "dup.zip"
     with zipfile.ZipFile(path, "w") as archive:
         for arcname, src in PAIR.items():
@@ -188,6 +187,31 @@ def test_lift_source_caps_an_oversized_lift_member(
     monkeypatch.setattr("sil_lift._zip._MAX_UNCOMPRESSED_BYTES", 100)  # under the .lift's size
     with pytest.raises(sil_lift.LiftParseError, match="exceeds"), lift_source(package):
         pass
+
+
+def test_lift_source_refuses_a_declared_oversized_lift_unextracted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    package = tmp_path / "declared.zip"
+    with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("Pkg/big.lift", b"<lift/>" * 10)
+        archive.getinfo("Pkg/big.lift").file_size = 10**9
+    monkeypatch.setattr("sil_lift._zip._MAX_UNCOMPRESSED_BYTES", 4000)
+    with pytest.raises(sil_lift.LiftParseError, match=r"big\.lift' alone"), lift_source(package):
+        pass
+
+
+def test_lift_source_counts_a_lift_stored_twice_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    package = tmp_path / "dup.zip"
+    with zipfile.ZipFile(package, "w") as archive:
+        for _ in range(2):
+            archive.write(PAIR_DIR / "test20080407.lift", "Pkg/test20080407.lift")
+    size = (PAIR_DIR / "test20080407.lift").stat().st_size
+    monkeypatch.setattr("sil_lift._zip._MAX_UNCOMPRESSED_BYTES", 2 * size - 1)
+    with lift_source(package) as lift_path:  # one copy written, not two
+        assert lift_path.stat().st_size == size
 
 
 def test_lift_source_rejects_path_traversal(tmp_path: Path) -> None:

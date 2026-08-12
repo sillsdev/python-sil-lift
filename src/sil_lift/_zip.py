@@ -58,9 +58,9 @@ def _select_lift_member(names: Iterable[str]) -> str:
 
     Handles both the flat and folder-wrapped layouts, and ignores junk such as
     ``__MACOSX`` and dotfile entries that some zip tools add. One path stored
-    twice counts once — some writers add a second listing entry rather than
-    replacing the first, and extraction overwrites, so what lands on disk is a
-    single file.
+    multiple times counts once — some writers add a second listing entry rather
+    than replacing the first, and extraction overwrites, so what lands on disk
+    is a single file.
 
     The suffix match is case-insensitive, so a ``.LIFT`` member resolves the
     same way on every platform rather than only where the filesystem happens to
@@ -95,11 +95,10 @@ def _safe_extract(zip_path: Path, dest: Path, *, only_lift: bool = False) -> str
     crafted archive's declared size can lie.
 
     ``only_lift`` narrows the write to the ``.lift`` itself, which is all a
-    streaming read needs. The up-front check of the whole listing's declared
-    sizes then has nothing to guard and is left to full extraction, so a zip
-    bomb hidden in the ``.lift`` is refused only once it has written
-    ``_MAX_UNCOMPRESSED_BYTES`` — the same worst-case temp usage as a full
-    extraction, reached by one member instead of the whole package.
+    streaming read needs. The whole listing's declared sizes then have nothing
+    to guard, so the up-front check covers that one member instead: a zip bomb
+    that declares itself is refused with nothing written, and one that lies
+    about its size is still caught as it streams.
     """
     dest_root = dest.resolve()
     try:
@@ -114,7 +113,12 @@ def _safe_extract(zip_path: Path, dest: Path, *, only_lift: bool = False) -> str
                     )
             member = _select_lift_member(info.filename for info in infos)
             if only_lift:
-                infos = [info for info in infos if info.filename == member]
+                # getinfo() takes the last listing entry for a path stored
+                # multiple times, the one that's left after full extraction.
+                lift_info = archive.getinfo(member)
+                if lift_info.file_size > _MAX_UNCOMPRESSED_BYTES:
+                    raise LiftParseError(_size_limit_message(zip_path, member))
+                infos = [lift_info]
             elif sum(info.file_size for info in infos) > _MAX_UNCOMPRESSED_BYTES:
                 raise LiftParseError(_size_limit_message(zip_path))
             written = 0
