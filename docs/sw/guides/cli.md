@@ -1,19 +1,19 @@
 # Mstari wa amri
 
-Kusakinisha kifurushi (`pip install sil-lift`) pia husakinisha amri ya `sil-lift` — zana inayounga mkono mtindo wa LiftTools inayotolewa na kifurushi hicho (na, kwa `validate`, mfano uliofanyiwa kazi wa API ya maktaba).
+Kusakinisha kifurushi (`pip install sil-lift`) pia husakinisha amri ya `sil-lift` — zana inayoungwa mkono katika mtindo wa LiftTools inayokuja na kifurushi hicho (na, kwa `validate`, mfano uliofanyiwa kazi wa API ya maktaba).
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
-                                           matatizo yote, yaliyotatuliwa kwa kipengee/anwani ya mstari; kutoka 1 kwa makosa
+                                           matatizo yote, na faili/kipengee/mstari; kutoka 1 kwa makosa
 sil-lift stats PATH [--format {text,json}]
                                            idadi za kipengee/maana/lugha (mtiririko; ukubwa wowote)
 sil-lift sort PATH [-o OUT]               imepangwa kihalali, nakala tayari kwa tofauti (chaguo-msingi: mahali pake)
 sil-lift check-media NJIA                 ripoti ya vyombo vilivyokosekana na vilivyoachwa peke yake; toa 1 ikiwa hakuna
 sil-lift export NJIA [-o OUT] [--langs L] [--tsv]
-                                           safu moja kwa kila hisia ya majani (hisia ndogo zimepangwa wazi) kwa CSV/TSV (mtiririko)
+                                           safu moja kwa kila hisia ya majani (hisia ndogo zimepandishwa) kwa CSV/TSV (mtiririko)
 ```
 
-`--format json` huandika object moja ya JSON kwenye stdout (na hakuna kitu kingine) kwa matumizi ya CI/otomatishaji; tazama schema katika mfano hapa chini. `--strict` huchukulia maonyo kama makosa, na kutoka kwa nambari 1 endapo yoyote yatapatikana — itumie ili kuidhinisha ujenzi endapo hakuna matatizo, badala ya kutegemea makosa pekee. `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili (na hivyo kuficha matokeo ya `missing-media`), jambo ambalo ni muhimu wakati wa kuthibitisha toleo jipya lililotengenezwa ambalo faili zake za sauti/picha ziko mahali pengine na haziko kwenye diski pamoja. `--require-ids` pia hushindwa (kosa la `missing-id`) kwa kipengee chochote kinachokosa `guid` au sense kinachokosa `id` — ni kali zaidi kuliko LIFT, kwa mtiririko wa kazi unao-re-import tena kwa kutumia id thabiti. Kupitisha `-` kama njia husoma hati kutoka stdin (hati iliyopitishwa kwa bomba haina folda, hivyo faili zake za `.lift-ranges` na media hazitatatuliwa). `stats` vivyo hivyo huchukua `--format json`, na kutoa hesabu kama kitu kimoja cha JSON.
+`--format json` huandika object moja ya JSON kwenye stdout (na hakuna kitu kingine) kwa matumizi ya CI/otomatishaji; tazama schema katika mfano hapa chini. `--strict` huchukulia maonyo kama makosa, na kutoka kwa nambari 1 endapo yoyote yatapatikana — itumie ili kuidhinisha ujenzi endapo hakuna maonyo kabisa, badala ya kutegemea makosa pekee. `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili (na hivyo kuficha matokeo ya `missing-media`), jambo ambalo ni muhimu wakati wa kuthibitisha toleo jipya lililotengenezwa ambalo faili zake za sauti/picha ziko mahali pengine badala ya kwenye folda moja. `--require-ids` pia hushindwa (kosa la `missing-id`) kwa kipengee chochote kinachokosa `guid` au sense kinachokosa `id` — ni kali zaidi kuliko LIFT, kwa mtiririko wa kazi unao-re-import tena kwa kutumia id thabiti. Kupitisha `-` kama njia husoma hati kutoka stdin (hati iliyopitishwa kwa bomba haina folda, hivyo faili zake za `.lift-ranges` na media hazitatatuliwa). `stats` vivyo hivyo huchukua `--format json`, na kutoa hesabu kama kitu kimoja cha JSON.
 
 !!! note
     Misimbo ya kutoka ya `validate` na `--format json` schema ni kiolesura cha kiotomatiki kinachotumika: vyote vimejumuishwa katika majaribio na hubadilika tu kulingana na SemVer.
