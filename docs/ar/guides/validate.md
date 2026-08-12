@@ -22,7 +22,7 @@ problems = list(lex.iter_problems())
 
 ## الطبقات
 
-1. **RELAX NG** وفقًا لقواعد النحو LIFT 0.13 (المُدرجة في مكتبة lift-standard).
+1. **RELAX NG** وفقًا لقواعد النحو LIFT 0.13 (مأخوذة من lift-standard — وهي نسخة مطابقة تمامًا من حيث البايتات تم تضمينها في هذه الحزمة).
 2. **مخطط النطاقات** — ملف `lift-ranges-0.13.rng` الخاص بهذا المشروع — على كل مرفق `.lift-ranges` يتم تتبعه.
 3. **التحققات الدلالية** التي لا يمكن للقواعد النحوية التعبير عنها: `duplicate-guid`، `dangling-ref`، `range-parent`، `undefined-range-value`، `duplicate-form-lang`، `missing-media`.
 
