@@ -22,7 +22,7 @@ Chaque « problème » comporte un « niveau » (« erreur »/« avertissement �
 
 ## Les couches
 
-1. **RELAX NG** par rapport à la grammaire LIFT 0.13 (fournie par lift-standard).
+1. **RELAX NG** par rapport à la grammaire LIFT 0.13 (fournie par lift-standard — une copie identique au niveau des octets intégrée à ce paquet).
 2. **Schéma Ranges** — le fichier `lift-ranges-0.13.rng` de ce projet — s'applique à tous les compagnons `.lift-ranges` suivis.
 3. **Vérifications sémantiques** que la grammaire ne permet pas d'exprimer : `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
