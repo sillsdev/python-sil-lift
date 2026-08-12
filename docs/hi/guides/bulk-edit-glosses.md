@@ -14,7 +14,7 @@ lex = sil_lift.load(path)
 
 
 def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
+    """प्रत्येक अर्थ, उप-अर्थों सहित (पुनरावर्ती) उत्पन्न करें।"""
     for sense in senses:
         yield sense
         yield from iter_senses(sense.subsenses)
@@ -49,16 +49,16 @@ print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
 
 - `Sense.subsenses` स्वयं एक `list[Sense]` है, इसलिए `iter_senses` इसमें पुनरावृत्ति करता है — एक सामूहिक संपादन जो केवल `entry.senses` को ही चलाता है, वह किसी उपसंज्ञा के अंतर्गत निहित किसी भी परिभाषा को चुपचाप छोड़ देगा।
 - `gloss.text` एक `Text` है, न कि एक साधारण स्ट्रिंग: `str(gloss.text)` इसे मिलान के लिए फ्लैटन करता है, और प्रतिस्थापन को स्ट्रिंग को वहीं पर बदलने के बजाय `sil_lift.Text([new])` के साथ वापस लिखा जाता है।
-- `lex.changed_entries()` reports which entries differ from the file as loaded. Since an entry's digest covers its whole subtree, an edit to a nested subsense reports the entry that contains it.
-  - It compares serialized content, so assigning a field the value it already had isn't reported.
-  - It reports content changes only; `lex.added_entries()` and `lex.removed_entries()` cover entries that appeared or disappeared since loading.
-  - It returns the entries themselves, unaffected by `id` being duplicated or absent (which LIFT allows).
-  - As a count, it is meaningful only where there is something to compare against. When the passthrough layer declines to byte-scan the source — an encoding that is not ASCII-compatible, or a scanner/parser disagreement — there is no baseline, and `changed_entries()` reports _every_ entry. That is the honest answer for a write guard, since `save()` re-serializes the whole file in that case, but it means the count is the size of the lexicon rather than the size of the edit.
-- `lex.changes()` reports whether the document changed _at all_. It covers not just the entries, but also the header, the root element, and every `.lift-ranges` companion.
-  - It is falsy only when `save()` would reproduce the source bytes, which makes `if not lex.changes(): ...` the right way to skip an unnecessary write. The guarantee runs one way: it never reports "nothing to write" for a document that would be rewritten, while a change that forces a full re-serialization can land back on the original bytes and still be reported.
-  - It compares content, not destination, so guard only an in-place save with it: `lex.save(some_other_dir / "dictionary.lift")` writes the document and its companions to a location that has nothing in it yet, whether or not anything changed.
-  - It is a guard, not a speed-up — answering it digests every entry, which is the same work `save()` does to decide passthrough, so what you skip is the write itself (an untouched mtime, no spurious diff), not the effort of deciding.
-- मेमोरी में सत्यापन (`lex.iter_problems()`) पहले संपादित स्थिति को सीरियलाइज़ करता है, ताकि डिस्क पर कुछ भी लिखे जाने से पहले यह संपादन को सही ढंग से दर्शाए। किसी भी `"error"`-स्तर के `Problem` पर प्रक्रिया रद्द करने पर — चेतावनियाँ कॉल करने वाले पर छोड़ दी जाती हैं — इसका मतलब है कि एक खराब संपादन कभी भी `save()` तक नहीं पहुँचता।
+- `lex.changed_entries()` रिपोर्ट करता है कि लोड की गई फ़ाइल से कौन-सी प्रविष्टियाँ भिन्न हैं। चूंकि एक प्रविष्टि का डाइजेस्ट उसके पूरे सबट्री को कवर करता है, एक नेस्टेड सबसेंस में संपादन उस प्रविष्टि की रिपोर्ट करता है जिसमें वह शामिल है।
+  - यह सीरियलाइज़्ड सामग्री की तुलना करता है, इसलिए किसी फ़ील्ड को उसका पूर्व मान वापस असाइन करने पर यह रिपोर्ट नहीं होता।
+  - यह केवल सामग्री में हुए परिवर्तनों की रिपोर्ट करता है; `lex.added_entries()` और `lex.removed_entries()` उन प्रविष्टियों को कवर करते हैं जो लोड होने के बाद से दिखाई दीं या गायब हो गईं।
+  - यह प्रविष्टियों को स्वयं लौटाता है, चाहे `id` दोहराया गया हो या अनुपस्थित हो (जिसकी अनुमति LIFT देता है)।
+  - एक गणना के रूप में, यह केवल तभी सार्थक होती है जब तुलना करने के लिए कुछ मौजूद हो। जब बाइट स्कैनर स्रोत पढ़ने से इनकार करता है — ऐसी एन्कोडिंग जो ASCII-संगत नहीं है, या स्कैनर/पार्सर के बीच असहमति — तब कोई आधार रेखा नहीं होती, और `changed_entries()` हर प्रविष्टि की रिपोर्ट करता है। WriteGuard के लिए यह ईमानदार उत्तर है, क्योंकि `save()` उस स्थिति में पूरी फ़ाइल को फिर से सीरियलाइज़ करता है, लेकिन इसका मतलब है कि काउंट संपादन के आकार के बजाय शब्दकोश के आकार के बराबर होता है।
+- `lex.changes()` यह रिपोर्ट करता है कि दस्तावेज़ में _बिल्कुल भी_ बदलाव हुआ है या नहीं। यह केवल प्रविष्टियों को ही नहीं, बल्कि हेडर, रूट एलिमेंट और प्रत्येक `.lift-ranges` साथी को भी कवर करता है।
+  - यह केवल तब फर्सी होता है जब `save()` स्रोत बाइट्स को पुन: उत्पन्न कर सके, जो `if not lex.changes(): ...` को अनावश्यक लेखन छोड़ने का सही तरीका बनाता है। गारंटी एकतरफा है: यह कभी भी उस दस्तावेज़ के लिए "लिखने के लिए कुछ नहीं" रिपोर्ट नहीं करती जिसे फिर से लिखा जाएगा, जबकि एक ऐसा परिवर्तन जो पूरी पुनः-सीरियलाइज़ेशन को मजबूर करता है, मूल बाइट्स पर वापस आ सकता है और फिर भी रिपोर्ट किया जा सकता है।
+  - यह सामग्री की तुलना करता है, गंतव्य की नहीं, इसलिए इसके साथ केवल उसी स्थान पर सहेजें: `lex.save(some_other_dir / "dictionary.lift")` दस्तावेज़ और उसके साथियों को एक ऐसी जगह पर लिखता है जहाँ अभी तक कुछ भी नहीं है, चाहे कुछ बदला हो या नहीं।
+  - यह एक गार्ड है, स्पीड-अप नहीं — इसे कॉल करने पर यह हर एंट्री को प्रोसेस करता है, जो वही काम है जो `save()` यह तय करने के लिए करता है कि कौन से सोर्स बाइट्स को वह फिर से इस्तेमाल कर सकता है, इसलिए आप जो स्किप करते हैं वह निर्णय लेने का प्रयास नहीं, बल्कि स्वयं लेखन है (फाइल-संशोधन का समय अपरिवर्तित रहता है, कोई झूठा diff नहीं)।
+- मेमोरी में सत्यापन (`lex.iter_problems()`) पहले संपादित स्थिति को सीरियलाइज़ करता है, ताकि डिस्क पर कुछ भी लिखे जाने से पहले यह संपादन को सही ढंग से दर्शाए। किसी भी `"error"`-स्तर के `Problem` पर रद्द करने का मतलब है — चेतावनियाँ कॉल करने वाले पर छोड़ दी जाती हैं ताकि वह निर्णय ले सके — कि एक खराब संपादन कभी भी `save()` तक नहीं पहुँचता।
 
 इस तरह छूने लायक सिर्फ ग्लॉस ही नहीं हैं। एक ही `Multitext` मैपिंग सतह परिभाषाओं और किसी प्रविष्टि या अर्थ पर प्रत्येक अन्य बहुभाषी क्षेत्र पर लागू होती है:
 
