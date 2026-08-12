@@ -22,7 +22,7 @@ Cada «Problema» incluye un «nivel» («error»/«advertencia»), un «código
 
 ## Las capas
 
-1. **RELAX NG** con respecto a la gramática LIFT 0.13 (incluida en lift-standard).
+1. **RELAX NG** con respecto a la gramática LIFT 0.13 (incluida en lift-standard —una copia idéntica al byte, incorporada a este paquete).
 2. **Esquema de rangos** —el archivo `lift-ranges-0.13.rng` de este proyecto— sobre cada complemento `.lift-ranges` al que se realiza un seguimiento.
 3. **Comprobaciones semánticas** que la gramática no puede expresar: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
