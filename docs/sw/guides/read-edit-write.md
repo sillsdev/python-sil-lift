@@ -8,7 +8,7 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` hukubali hati yoyote ya LIFT **0.13** iliyopangwa vizuri — ikiwa ni pamoja na faili halisi zisizoendana na skema. Chochote ambacho mfano haujatambua (vipengele/sifa zisizojulikana, maoni) huhifadhiwa bila kupoteza katika kikapu kisichoeleweka cha `extra` cha kila node. Toleo zingine za LIFT hutoa `LiftParseError` ikitaja toleo.
+`load()` hukubali hati yoyote ya LIFT **0.13** iliyopangwa vizuri — ikiwa ni pamoja na faili halisi zisizoendana na skema. Chochote ambacho mfano haujafafanua (vipengele/sifa zisizojulikana, maoni) huhifadhiwa bila kupoteza kama mabaki ya LIFT katika uwanja wa `extra` usio wazi wa kila node. Toleo zingine za LIFT hutoa `LiftParseError` ikitaja toleo.
 
 ## Mfano
 
