@@ -23,5 +23,5 @@ com sil_lift.open_reader("big.lift") como reader, sil_lift.open_writer(
 Notas:
 
 - O resultado gerado pelo escritor é exatamente o que o serializador canónico de documento completo produziria para o mesmo conteúdo — os dois modos nunca divergem.
-- O modo de streaming não possui uma camada de passagem direta de bytes: a saída é sempre canónica. Os resíduos ao nível da raiz — comentários entre entradas e atributos fora do esquema em `<lift>` — não são transportados; as entradas e o cabeçalho estão completos, incluindo os resíduos.
+- O modo de transmissão contínua não reutiliza bytes da fonte: a saída é sempre canónica. Os resíduos LIFT ao nível da raiz — comentários entre entradas e atributos fora do esquema em `<lift>` — não são transportados; as entradas e o cabeçalho estão completos, incluindo os resíduos.
 - Se ocorrer uma exceção no corpo de um bloco `open_writer`, o ficheiro fica visivelmente incompleto (sem o comando de fecho `</lift>`) — um léxico parcialmente escrito não deve parecer completo.
