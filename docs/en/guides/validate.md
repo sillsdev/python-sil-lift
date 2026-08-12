@@ -32,5 +32,5 @@ FieldWorks systematically writes some content that strict tooling rejects. Here 
 
 - `file://C:/...` hrefs (invalid URIs) are reported as **warnings** (`uri-not-rfc`), not schema errors — the C# validator never rejected them.
 - Legally interleaved children (e.g. `field, note, field, note` in a sense) are **not** flagged, working around a false positive in libxml2.
-- Range values are compared under Unicode NFC normalization — FLEx writes the `.lift` in NFC but the `.lift-ranges` in NFD within the same export.
+- Range values and `parent` links are compared under Unicode NFC normalization — FLEx normalizes to NFC on export but a few writes bypass that step, so a range-element `id` can be NFD while its labels, its own `parent` attribute, and the `.lift` value referring to it are NFC. Without normalization those spellings compare unequal and a sound export looks broken.
 - FLEx's `trait`/`field` extensions inside `range-element` **are** reported (schema errors against the ranges schema): they are genuine spec deviations.
