@@ -1,19 +1,19 @@
 # La línea de comandos
 
-Al instalar el paquete (`pip install sil-lift`) también se instala el comando `sil-lift`, una herramienta compatible con el estilo de LiftTools que se incluye con el paquete (y, en el caso de `validate`, un ejemplo práctico de la API de la biblioteca).
+Al instalar el paquete (`pip install sil-lift`) también se instala el comando `sil-lift`, una herramienta compatible con el espíritu de LiftTools que se incluye con el paquete (y, en el caso de `validate`, un ejemplo práctico de la API de la biblioteca).
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
-                                           todos los problemas, por entrada/línea; salida 1 en caso de error
+                                           todos los problemas, con archivo/entrada/línea; salida 1 en caso de errores
 sil-lift stats PATH [--format {text,json}]
-                                           recuentos por entrada/sentido/idioma (en streaming; cualquier tamaño)
-sil-lift sort PATH [-o OUT]               copia ordenada canónicamente y lista para comparaciones (por defecto: in situ)
+                                           recuentos de entradas/significados/idiomas (en tiempo real; cualquier tamaño)
+sil-lift sort PATH [-o OUT]               copia ordenada canónicamente y lista para comparar diferencias (por defecto: in situ)
 sil-lift check-media PATH                 informe de medios que faltan y huérfanos; sale con código 1 si faltan
 sil-lift export PATH [-o OUT] [--langs L] [--tsv]
                                            una fila por sentido principal (subsentidos aplanados) a CSV/TSV (en streaming)
 ```
 
-`--format json` escribe un único objeto JSON en la salida estándar (y nada más) para su uso en CI/automatización; consulta el esquema del ejemplo que aparece a continuación. `--strict` trata las advertencias como errores y devuelve el valor 1 si se encuentra alguna; utilízalo para que la compilación solo se complete si todo está en orden, en lugar de basarte únicamente en los errores. `--no-check-media` omite la comprobación de la presencia de archivos multimedia en el sistema de archivos (suprimiendo los resultados de `missing-media`), lo cual resulta útil a la hora de validar una exportación recién generada cuyos archivos de audio o fotos se encuentran en otra ubicación y no están almacenados en el mismo disco. `--require-ids` también da error (un error de `missing-id`) en cualquier entrada que carezca de un `guid` o en cualquier sentido que carezca de un `id` — es más estricto que LIFT, para flujos de trabajo que vuelven a importar mediante un identificador estable. Si se pasa `-` como ruta, el documento se lee desde la entrada estándar (un documento transmitido por canalización no tiene carpeta, por lo que su archivo asociado `.lift-ranges` y los archivos multimedia no se resuelven). `stats` también admite la opción `--format json`, con lo que muestra los recuentos en forma de un único objeto JSON.
+`--format json` escribe un único objeto JSON en la salida estándar (y nada más) para su uso en CI/automatización; consulta el esquema del ejemplo que aparece a continuación. `--strict` trata las advertencias como errores y devuelve el valor 1 si se encuentra alguna; utilízalo para condicionar la compilación a que no haya ninguna advertencia, en lugar de basarte únicamente en los errores. `--no-check-media` omite la comprobación de la presencia de archivos multimedia en el sistema de archivos (suprimiendo los resultados de `missing-media`), lo cual resulta útil a la hora de validar una exportación recién generada cuyos archivos de audio o fotos se encuentren en otra ubicación y no en la misma carpeta. `--require-ids` también da error (un error de `missing-id`) en cualquier entrada que carezca de un `guid` o en cualquier sentido que carezca de un `id` — es más estricto que LIFT, para flujos de trabajo que vuelven a importar mediante un identificador estable. Si se pasa `-` como ruta, el documento se lee desde la entrada estándar (un documento transmitido por canalización no tiene carpeta, por lo que su archivo asociado `.lift-ranges` y los archivos multimedia no se resuelven). `stats` también admite la opción `--format json`, con lo que muestra los recuentos en forma de un único objeto JSON.
 
 !!! note
     Los códigos de salida de `validate` y el esquema de `--format json` constituyen una interfaz de automatización compatible: ambos están cubiertos por pruebas y solo cambian según las normas de SemVer.
