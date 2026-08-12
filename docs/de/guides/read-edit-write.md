@@ -8,7 +8,7 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` akzeptiert jedes wohlgeformte LIFT-**0.13**-Dokument – einschließlich schemaverstossender Dateien aus der Praxis. Alles, was das Modell nicht definiert (unbekannte Elemente/Attribute, Kommentare), wird verlustfrei im undurchsichtigen `extra`-Bereich jedes Knotens übertragen. Andere LIFT-Versionen lösen einen `LiftParseError` aus, in dem die Version angegeben wird.
+`load()` akzeptiert jedes wohlgeformte LIFT-**0.13**-Dokument – einschließlich schemaverstossender Dateien aus der Praxis. Alles, was das Modell nicht definiert (unbekannte Elemente/Attribute, Kommentare), wird verlustfrei als LIFT-Rest im undurchsichtigen `extra`-Feld jedes Knotens übertragen. Andere LIFT-Versionen lösen einen `LiftParseError` aus, in dem die Version angegeben wird.
 
 ## Das Modell
 
