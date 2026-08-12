@@ -73,9 +73,11 @@ releases may contain breaking changes.
   ranges/range-elements within their own document — matching the C#
   `Validator`'s document-wide guid scan), dangling-ref, range-parent,
   undefined-range-value (every grammatical-info and range-keyed trait
-  reachable from an entry, however nested \+ NFC-normalized),
-  duplicate-form-lang, missing-media, dangling-ranges-href, and (opt-in via
-  `require_ids`) missing-id.
+  reachable from an entry, however nested), duplicate-form-lang,
+  missing-media, dangling-ranges-href, and (opt-in via `require_ids`)
+  missing-id. Both checks that resolve a name against a range-element id
+  compare under NFC normalization: FLEx can write an id in NFD while the
+  value and the `parent` attribute referring to it are NFC.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and

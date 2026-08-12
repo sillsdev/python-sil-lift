@@ -417,12 +417,21 @@ def _semantic_problems(
                     line=at(index),
                 )
 
+    # Comparisons of a range value or a parent link against a range-element id
+    # are NFC-normalized. FLEx normalizes strings to NFC on export, but a few
+    # writes bypass its normalizing helper and emit the NFD it holds in memory
+    # -- among them the grammatical-info and lexical-relation range-element
+    # ids, whose labels and own parent attribute are normalized. So an id can
+    # be NFD while the .lift value and the parent pointing at it are NFC.
+    def nfc(value: str) -> str:
+        return unicodedata.normalize("NFC", value)
+
     # Range integrity over the merged view (inline + companions).
     all_ranges = lexicon.all_ranges()
     for range_ in all_ranges.values():
-        element_ids = {element.id for element in range_.elements}
+        element_ids = {nfc(element.id) for element in range_.elements}
         for element in range_.elements:
-            if element.parent and element.parent not in element_ids:
+            if element.parent and nfc(element.parent) not in element_ids:
                 yield Problem(
                     "error",
                     "range-parent",
@@ -463,12 +472,7 @@ def _semantic_problems(
     # is-primary/complex-form-type inside <relation> and morph-type inside
     # <variant> (_iter_traits/_iter_grammatical_infos walk the whole entry).
     # Only ranges that actually enumerate elements can confirm a value; empty
-    # values skipped (FLEx writes them). Comparison is NFC-normalized: FLEx
-    # writes the .lift in NFC but the companion .lift-ranges in NFD within the
-    # same export.
-    def nfc(value: str) -> str:
-        return unicodedata.normalize("NFC", value)
-
+    # values skipped (FLEx writes them).
     def defined(range_id: str) -> set[str] | None:
         range_: Range | None = all_ranges.get(range_id)
         if range_ is None or not range_.elements:

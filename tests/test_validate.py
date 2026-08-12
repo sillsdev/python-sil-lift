@@ -41,6 +41,27 @@ def test_range_parent_integrity() -> None:
     assert "Nooun" in problem.message
 
 
+def test_range_parent_tolerates_flex_normalization_asymmetry() -> None:
+    # Regression: FLEx writes a grammatical-info range-element id straight from
+    # its NFD in-memory string but normalizes the parent attribute to NFC (see
+    # PROVENANCE.md), so the two spellings of one name differ within a single
+    # element. The parent link is sound; only the encoding differs.
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    # "Compl\u00e9ments" spelled two ways: the id decomposed (e + U+0301),
+    # as FLEx writes range-element ids, and the parent composed.
+    nfd_id = "Comple\u0301ments"
+    nfc_parent = "Compl\u00e9ments"
+    range_ = ranges.add_range("grammatical-info")
+    range_.add_element(nfd_id)
+    range_.add_element("Comple\u0301ment du lieu", parent=nfc_parent)
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="bbbbbbbb-1111-4444-8888-bbbbbbbbbbbb")
+    entry.lexical_unit["en"] = "e1"
+    lexicon.entries.append(entry)
+    assert [p for p in lexicon.iter_problems() if p.code == "range-parent"] == []
+
+
 def test_undefined_range_values_are_warnings() -> None:
     problems = problems_for(NEGATIVE_DIR / "undefined-range-value.lift")
     assert codes(problems) == {("warning", "undefined-range-value")}
@@ -199,9 +220,11 @@ def test_sango_real_defects_are_found() -> None:
     by_code: dict[str, int] = {}
     for problem in problems:
         by_code[problem.code] = by_code.get(problem.code, 0) + 1
-    # Two genuinely dangling range-element parents + one undefined POS value
-    # ('prenom') in the real export; NFC-normalization keeps the count at 1.
-    assert by_code.get("range-parent") == 2
+    # One undefined POS value ('prenom') in the real export; NFC-normalization
+    # keeps the count at 1. No range-parent finding: the two parent links that
+    # differ from their target's spelling are FLEx's NFD ids under an NFC
+    # parent (see PROVENANCE.md), not dangling references.
+    assert by_code.get("range-parent") is None
     assert by_code.get("undefined-range-value") == 1
     assert by_code.get("schema", 0) > 0  # companion's trait/field extensions
     # 37 real duplicate guids: FLEx aliases its POS list under both

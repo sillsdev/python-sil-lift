@@ -155,6 +155,25 @@ with one `HashSet` and would flag this too — so sil-lift's `duplicate-guid`
 check reports it as an error, matching that behavior. `tests/test_validate.py`
 locks in the exact counts found (5 in AllFLExFields, 37 in Sango).
 
+## Known Unicode normalization asymmetry in real fixtures
+
+FLEx holds strings as NFD and normalizes them to NFC on export, but a few writes
+bypass its normalizing helper and emit the NFD unchanged. In
+`large/sango/sango.lift-ranges` the `grammatical-info`, `from-part-of-speech`,
+and `lexical-relation` range-element `id`s are NFD while everything around them
+— their `label`/`abbrev`/`description`, the `parent` attribute of those same
+elements, the `semantic-domain-ddp4`/`translation-type`/`usage-type` ids, and
+every value in `large/sango/sango.lift` — is NFC.
+
+So one name appears in two spellings within a single element: the part of
+speech whose id decomposes as `Comple` + U+0301 + `ments` is named by a child
+element's `parent` attribute with the precomposed U+00E9 instead. Both
+`range-parent` and `undefined-range-value` therefore compare under NFC
+normalization; without it, this fixture reports two dangling parents and an
+extra undefined part of speech that are artifacts of the encoding, not defects.
+The one genuine `undefined-range-value` left in Sango is the part of speech
+`prenom`, which no range defines in any normalization.
+
 ## generated/ — synthetic large files (not committed)
 
 Produced by `tests/tools/generate_large.py` for streaming/perf tests;
