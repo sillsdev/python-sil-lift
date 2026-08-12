@@ -23,5 +23,5 @@ mit sil_lift.open_reader("big.lift") als reader, sil_lift.open_writer(
 Anmerkungen:
 
 - Die Ausgabe des Writers entspricht genau dem, was der kanonische Serializer für das gesamte Dokument bei denselben Inhalten erzeugen würde – die beiden Modi weichen nie voneinander ab.
-- Der Streaming-Modus verfügt über keine Byte-Passthrough-Schicht: Die Ausgabe erfolgt immer im kanonischen Format. Reste auf der obersten Ebene – Kommentare zwischen Einträgen und schemenfremde Attribute unter `<lift>` – werden nicht übertragen; Einträge und der Header sind vollständig, einschließlich der Reste.
+- Im Streaming-Modus werden keine Quellbytes wiederverwendet: Die Ausgabe ist immer kanonisch. LIFT-Reste auf Root-Ebene – Kommentare zwischen Einträgen und schemenfremde Attribute unter `<lift>` – werden nicht übernommen; Einträge und der Header sind vollständig, einschließlich der Reste.
 - Wenn im Hauptteil eines `open_writer`-Blocks ein Fehler ausgelöst wird, bleibt die Datei sichtbar unvollständig (kein abschließendes `</lift>`) – ein nur zur Hälfte geschriebenes Lexikon darf nicht vollständig erscheinen.
