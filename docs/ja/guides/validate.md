@@ -22,7 +22,7 @@ problems = list(lex.iter_problems())
 
 ## レイヤー
 
-1. **RELAX NG** を、LIFT 0.13 の文法（lift-standard からベンダー提供されているもの）に対して適用します。
+1. **RELAX NG** による LIFT 0.13 文法との照合（lift-standard からベンダー提供されたもの — 本パッケージにコミットされたバイト単位で同一のコピー）。
 2. **Rangesスキーマ** — このプロジェクトの `lift-ranges-0.13.rng` — は、追跡対象のすべての `.lift-ranges` コンパニオンに対して適用されます。
 3. **文法では表現できないセマンティックチェック**：`duplicate-guid`、`dangling-ref`、`range-parent`、`undefined-range-value`、`duplicate-form-lang`、`missing-media`。
 
