@@ -8,7 +8,7 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` accepts any well-formed LIFT **0.13** document — including schema-invalid real-world files. Anything the model doesn't define (unknown elements/attributes, comments) is carried losslessly in each node's opaque `extra` bucket. Other LIFT versions raise `LiftParseError` naming the version.
+`load()` accepts any well-formed LIFT **0.13** document — including schema-invalid real-world files. Anything the model doesn't define (unknown elements/attributes, comments) is carried losslessly as LIFT residue in each node's opaque `extra` field. Other LIFT versions raise `LiftParseError` naming the version.
 
 ## The model
 

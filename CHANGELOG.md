@@ -25,8 +25,8 @@ releases may contain breaking changes.
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
   test corpus with provenance, corpus-prep and large-file-generator tooling.
 - Full object model: all 35 LIFT 0.13 elements as typed dataclasses;
-  `sil_lift.load()` / `Lexicon.load()` full-document reader with per-node
-  `Extras` residue capture; LIFT-version guard.
+  `sil_lift.load()` / `Lexicon.load()` full-document reader that keeps LIFT
+  residue per node in `Extras`; LIFT-version guard.
 - `Lexicon.save()` writer with byte-fidelity passthrough — unchanged
   documents and untouched entries are written byte-identically; touched entries
   re-serialize canonically with all out-of-schema content preserved. Fidelity
@@ -63,11 +63,11 @@ releases may contain breaking changes.
   members and is capped (entry count and a 10 GiB uncompressed total) against
   zip bombs.
 - Validation: `validate_file()` / `iter_problems()` /
-  `Lexicon.iter_problems()` returning an addressable `Problem` stream
-  (file/entry/line). RELAX NG layer with two documented deviations from raw
-  libxml2 (href masking with `uri-not-rfc` warnings; tag-grouped validation to
-  sidestep libxml2's interleave limitation); vendored ranges schema over
-  companions; semantic checks: duplicate-guid (entries, and
+  `Lexicon.iter_problems()` returning a `Problem` stream, each carrying the
+  file, entry, and line it concerns. RELAX NG layer with two documented
+  deviations from raw libxml2 (href masking with `uri-not-rfc` warnings;
+  tag-grouped validation to sidestep libxml2's interleave limitation); vendored
+  ranges schema over companions; semantic checks: duplicate-guid (entries, and
   ranges/range-elements within their own document — matching the C#
   `Validator`'s document-wide guid scan), dangling-ref, range-parent,
   undefined-range-value (every grammatical-info and range-keyed trait
@@ -84,8 +84,8 @@ releases may contain breaking changes.
   available up front) and `open_writer()` (header \+ one canonical chunk per
   entry; byte-identical to `canonical_document` output by construction, and
   optionally writing a `.lift-ranges` companion via `ranges=`), both
-  over the same `Entry` types as full-document mode and O(one entry) in
-  memory (verified on a ~340 MB generated file).
+  over the same `Entry` types as full-document mode, holding one entry in
+  memory at a time (verified on a ~340 MB generated file).
 - The `sil-lift` CLI (stdlib-only, installed with the package):
   `validate` / `stats` / `sort` / `check-media`, plus `export` — one row per
   leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages

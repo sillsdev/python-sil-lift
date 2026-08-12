@@ -1,8 +1,9 @@
 """Corpus sanity: fixtures stay exactly as PROVENANCE.md documents them.
 
-Every corpus XML file must be well-formed; RNG validity must match the documented
-lists (see "Known RNG-invalid fixtures" in tests/corpus/PROVENANCE.md) — a change
-in either direction means the corpus or the vendored schema drifted.
+Every corpus XML file must be well-formed; RELAX NG (RNG) validity must match
+the documented lists (see "Known RNG-invalid fixtures" in
+tests/corpus/PROVENANCE.md) — a change in either direction means the corpus or
+the vendored schema drifted.
 """
 
 from pathlib import Path
@@ -62,6 +63,6 @@ def test_rng_validity_matches_provenance(path: Path) -> None:
     valid = schema.validate(etree.parse(path))
     expected = corpus_id(path) not in EXPECTED_INVALID
     assert valid == expected, (
-        f"{corpus_id(path)}: RNG validity changed (now valid={valid}); "
+        f"{corpus_id(path)}: RELAX NG validity changed (now valid={valid}); "
         "corpus fixtures or vendored schema drifted — see PROVENANCE.md"
     )

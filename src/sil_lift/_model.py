@@ -1,10 +1,10 @@
 """Entry-side model: Entry, Sense, and everything below them, plus Lexicon.
 
-Shapes follow the LIFT 0.13 RNG inventory exactly. Extensibility is a
-three-way split: the eight fully-extensible elements derive from
+Shapes follow the LIFT 0.13 RELAX NG (RNG) inventory exactly. Extensibility is
+a three-way split: the eight fully-extensible elements derive from
 ``_Extensible``; the usage ``<field>`` gets the field-less variant
 ``_ExtensibleNoFields`` (no field-in-field recursion); ``GrammaticalInfo`` is
-the outlier with bare traits only. Typed attributes that fail to parse
+the exception, with bare traits only. Typed attributes that fail to parse
 (malformed dates/integers in real-world files) are preserved verbatim in the
 node's ``extra`` and the model field stays ``None``.
 """
@@ -54,7 +54,7 @@ __all__ = [
 
 @dataclass(slots=True, kw_only=True)
 class _ExtensibleNoFields:
-    """The extensible bundle minus ``<field>``: dates, annotations, traits, residue."""
+    """The extensible fields minus ``<field>``: dates, annotations, traits, LIFT residue."""
 
     date_created: datetime | date | None = None
     date_modified: datetime | date | None = None
@@ -65,7 +65,7 @@ class _ExtensibleNoFields:
 
 @dataclass(slots=True, kw_only=True)
 class _Extensible(_ExtensibleNoFields):
-    """The full extensible bundle (entry, sense, note, example, ...)."""
+    """The full set of extensible fields (entry, sense, note, example, ...)."""
 
     fields: list[Field] = field(default_factory=list)
 
@@ -80,7 +80,7 @@ class Field(_ExtensibleNoFields):
 
 @dataclass(slots=True)
 class GrammaticalInfo:
-    """A ``<grammatical-info value=...>``; the extensibility outlier — traits only, no fields."""
+    """A ``<grammatical-info value=...>``; the extensibility exception — traits only, no fields."""
 
     value: str
     traits: list[Trait] = field(default_factory=list)
@@ -135,7 +135,7 @@ class Relation(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Etymology(_Extensible):
-    """An ``<etymology type=... source=...>``; glosses are form-shaped, not multitext-shaped."""
+    """An ``<etymology type=... source=...>``; each gloss carries its own lang."""
 
     type: str
     source: str
@@ -199,7 +199,7 @@ class Sense(_Extensible):
     subsenses: list[Sense] = field(default_factory=list)
 
     def gloss(self, lang: str) -> Text | None:
-        """The gloss text in ``lang``, or None (first match; glosses are form-shaped)."""
+        """The gloss text in ``lang``, or None (first match; each ``<gloss>`` has its own lang)."""
         for gloss_form in self.glosses:
             if gloss_form.lang == lang:
                 return gloss_form.text
@@ -208,7 +208,7 @@ class Sense(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Entry(_Extensible):
-    """An ``<entry>``. A set ``date_deleted`` marks a tombstone."""
+    """An ``<entry>``. A set ``date_deleted`` marks it deleted (a tombstone)."""
 
     id: str | None = None
     guid: str | None = None
@@ -250,7 +250,7 @@ class RangesChanges:
     """What differs between a companion ``.lift-ranges`` and the file it was read from.
 
     ``baseline`` is False when no byte snapshot was captured (a companion built
-    from scratch, or a source the passthrough layer declined to scan). Nothing
+    from scratch, or a source the byte scanner declined to read). Nothing
     can be compared then, so the fields say what :meth:`RangesFile.save` will
     write rather than what differs: ``ranges`` lists everything, while
     ``added``, ``removed``, and ``root`` stay empty or False — nothing is known
@@ -260,14 +260,15 @@ class RangesChanges:
     ``ranges`` names each range once, even one aliased into the list twice;
     against a baseline the repeat is reported by ``added``, and without one it
     is not reported at all, though :meth:`RangesFile.save` still writes it.
-    ``reordered`` answers only where membership held, as on :class:`Changes`.
+    ``reordered`` answers only where the same ranges are still present, as on
+    :class:`Changes`.
     """
 
     ranges: list[Range]  # content differs from the source
     added: list[Range]
     removed: list[Range]
     reordered: bool  # same ranges, different order
-    root: bool  # root attributes or root-level residue
+    root: bool  # root attributes or root-level LIFT residue
     baseline: bool
 
     def __bool__(self) -> bool:
@@ -294,10 +295,10 @@ class Changes:
     document already in canonical form, so a truthy result means the write is
     not provably unnecessary rather than certainly needed.
 
-    ``reordered`` answers only where membership held. An addition or a removal
-    re-serializes the document on its own, so a permutation alongside one is
-    not reported separately — enough for the guard, short of a full account of
-    what happened.
+    ``reordered`` answers only where the same entries are still present. An
+    addition or a removal re-serializes the document on its own, so a
+    reordering alongside one is not reported separately — enough for the guard,
+    short of a full account of what happened.
 
     ``baseline`` is False when no byte snapshot was captured. Nothing can be
     compared then, so the fields say what :meth:`Lexicon.save` will write
@@ -312,8 +313,8 @@ class Changes:
     removed: list[Entry]
     reordered: bool  # same entries, different order
     header: bool
-    root: bool  # producer, root attributes, or root-level residue
-    ranges: dict[Path, RangesChanges]  # keyed by companion; ranges span several files
+    root: bool  # producer, root attributes, or root-level LIFT residue
+    ranges: dict[Path, RangesChanges]  # keyed by companion; ranges live in several files
     baseline: bool
 
     def __bool__(self) -> bool:
@@ -646,10 +647,10 @@ class Lexicon:
         goes unnamed even though :meth:`save` writes it.
 
         Every entry is reported when there is no byte baseline to compare
-        against — a lexicon built from scratch, and equally one whose source
-        the passthrough layer declined to scan (an encoding that is not
-        ASCII-compatible, or a scanner/parser disagreement). Both re-serialize
-        in full on :meth:`save`, so those entries genuinely are rewritten.
+        against — a lexicon built from scratch, and equally one whose source the
+        byte scanner declined to read (an encoding that is not ASCII-compatible,
+        or a scanner/parser disagreement). Both re-serialize in full on
+        :meth:`save`, so those entries genuinely are rewritten.
 
         Costs one canonical serialization pass over the entries.
         """
@@ -755,10 +756,11 @@ class Lexicon:
         serialization at all.
 
         It is not a shortcut around :meth:`save` — it costs more than the save
-        it guards. Deciding passthrough digests every entry again, and nothing
-        is cached between the two calls, so guarding a write that turns out to
-        be needed roughly doubles the work. What the guard buys is not writing:
-        an untouched mtime, no spurious diff, nothing downstream woken up.
+        it guards. Deciding which source bytes can be reused digests every entry
+        again, and nothing is cached between the two calls, so guarding a write
+        that turns out to be needed roughly doubles the work. What the guard
+        buys is not writing: an unchanged file-modification time, no spurious
+        diff, nothing downstream woken up.
         """
         added, removed, reordered = self._entry_diff()
         return Changes(

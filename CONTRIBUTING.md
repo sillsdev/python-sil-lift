@@ -35,14 +35,14 @@ Releases are cut by publishing a GitHub Release with a `vX.Y.Z` SemVer tag
 matching `__version__`. A release-triggered workflow builds the distribution,
 verifies that the tag and version match, and publishes to PyPI.
 
-## The test corpus is byte-exact — never hand-edit it
+## The test corpus is byte-identical — never hand-edit it
 
 The fidelity tests assert that saving writes back the **exact bytes** of
 `tests/corpus/` fixtures. Consequences:
 
 - Never reformat, re-indent, or "fix" anything under `src/sil_lift/schemas/`,
   `tests/corpus/`, or `tests/tools/xslt/`. Even a trailing-newline tweak breaks
-  the suite. `.gitattributes` and `.editorconfig` carry carve-outs so git and
+  the suite. `.gitattributes` and `.editorconfig` list exceptions so git and
   editors leave these files alone — don't remove them.
 - Adding a fixture requires an entry in `tests/corpus/PROVENANCE.md`: source
   URL, commit SHA, fetch date, license. Hand-authored fixtures (e.g. under

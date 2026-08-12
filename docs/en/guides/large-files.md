@@ -23,5 +23,5 @@ with sil_lift.open_reader("big.lift") as reader, sil_lift.open_writer(
 Notes:
 
 - The writer's output is exactly what the full-document canonical serializer would produce for the same content — the two modes never drift apart.
-- Streaming mode has no byte-passthrough layer: output is always canonical. Root-level residue — comments between entries and out-of-schema attributes on `<lift>` — is not carried; entries and the header are complete, residue included.
+- Streaming mode reuses no source bytes: output is always canonical. Root-level LIFT residue — comments between entries and out-of-schema attributes on `<lift>` — is not carried; entries and the header are complete, residue included.
 - If the body of an `open_writer` block raises, the file is left visibly unterminated (no closing `</lift>`) — a half-written lexicon must not look complete.

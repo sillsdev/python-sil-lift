@@ -166,7 +166,7 @@ def test_check_media_flags_missing(capsys: pytest.CaptureFixture[str]) -> None:
     assert "none.wav" in out and "gone.png" in out
 
 
-def test_check_media_absolute_href_cannot_vouch_for_local_file(
+def test_check_media_absolute_href_does_not_mark_local_file_referenced(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # An absolute href (FLEx-style dangling path) must not mark a folder file

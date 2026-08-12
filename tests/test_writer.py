@@ -22,9 +22,9 @@ def _normalize(el: etree._Element) -> None:
     """Make interleave-equivalent documents compare equal.
 
     Outside mixed content: drop ignorable whitespace, then stable-sort children
-    by tag — the RNG uses interleave everywhere, so cross-type sibling order is
-    not semantically significant, while relative order within one tag (a
-    repeated list) is preserved by the stable sort.
+    by tag — the RELAX NG (RNG) grammar uses interleave everywhere, so
+    cross-type sibling order is not semantically significant, while relative
+    order within one tag (a repeated list) is preserved by the stable sort.
     """
     if el.tag in ("text", "span"):
         return  # everything inside mixed content is significant
@@ -50,7 +50,7 @@ def _comments(data: bytes) -> list[str]:
 
 
 def _residue_items(extra: sil_lift.Extras) -> list[str]:
-    """What residue a node carries, sorted: to_string's order is not a contract."""
+    """What LIFT residue a node carries, sorted: to_string's order is not a contract."""
     return sorted(extra.to_string().splitlines())
 
 
@@ -70,7 +70,8 @@ def test_semantic_roundtrip(path: Path, tmp_path: Path) -> None:
     lexicon = sil_lift.load(path)
     canonical = canonical_document(lexicon)
     assert _semantic_bytes(canonical) == _semantic_bytes(path.read_bytes())
-    # Comments survive re-serialization (order-insensitively; anchors are clamped).
+    # Comments survive re-serialization (order-insensitively; recorded positions
+    # are clamped).
     assert _comments(canonical) == _comments(path.read_bytes())
 
 
@@ -87,17 +88,17 @@ def test_touching_one_entry_leaves_other_entry_bytes_verbatim(tmp_path: Path) ->
     # Locate the first entry's original bytes; they must appear verbatim.
     from sil_lift._scan import scan
 
-    spans = scan(original)
-    assert spans is not None
-    entry_spans = [s for s in spans.children if s.tag == "entry"]
-    first_bytes = original[entry_spans[0].start : entry_spans[0].end]
-    second_bytes = original[entry_spans[1].start : entry_spans[1].end]
+    scanned = scan(original)
+    assert scanned is not None
+    entry_regions = [r for r in scanned.children if r.tag == "entry"]
+    first_bytes = original[entry_regions[0].start : entry_regions[0].end]
+    second_bytes = original[entry_regions[1].start : entry_regions[1].end]
     assert first_bytes in result
     assert second_bytes not in result  # the touched entry was re-serialized
     assert b"B Word (edited)" in result
 
     # Everything before the second entry is untouched.
-    assert result[: entry_spans[1].start] == original[: entry_spans[1].start]
+    assert result[: entry_regions[1].start] == original[: entry_regions[1].start]
 
     reloaded = sil_lift.load(out)
     assert str(reloaded.entries[1].senses[0].glosses[0].text) == "B Word (edited)"
@@ -209,9 +210,9 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
 
 
 # Residue that is neither an element nor an attribute: a processing instruction,
-# stray character data in element-only contexts (both as an element's leading text
-# and as a later child's tail), a comment and a PI inside <text>'s mixed content,
-# and a second <text> in one <form>.
+# stray character data in element-only contexts (both as an element's leading
+# text and as a later child's tail), a comment and a processing instruction
+# inside <text>'s mixed content, and a second <text> in one <form>.
 TEXTUAL_RESIDUE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <lift version="0.13">
 <entry id="one">stray text<?sil-lift keep me?>
@@ -292,7 +293,7 @@ def test_changed_entries_is_empty_for_an_untouched_load(path: Path) -> None:
 
 
 def test_changed_entries_reports_the_entry_for_an_edit_at_any_depth() -> None:
-    """An entry's digest spans its subtree, so a subsense edit reports the entry."""
+    """An entry's digest covers its whole subtree, so a subsense edit reports the entry."""
     source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
     lexicon = sil_lift.load(source)
     entry = lexicon.entries[0]
@@ -379,8 +380,8 @@ def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path:
     assert lexicon._source is None
     assert _ids(lexicon.changed_entries()) == _ids(lexicon.entries)
 
-    # Nothing is known to be new or gone, so neither is claimed; the composite
-    # says why, and stays truthy because the file will be rewritten in full.
+    # Nothing is known to be new or gone, so neither is claimed; the whole-document
+    # report says why, and stays truthy because the file will be rewritten in full.
     assert lexicon.added_entries() == []
     assert lexicon.removed_entries() == []
     changes = lexicon.changes()
@@ -526,7 +527,7 @@ def test_changes_tracks_the_render_through_combined_mutations(
 
 
 def test_a_duplicated_entry_is_added_and_written_twice() -> None:
-    """Appending the object itself, which a set difference would swallow."""
+    """Appending the object itself, which comparing the lists as sets would miss."""
     from sil_lift._writer import render_document
 
     lexicon = sil_lift.load(SAMPLE)
@@ -594,7 +595,7 @@ def test_a_node_is_removed_only_once_no_occurrence_is_left() -> None:
 def test_changes_can_be_truthy_where_the_render_still_reproduces_the_source() -> None:
     """The guarantee is one-way, and this is the harmless direction.
 
-    Root-level residue sends the writer down the canonical path, and for a
+    Root-level LIFT residue sends the writer down the canonical path, and for a
     document already in canonical form that path lands back on the source
     bytes. The cost is a redundant write, never a skipped one.
     """
@@ -610,7 +611,7 @@ def test_changes_can_be_truthy_where_the_render_still_reproduces_the_source() ->
 
 
 def test_a_duplicated_range_is_added_and_written_twice() -> None:
-    """The same hole on the companion side of the guard."""
+    """The same gap on the companion side of the guard."""
     from sil_lift._writer import render_ranges_document
 
     lexicon = sil_lift.load(CORPUS_DIR / "flex" / "AllFLExFields" / "AllFLExFields.lift")

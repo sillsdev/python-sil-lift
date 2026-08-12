@@ -22,7 +22,7 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 
 ## The layers
 
-1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard).
+1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard — a byte-identical copy committed into this package).
 2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion.
 3. **Semantic checks** the grammar cannot express: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 

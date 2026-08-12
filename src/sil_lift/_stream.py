@@ -1,4 +1,4 @@
-"""Streaming read/write: same Entry types, O(one entry) memory.
+"""Streaming read/write: same Entry types, one entry in memory at a time.
 
 The reader wraps ``lxml.etree.iterparse`` with all ``clear()``/preceding-sibling
 bookkeeping internal; the writer emits the same bytes ``canonical_document``
@@ -7,9 +7,9 @@ subtree is built normally, serialized, and flushed — the byte layout is shared
 with the canonical serializer by construction, so full and streaming output
 never drift apart).
 
-Streaming mode has no byte-passthrough layer: output is always canonical.
-Root-level residue (comments between entries) is not carried either — entries
-and the header are.
+Streaming mode reuses no source bytes: output is always canonical. Root-level
+LIFT residue (comments between entries) is not carried either — entries and the
+header are.
 """
 
 from __future__ import annotations
@@ -55,12 +55,12 @@ class LiftReader:
                 resolve_entities=False,
                 no_network=True,
             )
-            self._root = self._read_prologue(path)
+            self._root = self._read_header(path)
         except Exception:
             self._file.close()
             raise
 
-    def _read_prologue(self, path: str | os.PathLike[str]) -> etree._Element:
+    def _read_header(self, path: str | os.PathLike[str]) -> etree._Element:
         """Pump events until the header (or first entry) has been read."""
         root: etree._Element | None = None
         try:
@@ -211,7 +211,7 @@ class LiftWriter:
 
 
 def open_reader(path: str | os.PathLike[str]) -> LiftReader:
-    """Open a ``.lift`` file for streaming reads (O(one entry) memory)."""
+    """Open a ``.lift`` file for streaming reads (bounded memory)."""
     return LiftReader(path)
 
 
@@ -222,7 +222,7 @@ def open_writer(
     producer: str | None = None,
     ranges: RangesFile | None = None,
 ) -> LiftWriter:
-    """Open a ``.lift`` file for streaming writes (O(one entry) memory).
+    """Open a ``.lift`` file for streaming writes (bounded memory).
 
     If ``ranges`` is given, its companion ``.lift-ranges`` is written beside
     ``path`` on clean close, and matching ``<range href>`` references are added
