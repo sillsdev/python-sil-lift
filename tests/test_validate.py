@@ -62,6 +62,25 @@ def test_range_parent_tolerates_flex_normalization_asymmetry() -> None:
     assert [p for p in lexicon.iter_problems() if p.code == "range-parent"] == []
 
 
+def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Path) -> None:
+    path = NEGATIVE_DIR / "nfd-range-ids.lift"
+    problems = problems_for(path)
+    assert codes(problems) == {("error", "range-parent"), ("warning", "normalization-mismatch")}
+    (dangling,) = [p for p in problems if p.code == "range-parent"]
+    assert "Preposicao" in dangling.message
+    # Two parent attributes and one grammatical-info value resolve to the same
+    # id: one finding, against the companion the id lives in, naming both
+    # spellings by code point (they are indistinguishable rendered).
+    (mismatch,) = [p for p in problems if p.code == "normalization-mismatch"]
+    assert mismatch.file is not None and mismatch.file.suffix == ".lift-ranges"
+    assert "Preposic\\u0327a\\u0303o" in mismatch.message
+    assert "Preposi\\xe7\\xe3o" in mismatch.message
+    # Normalization belongs to the comparison only: the mixed forms survive.
+    sil_lift.Lexicon.load(path).save(tmp_path / path.name)
+    for name in (path.name, "nfd-range-ids.lift-ranges"):
+        assert (tmp_path / name).read_bytes() == (NEGATIVE_DIR / name).read_bytes(), name
+
+
 def test_undefined_range_values_are_warnings() -> None:
     problems = problems_for(NEGATIVE_DIR / "undefined-range-value.lift")
     assert codes(problems) == {("warning", "undefined-range-value")}
@@ -223,9 +242,11 @@ def test_sango_real_defects_are_found() -> None:
     # One undefined POS value ('prenom') in the real export; NFC-normalization
     # keeps the count at 1. No range-parent finding: the two parent links that
     # differ from their target's spelling are FLEx's NFD ids under an NFC
-    # parent (see PROVENANCE.md), not dangling references.
+    # parent (see PROVENANCE.md), not dangling references. Those two and 80
+    # NFC grammatical-info values resolve to 6 NFD ids, one warning each.
     assert by_code.get("range-parent") is None
     assert by_code.get("undefined-range-value") == 1
+    assert by_code.get("normalization-mismatch") == 6
     assert by_code.get("schema", 0) > 0  # companion's trait/field extensions
     # 37 real duplicate guids: FLEx aliases its POS list under both
     # "grammatical-info" and "from-part-of-speech" (same range-element guids

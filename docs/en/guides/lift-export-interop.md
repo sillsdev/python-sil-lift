@@ -92,7 +92,7 @@ The companion carries each range's full definition. Values are `<range-element>`
 </lift-ranges>
 ```
 
-An entry then refers to a value by id: a sense's part of speech is `<grammatical-info value="Noun"/>`, and a semantic domain is `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` warns (`undefined-range-value`) when a value isn't defined in its range and errors (`range-parent`) when a `parent` isn't a sibling id — so emit the ranges your data actually uses. Both comparisons are NFC-normalized, so an id and the value or `parent` referring to it may differ in Unicode normalization; still, write one consistent normalization if you can. See also [Ranges and media](folder-media.md).
+An entry then refers to a value by id: a sense's part of speech is `<grammatical-info value="Noun"/>`, and a semantic domain is `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` warns (`undefined-range-value`) when a value isn't defined in its range and errors (`range-parent`) when a `parent` isn't a sibling id — so emit the ranges your data actually uses. Both comparisons are NFC-normalized, so an id and the value or `parent` referring to it may differ in Unicode normalization — that difference is a `normalization-mismatch` warning rather than an error, but write one consistent normalization if you can: consumers that compare raw strings will not resolve those references. See also [Ranges and media](folder-media.md).
 
 If you build the export in Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, and `Range.add_element()` construct the companion and add the header references for you; `open_writer(..., ranges=...)` does the same on the streaming path.
 

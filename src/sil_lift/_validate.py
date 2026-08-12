@@ -62,8 +62,8 @@ class Problem:
 
     level: Literal["error", "warning"]
     code: str  # "schema", "duplicate-guid", "dangling-ref", "range-parent",
-    # "undefined-range-value", "duplicate-form-lang", "missing-media",
-    # "uri-not-rfc", "dangling-ranges-href", "missing-id"
+    # "undefined-range-value", "normalization-mismatch", "duplicate-form-lang",
+    # "missing-media", "uri-not-rfc", "dangling-ranges-href", "missing-id"
     message: str
     file: Path | None = None
     entry_id: str | None = None
@@ -426,12 +426,23 @@ def _semantic_problems(
     def nfc(value: str) -> str:
         return unicodedata.normalize("NFC", value)
 
+    # Every name that resolved only because of that normalization, keyed by the
+    # range-element it resolved to: (range id, id as written) -> a differing
+    # reference. Reported once per element however many references differ --
+    # in a real 3507-entry export that is 6 findings rather than 82.
+    mismatched: dict[tuple[str, str], str] = {}
+
     # Range integrity over the merged view (inline + companions).
     all_ranges = lexicon.all_ranges()
     for range_ in all_ranges.values():
-        element_ids = {nfc(element.id) for element in range_.elements}
+        element_ids: dict[str, str] = {}  # NFC id -> id as written
         for element in range_.elements:
-            if element.parent and nfc(element.parent) not in element_ids:
+            element_ids.setdefault(nfc(element.id), element.id)
+        for element in range_.elements:
+            if not element.parent:
+                continue
+            target = element_ids.get(nfc(element.parent))
+            if target is None:
                 yield Problem(
                     "error",
                     "range-parent",
@@ -439,6 +450,8 @@ def _semantic_problems(
                     f"parent {element.parent!r} which is not a sibling id",
                     file=file,
                 )
+            elif target != element.parent:
+                mismatched.setdefault((range_.id, target), element.parent)
 
     # Header <range href> references (relative) that resolve to no companion.
     # Absolute/file:// hrefs are ones FLEx writes knowing they will not resolve
@@ -473,24 +486,31 @@ def _semantic_problems(
     # <variant> (_iter_traits/_iter_grammatical_infos walk the whole entry).
     # Only ranges that actually enumerate elements can confirm a value; empty
     # values skipped (FLEx writes them).
-    def defined(range_id: str) -> set[str] | None:
+    def defined(range_id: str) -> dict[str, str] | None:
         range_: Range | None = all_ranges.get(range_id)
         if range_ is None or not range_.elements:
             return None
-        return {nfc(element.id) for element in range_.elements}
+        ids: dict[str, str] = {}  # NFC id -> id as written
+        for element in range_.elements:
+            ids.setdefault(nfc(element.id), element.id)
+        return ids
 
     grammatical_values = defined("grammatical-info")
     for index, entry in enumerate(lexicon.entries):
-        checks: list[tuple[str, str, set[str]]] = []  # (label, value, allowed)
+        # (label, range id, value, allowed ids)
+        checks: list[tuple[str, str, str, dict[str, str]]] = []
         for info in _iter_grammatical_infos(entry):
             if info.value and grammatical_values is not None:
-                checks.append(("grammatical-info", info.value, grammatical_values))
+                checks.append(
+                    ("grammatical-info", "grammatical-info", info.value, grammatical_values)
+                )
         for trait in _iter_traits(entry):
             allowed = defined(trait.name)
             if allowed is not None and trait.value:
-                checks.append((f"trait {trait.name!r}", trait.value, allowed))
-        for label, value, allowed in checks:
-            if nfc(value) not in allowed:
+                checks.append((f"trait {trait.name!r}", trait.name, trait.value, allowed))
+        for label, range_id, value, allowed in checks:
+            target = allowed.get(nfc(value))
+            if target is None:
                 yield Problem(
                     "warning",
                     "undefined-range-value",
@@ -500,6 +520,26 @@ def _semantic_problems(
                     guid=entry.guid,
                     line=at(index),
                 )
+            elif target != value:
+                mismatched.setdefault((range_id, target), value)
+
+    # The two spellings render identically, so name them by code point rather
+    # than with the !r other messages use; the file each id lives in is the
+    # companion that defines it, not necessarily the document being validated.
+    ranges_paths = {
+        range_.id: ranges_file.path
+        for ranges_file in lexicon.ranges_files.values()
+        for range_ in ranges_file.ranges
+        if all_ranges.get(range_.id) is range_  # an inline range wins the merge
+    }
+    for (range_id, element_id), reference in sorted(mismatched.items()):
+        yield Problem(
+            "warning",
+            "normalization-mismatch",
+            f"range {range_id!r}: range-element id {element_id!a} is referenced "
+            f"as {reference!a}; they match only under Unicode NFC normalization",
+            file=ranges_paths.get(range_id) or file,
+        )
 
     # Missing media files.
     for media_ref in lexicon.missing_media():
