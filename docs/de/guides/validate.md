@@ -22,7 +22,7 @@ Jedes `Problem` enthält einen `Level` (`"error"`/`"warning"`), einen festen `Co
 
 ## Die Schichten
 
-1. **RELAX NG** im Vergleich zur LIFT 0.13-Grammatik (aus „lift-standard“ bezogen).
+1. **RELAX NG** gemäß der LIFT 0.13-Grammatik (aus „lift-standard“ übernommen – eine byteweise identische Kopie, die in dieses Paket integriert wurde).
 2. **Ranges-Schema** – in diesem Projekt `lift-ranges-0.13.rng` – für jeden erfassten `.lift-ranges`-Begleiter.
 3. **Semantische Prüfungen**, die die Grammatik nicht ausdrücken kann: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
