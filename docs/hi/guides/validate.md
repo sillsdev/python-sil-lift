@@ -22,7 +22,7 @@ problems = list(lex.iter_problems())
 
 ## परतें
 
-1. LIFT 0.13 व्याकरण (lift-standard से विक्रेता) के विरुद्ध RELAX NG।
+1. LIFT 0.13 व्याकरण के विरुद्ध RELAX NG (lift-standard से विक्रेता — इस पैकेज में प्रतिबद्ध एक बाइट-समान प्रति)।
 2. **रेंज स्कीमा** — इस प्रोजेक्ट का `lift-ranges-0.13.rng` — प्रत्येक ट्रैक किए गए `.lift-ranges` साथी पर।
 3. **सेमांटिक जाँचें** जिन्हें व्याकरण व्यक्त नहीं कर सकता: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`।
 
