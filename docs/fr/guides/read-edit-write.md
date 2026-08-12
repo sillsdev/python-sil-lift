@@ -8,7 +8,7 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-La fonction `load()` accepte tout document LIFT **0.13** correctement formé, y compris les fichiers réels dont le schéma n'est pas valide. Tout ce qui n'est pas défini par le modèle (éléments ou attributs inconnus, commentaires) est conservé sans perte dans le compartiment opaque `extra` de chaque nœud. Les autres versions de LIFT génèrent une exception `LiftParseError` indiquant le nom de la version.
+La fonction `load()` accepte tout document LIFT **0.13** correctement formé, y compris les fichiers réels dont le schéma n'est pas valide. Tout ce qui n'est pas défini par le modèle (éléments/attributs inconnus, commentaires) est conservé sans perte sous forme de résidu LIFT dans le champ opaque `extra` de chaque nœud. Les autres versions de LIFT génèrent une exception `LiftParseError` indiquant le nom de la version.
 
 ## Le modèle
 
