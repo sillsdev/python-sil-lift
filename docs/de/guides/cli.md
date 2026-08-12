@@ -1,19 +1,19 @@
 # Die Befehlszeile
 
-Durch die Installation des Pakets (`pip install sil-lift`) wird auch der Befehl `sil-lift` installiert – ein unterstütztes Tool im LiftTools-Stil, das im Paket enthalten ist (und im Fall von `validate` ein Beispiel für die Nutzung der Bibliotheks-API).
+Durch die Installation des Pakets (`pip install sil-lift`) wird auch der Befehl `sil-lift` installiert – ein unterstütztes Tool im Stil von LiftTools, das im Lieferumfang des Pakets enthalten ist (und für `validate` ein Beispiel für die Anwendung der Bibliotheks-API).
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
-                                           alle Probleme, nach Eintrag/Zeile aufgeschlüsselt; Beendigung mit 1 bei Fehlern
+                                           alle Probleme, mit Datei/Eintrag/Zeile; Beenden mit Status 1 bei Fehlern
 sil-lift stats PATH [--format {text,json}]
-                                           Anzahl der Einträge/Sinninhalte/Sprachen (Streaming; beliebige Größe)
+                                           Anzahl der Einträge/Bedeutungen/Sprachen (Streaming; beliebige Größe)
 sil-lift sort PATH [-o OUT]               kanonisch sortierte, diff-fähige Kopie (Standard: an Ort und Stelle)
-sil-lift check-media PATH                 Bericht über fehlende und verwaiste Medien; Beendet mit 1 bei Fehlern
+sil-lift check-media PATH                 Bericht über fehlende und verwaiste Medien; Beendet mit 1, wenn Medien fehlen
 sil-lift export PATH [-o OUT] [--langs L] [--tsv]
                                            eine Zeile pro Blatt-Sense (Subsenses abgeflacht) in CSV/TSV (Streaming)
 ```
 
-`--format json` gibt ein einzelnes JSON-Objekt an die Standardausgabe aus (und sonst nichts), das für CI- und Automatisierungszwecke verwendet werden kann; siehe das Schema im folgenden Beispiel. `--strict` behandelt Warnungen als Fehler und gibt den Wert 1 zurück, wenn welche gefunden werden – verwenden Sie diese Option, um einen Build erst dann zuzulassen, wenn alles einwandfrei ist, und nicht nur bei Fehlern. `--no-check-media` überspringt die Überprüfung der Medienpräsenz im Dateisystem (wodurch `missing-media`-Fehler unterdrückt werden), was bei der Validierung eines frisch generierten Exports nützlich ist, dessen Audio- und Fotodateien an einem anderen Ort gespeichert sind und sich nicht auf derselben Festplatte befinden. `--require-ids` führt zudem zu einem Fehler (einem `missing-id`-Fehler), wenn bei einem Eintrag die `guid` fehlt oder bei einem Sense die `id` fehlt – dies ist strenger als bei LIFT und dient Workflows, bei denen der Reimport anhand einer stabilen ID erfolgt. Wird `-` als Pfad übergeben, wird das Dokument aus der Standard-Eingabe gelesen (ein über eine Pipe übermitteltes Dokument hat keinen Ordner, daher werden die zugehörige Datei `.lift-ranges` und die Medien nicht aufgelöst). `stats` akzeptiert ebenfalls die Option `--format json` und gibt die Zählwerte als einzelnes JSON-Objekt aus.
+`--format json` gibt ein einzelnes JSON-Objekt an die Standardausgabe aus (und sonst nichts), das für CI- und Automatisierungszwecke verwendet werden kann; siehe das Schema im folgenden Beispiel. `--strict` behandelt Warnungen als Fehler und gibt den Wert 1 zurück, wenn welche gefunden werden – verwenden Sie diese Option, um einen Build davon abhängig zu machen, dass überhaupt keine Warnungen auftreten, anstatt nur von Fehlern. `--no-check-media` überspringt die Überprüfung des Vorhandenseins der Medien im Dateisystem (wodurch `missing-media`-Fehler unterdrückt werden), was bei der Validierung eines frisch generierten Exports nützlich ist, dessen Audio- und Fotodateien sich nicht im selben Ordner, sondern an einem anderen Speicherort befinden. `--require-ids` führt zudem zu einem Fehler (einem `missing-id`-Fehler), wenn bei einem Eintrag die `guid` fehlt oder bei einem Sense die `id` fehlt – dies ist strenger als bei LIFT und dient Workflows, bei denen der Reimport anhand einer stabilen ID erfolgt. Wird `-` als Pfad übergeben, wird das Dokument aus der Standard-Eingabe gelesen (ein über eine Pipe übermitteltes Dokument hat keinen Ordner, daher werden die zugehörige Datei `.lift-ranges` und die Medien nicht aufgelöst). `stats` akzeptiert ebenfalls die Option `--format json` und gibt die Zählwerte als einzelnes JSON-Objekt aus.
 
 !!! note
     Die Exit-Codes von `validate` und das Schema von `--format json` stellen eine unterstützte Automatisierungsschnittstelle dar: Beide werden durch Tests abgedeckt und ändern sich nur gemäß SemVer.
