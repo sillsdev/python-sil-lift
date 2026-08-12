@@ -22,7 +22,7 @@ problems = list(lex.iter_problems())
 
 ## Слои
 
-1. **RELAX NG** в сопоставлении с грамматикой LIFT 0.13 (включенной из пакета lift-standard).
+1. **RELAX NG** в соответствии с грамматикой LIFT 0.13 (включенной из пакета lift-standard — это байт-идентичная копия, добавленная в данный пакет).
 2. **Схема диапазонов** — файл `lift-ranges-0.13.rng` данного проекта — для каждого отслеживаемого компаньона `.lift-ranges`.
 3. **Семантические проверки**, которые не могут быть выражены с помощью грамматики: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
