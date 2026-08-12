@@ -14,20 +14,20 @@ sil-lift s'apparente vaguement aux outils LIFT de SIL en C# — principalement `
 
 ## Forme de l'API
 
-Le parseur de `SIL.Lift` fonctionne par callbacks (`ILexiconMerger`) : il transmet les événements d'analyse à un consommateur. sil-lift renvoie en revanche un simple graphe d'objets — des classes de données typées pour chaque élément LIFT — car les développeurs Python souhaitent des objets, et non des callbacks. `SIL.DictionaryServices` superpose effectivement un modèle d'objets `LexEntry`/`LexSense` à `SIL.Lift`, mais en tant que modèle d’application, il ne représente que les constructions utilisées par ces applications — par conséquent, la resérialisation via ce modèle ne permet pas de préserver le contenu hors modèle de la même manière que le font la capture des résidus et la fidélité au niveau des octets de sil-lift (voir ci-dessous). L'API de streaming renvoie le _même_ type `Entry` ; il n'existe donc pas de modèle jumeau aux capacités réduites.
+Le parseur de `SIL.Lift` fonctionne par callbacks (`ILexiconMerger`) : il transmet les événements d'analyse à un consommateur. sil-lift renvoie en revanche un simple graphe d'objets — des classes de données typées pour chaque élément LIFT — car les développeurs Python souhaitent des objets, et non des callbacks. `SIL.DictionaryServices` superpose effectivement un modèle d'objets `LexEntry`/`LexSense` à `SIL.Lift`, mais en tant que modèle d’application, il ne représente que les constructions utilisées par ces applications — par conséquent, la resérialisation via ce modèle ne permet pas de préserver le contenu hors modèle, contrairement à la gestion des résidus LIFT et à la fidélité au niveau des octets offertes par sil-lift (voir ci-dessous). L'API de streaming renvoie le _même_ type `Entry` ; il n'y a donc pas de deuxième modèle simplifié à apprendre.
 
 ## Fidélité aller-retour
 
 La différence la plus marquée et la plus délibérée. L'enregistrement avec `SIL.Lift` entraîne la resérialisation de l'intégralité du document. sil-lift garantit :
 
 - un document inchangé est enregistré **avec une taille en octets identique**, et
-- Les entrées non modifiées conservent exactement les mêmes octets source, même lorsque d'autres entrées changent (segmentation en blocs d'octets de type « Chorus », appliquée automatiquement).
+- Les entrées inchangées conservent exactement les mêmes octets source, même lorsque d'autres entrées sont modifiées — il s'agit du même découpage en blocs d'octets par entrée que celui utilisé par Chorus, appliqué automatiquement.
 
 Consultez les [garanties de fidélité](fidelity.md).
 
 ## Validation
 
-Le `Validator` C# effectue un passage RELAX NG et renvoie les premières erreurs sous forme de chaînes de caractères. sil-lift déclare un flux « Problem » structuré, avec adressage par entrée/ligne, et sa couche de schéma présente sciemment trois divergences :
+Le `Validator` C# effectue un passage RELAX NG et renvoie les premières erreurs sous forme de chaînes de caractères. sil-lift génère un flux structuré de « problèmes », chacun contenant le fichier, l'entrée et la ligne concernés, et son schéma présente sciemment trois divergences :
 
 - **Les URI non valides constituent des avertissements, et non des erreurs.** Le moteur RELAX NG de C# n'a jamais imposé le type de données `anyURI` ; c'est pourquoi FieldWorks (FLEx) insère depuis des années des liens `file://C:/...` dans des lexiques réels. Le rejet de ces fichiers entraînerait le marquage de pratiquement toutes les exportations FLEx.
 - **Les règles Schematron sont appliquées** (sous forme de vérifications sémantiques) : les langages de formulaire en double et les co-contraintes similaires présentes dans la grammaire LIFT étaient ignorés sans avertissement tant par la validation en C# que par celle effectuée directement avec lxml.
