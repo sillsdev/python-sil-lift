@@ -14,20 +14,20 @@ sil-lift ist in etwa vergleichbar mit den C#-LIFT-Tools von SIL – vor allem mi
 
 ## API-Form
 
-Der Parser von `SIL.Lift` ist callback-gesteuert (`ILexiconMerger`): Er übergibt Parsing-Ereignisse an einen Verbraucher. sil-lift gibt stattdessen einen einfachen Objektgraphen zurück – typisierte Dataklassen für jedes LIFT-Element –, da Python-Skriptentwickler Objekte und keine Callbacks wünschen. `SIL.DictionaryServices` legt zwar ein `LexEntry`/`LexSense`-Objektmodell über `SIL.Lift“, doch als Anwendungsmodell repräsentiert es lediglich die Konstrukte, die diese Anwendungen verwenden – daher können bei einer erneuten Serialisierung über dieses Modell Inhalte, die außerhalb des Modells liegen, nicht in derselben Weise erhalten bleiben wie bei der Residue-Erfassung und der Byte-Fidelity von sil-lift (siehe unten). Die Streaming-API liefert denselben `Entry\`-Typ, daher gibt es kein Modell mit eingeschränkten Funktionen.
+Der Parser von `SIL.Lift` ist callback-gesteuert (`ILexiconMerger`): Er übergibt Parsing-Ereignisse an einen Verbraucher. sil-lift gibt stattdessen einen einfachen Objektgraphen zurück – typisierte Dataklassen für jedes LIFT-Element –, da Python-Skriptentwickler Objekte und keine Callbacks wünschen. `SIL.DictionaryServices` legt zwar ein `LexEntry`/`LexSense`-Objektmodell über `SIL.Lift“, doch als Anwendungsmodell repräsentiert es lediglich die Konstrukte, die diese Anwendungen verwenden – daher kann bei einer erneuten Serialisierung über dieses Modell hinweg der Inhalt außerhalb des Modells nicht in derselben Weise erhalten bleiben, wie dies bei der Behandlung von LIFT-Resten und der Byte-Genauigkeit von sil-lift der Fall ist (siehe unten). Die Streaming-API liefert denselben `Entry\`-Typ, sodass kein zweites, vereinfachtes Modell erlernt werden muss.
 
 ## Round-Trip-Genauigkeit
 
 Der deutlichste bewusste Unterschied. Beim Speichern mit `SIL.Lift` wird das gesamte Dokument erneut serialisiert. sil-lift garantiert:
 
 - Ein unverändertes Dokument wird **byte-identisch** gespeichert, und
-- Unveränderte Einträge behalten ihre exakten Quellbytes bei, auch wenn sich andere Einträge ändern (Byte-Chunking auf Chorus-Ebene, wird automatisch angewendet).
+- Unveränderte Einträge behalten ihre exakten Quellbytes bei, auch wenn sich andere Einträge ändern – es handelt sich um dieselbe, pro Eintrag erfolgende Byte-Aufteilung, die Chorus verwendet und die automatisch angewendet wird.
 
 Siehe [Garantien zur Richtigkeit](fidelity.md).
 
 ## Validierung
 
-Der C#-`Validator` führt einen RELAX-NG-Durchlauf durch und gibt die ersten Fehler als Zeichenfolgen zurück. sil-lift meldet einen strukturierten, nach Einträgen/Zeilen adressierten `Problem`-Stream, und seine Schemaebene weicht an drei Stellen bewusst davon ab:
+Der C#-`Validator` führt einen RELAX-NG-Durchlauf durch und gibt die ersten Fehler als Zeichenfolgen zurück. sil-lift meldet einen strukturierten `Problem`-Stream, wobei jeder Eintrag die betreffende Datei, den Eintrag und die Zeile enthält, und seine Schemaebene weicht bewusst an drei Stellen ab:
 
 - **Ungültige URIs sind Warnungen, keine Fehler.** Die C#-RELAX-NG-Engine hat den Datentyp `anyURI` nie erzwungen, weshalb FieldWorks (FLEx) seit Jahren `file://C:/...`-href-Links in echte Lexika schreibt. Würden diese Dateien abgelehnt, würde dies praktisch jeden FLEx-Export als fehlerhaft kennzeichnen.
 - **Schematron-Regeln werden durchgesetzt** (als semantische Prüfungen): Doppelte Formularsprachen und ähnliche Ko-Einschränkungen in der LIFT-Grammatik wurden sowohl bei der C#-Validierung als auch bei der reinen lxml-Validierung stillschweigend ignoriert.
