@@ -14,20 +14,20 @@ sil-lift ni mfano hafifu wa zana za LIFT za C# za SIL — hasa `SIL.Lift` katika
 
 ## Umbo la API
 
-Parser ya `SIL.Lift` inaendeshwa na callback (`ILexiconMerger`): inasukuma matukio ya uchanganuzi kwa mtumiaji. sil-lift badala yake hurudisha grafu ya vitu ya kawaida — dataclasses zilizotengwa aina kwa kila kipengele cha LIFT — kwa sababu watunzi wa skripti za Python wanataka vitu, si callbacks. `SIL.DictionaryServices` huweka juu ya `SIL.` mfano wa kitu wa `LexEntry`/`LexSense`Lift`, lakini kama mfano wa programu unawakilisha tu miundo ambayo programu hizo hutumia — hivyo kuirudisha tena katika muundo kupitia kwake haiwezi kuhifadhi maudhui yaliyo nje ya mfano kama vile sil-lift inavyofanya kwa kunasa mabaki na uaminifu wa baiti (tazama hapa chini). API ya utiririshaji hutoa aina ile ile ya `Entry\`, kwa hivyo hakuna mfano wa pacha uliopunguzwa uwezo.
+Parser ya `SIL.Lift` inaendeshwa na callback (`ILexiconMerger`): inasukuma matukio ya uchanganuzi kwa mtumiaji. sil-lift badala yake hurudisha grafu ya vitu ya kawaida — dataclasses zilizotengwa aina kwa kila kipengele cha LIFT — kwa sababu watunzi wa skripti za Python wanataka vitu, si callbacks. `SIL.DictionaryServices` huweka juu ya `SIL.` mfano wa kitu wa `LexEntry`/`LexSense`Lift`, lakini kama mfano wa programu unawakilisha tu miundo inayotumiwa na programu hizo — hivyo kuirudisha tena katika muundo huu haiwezi kuhifadhi yaliyomo nje ya mfano kama vile usimamizi wa mabaki ya LIFT na uaminifu wa baiti wa sil-lift unavyofanya (tazama hapa chini). API ya utiririshaji hutoa aina ile ile ya `Entry\`, kwa hivyo hakuna modeli ya pili iliyopunguzwa ya kujifunza.
 
 ## Uaminifu wa safari ya kwenda na kurudi
 
 Tofauti iliyokusudiwa yenye nguvu zaidi. Kuhifadhi kwa kutumia `SIL.Lift` kunaserialisha tena hati nzima. sil-lift inahakikisha:
 
 - Hati isiyobadilika huhifadhi **byte-identically**, na
-- Ningizo zisizoguswa huhifadhi baiti zao halisi za chanzo hata wakati nyingo zingine zinabadilika (Ugawaji wa baiti wa kiwango cha Chorus, unaotumika kiotomatiki).
+- Maingizo yasiyoguswa huhifadhi baiti zao halisi za chanzo hata wakati maingizo mengine yanapobadilika — ni ukataji sawa wa baiti kwa kila ingizo unaotumiwa na Chorus, unaotumika kiotomatiki.
 
 Tazama [Dhamana za Fidelity](fidelity.md).
 
 ## Uthibitishaji
 
-Validator ya C# hufanya upitaji mmoja wa RELAX NG na kuripoti makosa ya kwanza kama nyuzi. sil-lift inaripoti mtiririko wa `Problem` uliopangiliwa, wa kuingia/anwani-ya-mstari, na safu yake ya schema inakwenda njia tofauti kwa makusudi katika sehemu tatu:
+Validator ya C# hufanya upitaji mmoja wa RELAX NG na kuripoti makosa ya kwanza kama nyuzi. sil-lift inaripoti mtiririko uliopangiliwa wa `Problem`, kila mmoja ukiwa na faili, kipengee, na mstari unaohusika, na safu yake ya skema inakwenda kinyume kwa makusudi katika sehemu tatu:
 
 - **URI zisizo halali ni maonyo, si makosa.** Injini ya C# RELAX NG haijawahi kulazimisha aina ya data `anyURI`, hivyo FieldWorks (FLEx) imekuwa ikiandika hrefs za `file://C:/...` katika kamusi halisi kwa miaka mingi. Kukataa faili hizo kungeweka alama karibu kila toleo la FLEx.
 - **Kanuni za Schematron zinatekelezwa** (kama ukaguzi wa kisemantiki): lugha za fomu zilizorudiwa na vikwazo vinavyofanana katika sarufi ya LIFT vilipuuzwa kimya kimya na C# na uthibitishaji wa lxml ghafi.
