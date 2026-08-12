@@ -24,7 +24,7 @@ sil-lift validate export.lift --strict --no-check-media --format json
 ```
 
 - `--strict` hufanya maonyo (sio tu makosa) kusababisha utekelezaji kushindikana.
-- `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili, ambao matokeo yake ya `missing-media` ni kelele tu wakati faili za sauti/picha haziko pamoja na `.lift` katika CI.
+- `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili, ambao matokeo yake ya `missing-media` ni kelele tu wakati faili za sauti/picha haziko kwenye folda moja na `.lift` katika CI.
 - `--format json` huchapisha kitu kimoja cha JSON (`{"problems": [...], "summary": {...}}`) badala ya maandishi ya kawaida; misimbo yake ya kutoka na schema ni kiolesura kinachotumika kinachofunikwa na SemVer (tazama [mwongozo wa mstari wa amri](cli.md)).
 - `--require-ids` pia hutoa hitilafu kwa maingizo yanayokosa `guid` au `id` — ni muhimu wakati uingizaji upya wa baadaye unapaswa kusasisha badala ya kurudia.
 
