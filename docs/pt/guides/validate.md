@@ -22,7 +22,7 @@ Cada `Problema` contém um `nível` (`"erro"`/`"aviso"`), um `código` fixo, uma
 
 ## As camadas
 
-1. **RELAX NG** em relação à gramática LIFT 0.13 (fornecida pelo lift-standard).
+1. **RELAX NG** em relação à gramática LIFT 0.13 (fornecida pelo lift-standard — uma cópia byte a byte incorporada neste pacote).
 2. **Esquema de intervalos** — o ficheiro `lift-ranges-0.13.rng` deste projeto — sobre todos os companheiros `.lift-ranges` monitorizados.
 3. **Verificações semânticas** que a gramática não consegue expressar: `duplicate-guid`, `dangling-ref`, `range-parent`, `undefined-range-value`, `duplicate-form-lang`, `missing-media`.
 
