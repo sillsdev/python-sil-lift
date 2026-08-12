@@ -23,5 +23,5 @@ avec sil_lift.open_reader("big.lift") en tant que lecteur, sil_lift.open_writer(
 Remarques :
 
 - Le résultat généré par l'éditeur correspond exactement à ce que produirait le sérialiseur canonique « plein document » pour le même contenu — les deux modes ne divergent jamais.
-- Le mode streaming ne comporte pas de couche de transfert d'octets : la sortie est toujours canonique. Les résidus de niveau racine — commentaires entre les entrées et attributs hors schéma sur `<lift>` — ne sont pas transférés ; les entrées et l'en-tête sont complets, résidus compris.
+- Le mode streaming ne réutilise aucun octet source : la sortie est toujours canonique. Les résidus LIFT de niveau racine — commentaires entre les entrées et attributs hors schéma sur `<lift>` — ne sont pas transférés ; les entrées et l'en-tête sont complets, résidus compris.
 - Si une exception est levée dans le corps d'un bloc `open_writer`, le fichier reste visiblement inachevé (pas de commande de fermeture `</lift>`) — un lexique à moitié écrit ne doit pas donner l'impression d'être complet.
