@@ -1,3 +1,4 @@
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,11 @@ def problems_for(path: Path) -> list[Problem]:
 
 def codes(problems: list[Problem]) -> set[tuple[str, str]]:
     return {(p.level, p.code) for p in problems}
+
+
+def nfd(value: str) -> str:
+    """The decomposed spelling, as FLEx leaves the ids that skip its normalizer."""
+    return unicodedata.normalize("NFD", value)
 
 
 def test_duplicate_guid_is_error_with_addressing() -> None:
@@ -46,20 +52,39 @@ def test_range_parent_tolerates_flex_normalization_asymmetry() -> None:
     # its NFD in-memory string but normalizes the parent attribute to NFC (see
     # PROVENANCE.md), so the two spellings of one name differ within a single
     # element. The parent link is sound; only the encoding differs.
+    parent_name = "Compl\u00e9ments"  # NFC, the form FLEx writes a parent in
     lexicon = sil_lift.Lexicon()
     ranges = sil_lift.RangesFile()
-    # "Compl\u00e9ments" spelled two ways: the id decomposed (e + U+0301),
-    # as FLEx writes range-element ids, and the parent composed.
-    nfd_id = "Comple\u0301ments"
-    nfc_parent = "Compl\u00e9ments"
     range_ = ranges.add_range("grammatical-info")
-    range_.add_element(nfd_id)
-    range_.add_element("Comple\u0301ment du lieu", parent=nfc_parent)
+    range_.add_element(nfd(parent_name))  # ids skip FLEx's normalizer
+    range_.add_element(nfd("Compl\u00e9ment du lieu"), parent=parent_name)
     lexicon.add_ranges_file(ranges, href="x.lift-ranges")
     entry = sil_lift.Entry(id="e1", guid="bbbbbbbb-1111-4444-8888-bbbbbbbbbbbb")
     entry.lexical_unit["en"] = "e1"
     lexicon.entries.append(entry)
     assert [p for p in lexicon.iter_problems() if p.code == "range-parent"] == []
+
+
+def test_normalization_mismatch_prefers_an_exactly_matching_sibling() -> None:
+    # A range may hold both spellings of one name -- ids are unique as strings,
+    # and FLEx normalizes some writes and not others. Every reference here
+    # matches a sibling exactly, so none of them needed normalizing.
+    name = "Preposi\u00e7\u00e3o"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    range_ = ranges.add_range("grammatical-info")
+    range_.add_element(nfd(name))
+    range_.add_element(name)
+    range_.add_element("Associativo", parent=nfd(name))
+    range_.add_element("Prepositional phrase", parent=name)
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="cccccccc-1111-4444-8888-cccccccccccc")
+    entry.lexical_unit["en"] = "e1"
+    entry.senses.append(
+        sil_lift.Sense(id="s1", grammatical_info=sil_lift.GrammaticalInfo(nfd(name)))
+    )
+    lexicon.entries.append(entry)
+    assert list(lexicon.iter_problems()) == []
 
 
 def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Path) -> None:

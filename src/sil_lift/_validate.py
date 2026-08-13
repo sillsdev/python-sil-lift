@@ -20,14 +20,24 @@ Three layers, all explicit-call (never implicit on load/save):
      left untouched.
 2. The vendored ``lift-ranges-0.13.rng`` over each tracked ``.lift-ranges``
    companion.
-3. Semantic checks the grammar cannot express: duplicate GUIDs (entries, and
-   ranges/range-elements within their own document), dangling ``relation/@ref``
-   and ``variant/@ref``, ``range-element/@parent`` integrity, undefined range
-   values (every grammatical-info and range-keyed trait anywhere in the entry,
-   however deeply nested), duplicate form languages (the RNG's Schematron
-   rule, which lxml ignores), missing media files, header ``range/@href``
-   references that resolve to no companion, and — opt-in — entries/senses
-   missing a stable id.
+3. Semantic checks that the grammar cannot express, one ``Problem`` code each:
+
+   - ``duplicate-guid`` — a guid reused, among entries or among the
+     ranges/range-elements of one document.
+   - ``dangling-ref`` — a ``relation/@ref`` or ``variant/@ref`` matching no
+     entry or sense.
+   - ``range-parent`` — a ``range-element/@parent`` no sibling id defines.
+   - ``undefined-range-value`` — a grammatical-info or range-keyed trait value
+     the range does not list, checked however deeply nested in the entry.
+   - ``normalization-mismatch`` — a name that reaches its range-element id
+     only under Unicode NFC normalization, because FLEx writes some ids in
+     NFD and the references to them in NFC.
+   - ``duplicate-form-lang`` — two forms in one multitext sharing a language
+     (the RNG's Schematron rule, which lxml ignores).
+   - ``missing-media`` — a referenced audio or picture file not on disk.
+   - ``dangling-ranges-href`` — a header ``range/@href`` resolving to no
+     companion file.
+   - ``missing-id`` — opt-in: an entry without a guid, a sense without an id.
 """
 
 from __future__ import annotations
@@ -417,31 +427,46 @@ def _semantic_problems(
                     line=at(index),
                 )
 
-    # Comparisons of a range value or a parent link against a range-element id
-    # are NFC-normalized. FLEx normalizes strings to NFC on export, but a few
-    # writes bypass its normalizing helper and emit the NFD it holds in memory
-    # -- among them the grammatical-info and lexical-relation range-element
-    # ids, whose labels and own parent attribute are normalized. So an id can
-    # be NFD while the .lift value and the parent pointing at it are NFC.
+    # FLEx writes some range-element ids in NFD but every reference to them in
+    # NFC, so resolving a name to an id has to compare both forms.
     def nfc(value: str) -> str:
         return unicodedata.normalize("NFC", value)
 
-    # Every name that resolved only because of that normalization, keyed by the
-    # range-element it resolved to: (range id, id as written) -> a differing
-    # reference. Reported once per element however many references differ --
-    # in a real 3507-entry export that is 6 findings rather than 82.
+    # Names that resolved only after normalizing, keyed by the range-element
+    # they resolved to: (range id, id as written) -> one differing reference.
+    # Warning per id rather than per reference keeps a real export to 6
+    # findings instead of 82.
     mismatched: dict[tuple[str, str], str] = {}
 
-    # Range integrity over the merged view (inline + companions).
-    all_ranges = lexicon.all_ranges()
-    for range_ in all_ranges.values():
-        element_ids: dict[str, str] = {}  # NFC id -> id as written
+    def id_lookup(range_: Range) -> dict[str, str]:
+        """What each spelling of this range's ids resolves to: ids as written,
+        keyed by both themselves and their NFC form. An id present as written
+        maps to itself, so a range holding two normalizations of one name
+        resolves an exact reference to the sibling that matches it exactly.
+        """
+        ids: dict[str, str] = {}
         for element in range_.elements:
-            element_ids.setdefault(nfc(element.id), element.id)
+            ids.setdefault(nfc(element.id), element.id)
+        for element in range_.elements:
+            ids[element.id] = element.id
+        return ids
+
+    def resolve(name: str, ids: dict[str, str]) -> str | None:
+        """The id ``name`` names, exactly or after normalizing; None if no id."""
+        exact = ids.get(name)
+        return exact if exact is not None else ids.get(nfc(name))
+
+    # Range integrity over the merged view (inline + companions). Each range's
+    # lookup is kept for the value checks below, which would otherwise rebuild
+    # it per trait.
+    all_ranges = lexicon.all_ranges()
+    lookups: dict[str, dict[str, str]] = {}
+    for range_ in all_ranges.values():
+        lookups[range_.id] = element_ids = id_lookup(range_)
         for element in range_.elements:
             if not element.parent:
                 continue
-            target = element_ids.get(nfc(element.parent))
+            target = resolve(element.parent, element_ids)
             if target is None:
                 yield Problem(
                     "error",
@@ -478,22 +503,11 @@ def _semantic_problems(
                     file=lexicon.path,
                 )
 
-    # Undefined range values: every grammatical-info (sense, reversal, and
-    # reversal main chains) against the grammatical-info range; every trait
-    # anywhere in the entry whose name matches a known range — not just entry-
-    # and sense-direct ones, since real FLEx exports nest traits like
-    # is-primary/complex-form-type inside <relation> and morph-type inside
-    # <variant> (_iter_traits/_iter_grammatical_infos walk the whole entry).
-    # Only ranges that actually enumerate elements can confirm a value; empty
-    # values skipped (FLEx writes them).
+    # Undefined range values: every grammatical-info and every trait whose
+    # name matches a known range, anywhere in the entry. Empty values are
+    # skipped -- FLEx writes them.
     def defined(range_id: str) -> dict[str, str] | None:
-        range_: Range | None = all_ranges.get(range_id)
-        if range_ is None or not range_.elements:
-            return None
-        ids: dict[str, str] = {}  # NFC id -> id as written
-        for element in range_.elements:
-            ids.setdefault(nfc(element.id), element.id)
-        return ids
+        return lookups.get(range_id) or None  # absent, or enumerating nothing
 
     grammatical_values = defined("grammatical-info")
     for index, entry in enumerate(lexicon.entries):
@@ -509,7 +523,7 @@ def _semantic_problems(
             if allowed is not None and trait.value:
                 checks.append((f"trait {trait.name!r}", trait.name, trait.value, allowed))
         for label, range_id, value, allowed in checks:
-            target = allowed.get(nfc(value))
+            target = resolve(value, allowed)
             if target is None:
                 yield Problem(
                     "warning",

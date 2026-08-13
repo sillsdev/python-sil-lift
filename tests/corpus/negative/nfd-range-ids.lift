@@ -5,7 +5,7 @@
      grammatical-info value - is NFC, so three references resolve to one id
      only after NFC normalization.
      Expected: warning normalization-mismatch (once, for the id they resolve
-     to) \+ error range-parent for the one parent that no sibling defines in
+     to) + error range-parent for the one parent that no sibling defines in
      any normalization. Schema-valid otherwise. -->
 <lift version="0.13">
 <header>

@@ -166,8 +166,8 @@ elements, the `semantic-domain-ddp4`/`translation-type`/`usage-type` ids, and
 every value in `large/sango/sango.lift` — is NFC.
 
 So one name appears in two spellings within a single element: the part of
-speech whose id decomposes as `Comple` + U+0301 + `ments` is named by a child
-element's `parent` attribute with the precomposed U+00E9 instead. Both
+speech whose id decomposes as `Comple` \+ U+0301 \+ `ments` is named by a
+child element's `parent` attribute with the precomposed U+00E9 instead. Both
 `range-parent` and `undefined-range-value` therefore compare under NFC
 normalization; without it, this fixture reports two dangling parents and an
 extra undefined part of speech that are artifacts of the encoding, not defects.
