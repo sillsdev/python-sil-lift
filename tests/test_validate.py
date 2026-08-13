@@ -114,6 +114,23 @@ def test_trait_name_reaches_a_range_id_in_another_normalization() -> None:
     assert "Cat\\xe9gorie" in mismatch.message
 
 
+def test_header_range_id_reaches_a_companion_id_in_another_normalization() -> None:
+    # Regression: the resolution used to sit inside the dangling-href check,
+    # which runs only for a lexicon read from disk, so this went unreported.
+    name = "Catégorie"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    ranges.add_range(nfd(name)).add_element("Nom")
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")  # header id as written
+    lexicon.header.ranges.append(sil_lift.Range(id=name, href="x.lift-ranges"))
+    entry = sil_lift.Entry(id="e1", guid="eeeeeeee-1111-4444-8888-eeeeeeeeeeee")
+    entry.lexical_unit["en"] = "e1"
+    lexicon.entries.append(entry)
+    problems = list(lexicon.iter_problems())
+    assert codes(problems) == {("warning", "normalization-mismatch")}
+    assert "range id" in problems[0].message
+
+
 def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Path) -> None:
     path = NEGATIVE_DIR / "nfd-range-ids.lift"
     problems = problems_for(path)

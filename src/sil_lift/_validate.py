@@ -502,6 +502,11 @@ def _semantic_problems(
             mismatched.setdefault((range_id, "range id", range_id), name)
         return range_id
 
+    # Whether a header range id and the companion's own id agree is a fact about
+    # the document, not about there being a file to look for -- so it is settled
+    # here, not inside the file check below, which a lexicon with no path skips.
+    header_ranges = {range_.id: range_named(range_.id) for range_ in lexicon.header.ranges}
+
     # Header <range href> references (relative) that resolve to no companion.
     # Absolute/file:// hrefs are ones FLEx writes knowing they will not resolve
     # (they are resolved by basename when the companion is in the same folder)
@@ -515,7 +520,7 @@ def _semantic_problems(
             relative = _normalize_href(range_.href)
             if relative is None:
                 continue
-            if range_named(range_.id) is not None:
+            if header_ranges[range_.id] is not None:
                 continue  # supplied by a sibling companion instead
             if not (base / relative).is_file():
                 yield Problem(
