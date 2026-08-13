@@ -29,9 +29,9 @@ Three layers, all explicit-call (never implicit on load/save):
    - ``range-parent`` — a ``range-element/@parent`` no sibling id defines.
    - ``undefined-range-value`` — a grammatical-info or range-keyed trait value
      the range does not list, checked however deeply nested in the entry.
-   - ``normalization-mismatch`` — a name that reaches its range-element id
-     only under Unicode NFC normalization, because FLEx writes some ids in
-     NFD and the references to them in NFC.
+   - ``normalization-mismatch`` — a name that reaches the range or
+     range-element id it refers to only under Unicode NFC normalization,
+     because FLEx writes some ids in NFD and the references to them in NFC.
    - ``duplicate-form-lang`` — two forms in one multitext sharing a language
      (the RNG's Schematron rule, which lxml ignores).
    - ``missing-media`` — a referenced audio or picture file not on disk.
@@ -55,7 +55,7 @@ from ._text import Multitext, Trait
 
 if TYPE_CHECKING:
     import os
-    from collections.abc import Iterator
+    from collections.abc import Collection, Iterator
 
     from ._header import Range
     from ._model import Entry, Sense
@@ -427,29 +427,29 @@ def _semantic_problems(
                     line=at(index),
                 )
 
-    # FLEx writes some range-element ids in NFD but every reference to them in
-    # NFC, so resolving a name to an id has to compare both forms.
+    # FLEx writes some ids in NFD but every reference to them in NFC, so
+    # resolving a name to an id has to compare both forms.
     def nfc(value: str) -> str:
         return unicodedata.normalize("NFC", value)
 
-    # Names that resolved only after normalizing, keyed by the range-element
-    # they resolved to: (range id, id as written) -> one differing reference.
+    # Names that resolved only after normalizing, keyed by what they resolved
+    # to: (range id, what the id is, id as written) -> one differing reference.
     # Warning per id rather than per reference keeps a real export to 6
     # findings instead of 82.
-    mismatched: dict[tuple[str, str], str] = {}
+    mismatched: dict[tuple[str, str, str], str] = {}
 
-    def id_lookup(range_: Range) -> dict[str, str]:
-        """What each spelling of this range's ids resolves to: ids as written,
+    def id_lookup(ids: Collection[str]) -> dict[str, str]:
+        """What each spelling of these ids resolves to: the ids as written,
         keyed by both themselves and their NFC form. An id present as written
-        maps to itself, so a range holding two normalizations of one name
-        resolves an exact reference to the sibling that matches it exactly.
+        maps to itself, so a collection holding two normalizations of one name
+        resolves an exact reference to the one that matches it exactly.
         """
-        ids: dict[str, str] = {}
-        for element in range_.elements:
-            ids.setdefault(nfc(element.id), element.id)
-        for element in range_.elements:
-            ids[element.id] = element.id
-        return ids
+        lookup: dict[str, str] = {}
+        for id_ in ids:
+            lookup.setdefault(nfc(id_), id_)
+        for id_ in ids:
+            lookup[id_] = id_
+        return lookup
 
     def resolve(name: str, ids: dict[str, str]) -> str | None:
         """The id ``name`` names, exactly or after normalizing; None if no id."""
@@ -466,11 +466,14 @@ def _semantic_problems(
         for range_ in ranges_file.ranges
         if all_ranges.get(range_.id) is range_  # an inline range wins the merge
     }
-    # Each range's lookup is kept for the value checks below, which would
-    # otherwise rebuild it per trait.
+    # Each range's element lookup is kept for the value checks below, which
+    # would otherwise rebuild it per trait. Only ranges that enumerate elements
+    # can confirm a parent or a value.
     lookups: dict[str, dict[str, str]] = {}
     for range_ in all_ranges.values():
-        lookups[range_.id] = element_ids = id_lookup(range_)
+        if not range_.elements:
+            continue
+        lookups[range_.id] = element_ids = id_lookup([e.id for e in range_.elements])
         for element in range_.elements:
             if not element.parent:
                 continue
@@ -484,7 +487,20 @@ def _semantic_problems(
                     file=ranges_paths.get(range_.id) or file,
                 )
             elif target != element.parent:
-                mismatched.setdefault((range_.id, target), element.parent)
+                mismatched.setdefault((range_.id, "range-element id", target), element.parent)
+
+    # The name keying a range -- a header id, a trait name -- is written
+    # separately from the range's own id, so it resolves the same way.
+    range_ids = id_lookup(lookups.keys())
+
+    def range_named(name: str) -> str | None:
+        """The id of the range ``name`` keys, or None if no such range
+        enumerates elements. Records a name that reached one by normalizing.
+        """
+        range_id = resolve(name, range_ids)
+        if range_id is not None and range_id != name:
+            mismatched.setdefault((range_id, "range id", range_id), name)
+        return range_id
 
     # Header <range href> references (relative) that resolve to no companion.
     # Absolute/file:// hrefs are ones FLEx writes knowing they will not resolve
@@ -499,8 +515,7 @@ def _semantic_problems(
             relative = _normalize_href(range_.href)
             if relative is None:
                 continue
-            resolved = all_ranges.get(range_.id)
-            if resolved is not None and resolved.elements:
+            if range_named(range_.id) is not None:
                 continue  # supplied by a sibling companion instead
             if not (base / relative).is_file():
                 yield Problem(
@@ -514,24 +529,19 @@ def _semantic_problems(
     # Undefined range values: every grammatical-info and every trait whose
     # name matches a known range, anywhere in the entry. Empty values are
     # skipped -- FLEx writes them.
-    def defined(range_id: str) -> dict[str, str] | None:
-        return lookups.get(range_id) or None  # absent, or enumerating nothing
-
-    grammatical_values = defined("grammatical-info")
+    grammatical_range = range_named("grammatical-info")
     for index, entry in enumerate(lexicon.entries):
-        # (label, range id, value, allowed ids)
-        checks: list[tuple[str, str, str, dict[str, str]]] = []
-        for info in _iter_grammatical_infos(entry):
-            if info.value and grammatical_values is not None:
-                checks.append(
-                    ("grammatical-info", "grammatical-info", info.value, grammatical_values)
-                )
+        checks: list[tuple[str, str, str]] = []  # (label, range id, value)
+        if grammatical_range is not None:
+            for info in _iter_grammatical_infos(entry):
+                if info.value:
+                    checks.append(("grammatical-info", grammatical_range, info.value))
         for trait in _iter_traits(entry):
-            allowed = defined(trait.name)
-            if allowed is not None and trait.value:
-                checks.append((f"trait {trait.name!r}", trait.name, trait.value, allowed))
-        for label, range_id, value, allowed in checks:
-            target = resolve(value, allowed)
+            range_id = range_named(trait.name)
+            if range_id is not None and trait.value:
+                checks.append((f"trait {trait.name!r}", range_id, trait.value))
+        for label, range_id, value in checks:
+            target = resolve(value, lookups[range_id])
             if target is None:
                 yield Problem(
                     "warning",
@@ -543,16 +553,16 @@ def _semantic_problems(
                     line=at(index),
                 )
             elif target != value:
-                mismatched.setdefault((range_id, target), value)
+                mismatched.setdefault((range_id, "range-element id", target), value)
 
     # The two spellings render identically, so name them by code point rather
     # than with the !r other messages use.
-    for (range_id, element_id), reference in sorted(mismatched.items()):
+    for (range_id, kind, id_), reference in sorted(mismatched.items()):
         yield Problem(
             "warning",
             "normalization-mismatch",
-            f"range {range_id!r}: range-element id {element_id!a} is referenced "
-            f"as {reference!a}; they match only under Unicode NFC normalization",
+            f"range {range_id!r}: {kind} {id_!a} is referenced as {reference!a}; "
+            "they match only under Unicode NFC normalization",
             file=ranges_paths.get(range_id) or file,
         )
 

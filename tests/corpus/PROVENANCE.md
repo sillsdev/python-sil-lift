@@ -175,8 +175,9 @@ The one genuine `undefined-range-value` left in Sango is the part of speech
 `prenom`, which no range defines in any normalization.
 
 What did match only after normalizing is still reported, as a
-`normalization-mismatch` warning per range-element id: 6 in Sango, covering 2
-parent links and 80 grammatical-info values, and none in the other fixtures.
+`normalization-mismatch` warning per range-element id: 2 parent links and 80
+grammatical-info values reach 5 ids in Sango, one of them under both aliases
+of the part-of-speech list, so 6 warnings — and none in the other fixtures.
 `negative/nfd-range-ids.lift` is the hand-authored version of the same shape.
 
 ## generated/ — synthetic large files (not committed)

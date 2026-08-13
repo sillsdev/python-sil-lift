@@ -75,12 +75,12 @@ releases may contain breaking changes.
   undefined-range-value (every grammatical-info and range-keyed trait
   reachable from an entry, however nested), normalization-mismatch,
   duplicate-form-lang, missing-media, dangling-ranges-href, and (opt-in via
-  `require_ids`) missing-id. Both checks that resolve a name against a
-  range-element id compare under NFC normalization: FLEx can write an id in
-  NFD while the value and the `parent` attribute referring to it are NFC.
-  What matched only after normalizing is reported as a normalization-mismatch
-  warning, once per range-element id, so the encoding split stays visible to
-  consumers that compare raw strings.
+  `require_ids`) missing-id. Names are resolved against range and
+  range-element ids under NFC normalization: FLEx can write an id in NFD while
+  the trait name, value, or `parent` referring to it is NFC. What matched only
+  after normalizing is reported as a normalization-mismatch warning, once per
+  id, so the encoding split stays visible to consumers that compare raw
+  strings.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and

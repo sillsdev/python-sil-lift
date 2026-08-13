@@ -87,6 +87,33 @@ def test_normalization_mismatch_prefers_an_exactly_matching_sibling() -> None:
     assert list(lexicon.iter_problems()) == []
 
 
+def test_trait_name_reaches_a_range_id_in_another_normalization() -> None:
+    # A custom FLEx list becomes a range whose id is the list name and traits
+    # whose name is that same string -- separate writes, so they can differ in
+    # normalization exactly as an id and the values naming it do. The range has
+    # to be resolved for its values to be checked at all: an unresolved name
+    # looks like a trait no range keys, which is silently accepted.
+    name = "Catégorie"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    range_ = ranges.add_range(nfd(name))
+    range_.add_element("Nom")
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="dddddddd-1111-4444-8888-dddddddddddd")
+    entry.lexical_unit["en"] = "e1"
+    entry.traits.append(sil_lift.Trait(name=name, value="Verbe"))
+    lexicon.entries.append(entry)
+    problems = list(lexicon.iter_problems())
+    assert codes(problems) == {
+        ("warning", "undefined-range-value"),
+        ("warning", "normalization-mismatch"),
+    }
+    (mismatch,) = [p for p in problems if p.code == "normalization-mismatch"]
+    assert "range id" in mismatch.message
+    assert "Cate\\u0301gorie" in mismatch.message
+    assert "Cat\\xe9gorie" in mismatch.message
+
+
 def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Path) -> None:
     path = NEGATIVE_DIR / "nfd-range-ids.lift"
     problems = problems_for(path)
@@ -270,7 +297,8 @@ def test_sango_real_defects_are_found() -> None:
     # keeps the count at 1. No range-parent finding: the two parent links that
     # differ from their target's spelling are FLEx's NFD ids under an NFC
     # parent (see PROVENANCE.md), not dangling references. Those two and 80
-    # NFC grammatical-info values resolve to 6 NFD ids, one warning each.
+    # NFC grammatical-info values reach 5 NFD ids; the aliased POS list below
+    # holds one of them under each of its two range ids, so 6 warnings.
     assert by_code.get("range-parent") is None
     assert by_code.get("undefined-range-value") == 1
     assert by_code.get("normalization-mismatch") == 6
