@@ -223,6 +223,18 @@ def test_lift_source_rejects_path_traversal(tmp_path: Path) -> None:
         pass
 
 
+def test_lift_source_yields_the_path_extraction_wrote(tmp_path: Path) -> None:
+    # The yielded path is built from the member name, not found on disk, so
+    # normalizing a separator on one side alone breaks it. POSIX only: zipfile
+    # rewrites os.sep to "/", so a backslash never reaches the code on Windows.
+    package = tmp_path / "backslash.zip"
+    source = PAIR_DIR / "test20080407.lift"
+    with zipfile.ZipFile(package, "w") as archive:
+        archive.write(source, "Pkg\\test20080407.lift")
+    with lift_source(package) as lift_path:
+        assert lift_path.read_bytes() == source.read_bytes()
+
+
 def test_lift_source_passes_a_plain_lift_through() -> None:
     with lift_source(PAIR_DIR / "test20080407.lift") as lift_path:
         assert lift_path == PAIR_DIR / "test20080407.lift"
