@@ -93,6 +93,8 @@ def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Pat
     assert codes(problems) == {("error", "range-parent"), ("warning", "normalization-mismatch")}
     (dangling,) = [p for p in problems if p.code == "range-parent"]
     assert "Preposicao" in dangling.message
+    # The element is in the companion, so that is where the error is addressed.
+    assert dangling.file is not None and dangling.file.suffix == ".lift-ranges"
     # Two parent attributes and one grammatical-info value resolve to the same
     # id: one finding, against the companion the id lives in, naming both
     # spellings by code point (they are indistinguishable rendered).

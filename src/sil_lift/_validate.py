@@ -456,10 +456,18 @@ def _semantic_problems(
         exact = ids.get(name)
         return exact if exact is not None else ids.get(nfc(name))
 
-    # Range integrity over the merged view (inline + companions). Each range's
-    # lookup is kept for the value checks below, which would otherwise rebuild
-    # it per trait.
+    # Range integrity over the merged view (inline + companions). A finding
+    # about a range is addressed to the companion that defines it, which is not
+    # necessarily the document being validated.
     all_ranges = lexicon.all_ranges()
+    ranges_paths = {
+        range_.id: ranges_file.path
+        for ranges_file in lexicon.ranges_files.values()
+        for range_ in ranges_file.ranges
+        if all_ranges.get(range_.id) is range_  # an inline range wins the merge
+    }
+    # Each range's lookup is kept for the value checks below, which would
+    # otherwise rebuild it per trait.
     lookups: dict[str, dict[str, str]] = {}
     for range_ in all_ranges.values():
         lookups[range_.id] = element_ids = id_lookup(range_)
@@ -473,7 +481,7 @@ def _semantic_problems(
                     "range-parent",
                     f"range {range_.id!r}: range-element {element.id!r} has "
                     f"parent {element.parent!r} which is not a sibling id",
-                    file=file,
+                    file=ranges_paths.get(range_.id) or file,
                 )
             elif target != element.parent:
                 mismatched.setdefault((range_.id, target), element.parent)
@@ -538,14 +546,7 @@ def _semantic_problems(
                 mismatched.setdefault((range_id, target), value)
 
     # The two spellings render identically, so name them by code point rather
-    # than with the !r other messages use; the file each id lives in is the
-    # companion that defines it, not necessarily the document being validated.
-    ranges_paths = {
-        range_.id: ranges_file.path
-        for ranges_file in lexicon.ranges_files.values()
-        for range_ in ranges_file.ranges
-        if all_ranges.get(range_.id) is range_  # an inline range wins the merge
-    }
+    # than with the !r other messages use.
     for (range_id, element_id), reference in sorted(mismatched.items()):
         yield Problem(
             "warning",
