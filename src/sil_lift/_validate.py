@@ -542,6 +542,8 @@ def _semantic_problems(
                 if info.value:
                     checks.append(("grammatical-info", grammatical_range, info.value))
         for trait in _iter_traits(entry):
+            # Resolved before the value guard: a trait name that reaches its range only
+            # by normalizing is worth reporting even without a value.
             range_id = range_named(trait.name)
             if range_id is not None and trait.value:
                 checks.append((f"trait {trait.name!r}", range_id, trait.value))
