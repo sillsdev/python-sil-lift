@@ -10,9 +10,8 @@ LIFT is usually moved around as a single `.zip` — FieldWorks and The Combine b
 
 - **Read:** `sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual).
     - The `validate`, `stats`, `check-media`, and `export` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is.
-    - `stats` and `export` stream, and extract only the `.lift` rather than the whole package.
-    - Extraction is hardened against hostile archives: path-traversal members are refused, and the entry count is capped.
-    - 10 GiB caps the bytes written, against zip bombs. The declared sizes are checked against that limit up front — the whole package for a full extraction, the `.lift` alone for a streaming one — and the bytes are counted again as they stream, since a declared size can lie.
+    - `stats` and `export` stream, and extract only the `.lift` rather than the whole package — so they stay cheap on a media-heavy one, and the extraction limit applies to the `.lift` alone rather than to everything beside it.
+    - Extraction is capped at 10 GiB and 100,000 members; a package over either limit is refused with a `LiftParseError`, as is one whose member paths escape the extraction directory.
 - **Write:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip.
     - `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
 
