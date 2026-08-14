@@ -21,7 +21,7 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 La commande `sort` ne modifie que le fichier `.lift` ; les fichiers `.lift-ranges` associés restent inchangés
 (triez-les séparément à l'aide de l'API `RangesFile`).
 
-Les commandes `validate`, `stats`, `check-media` et `export` acceptent également un paquet LIFT compressé (un fichier `.zip` dans l'une ou l'autre des structures suivantes : fichiers à la racine de l'archive ou imbriqués dans un dossier de niveau supérieur) ; celui-ci est extrait dans un répertoire temporaire puis supprimé une fois la commande terminée.
+Les commandes `validate`, `stats`, `check-media` et `export` acceptent également un paquet LIFT compressé (un fichier `.zip` dans l'une ou l'autre des structures suivantes : fichiers à la racine de l'archive ou imbriqués dans un dossier de niveau supérieur) ; celui-ci est extrait dans un répertoire temporaire puis supprimé une fois la commande terminée. Les commandes de streaming `stats` et `export` n'extraient que le fichier `.lift` lui-même, ce qui leur permet de rester peu gourmandes en ressources pour les paquets contenant beaucoup de données multimédia ; les commandes `validate` et `check-media` ont besoin du dossier entier et l'extraient dans son intégralité.
 
 Exemples :
 
