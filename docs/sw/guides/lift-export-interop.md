@@ -8,8 +8,12 @@ Kuandika LIFT ni rahisi zaidi kuliko kuchanganua: kiendeshaji cha kusafirisha hu
 
 LIFT kawaida huhamishwa kama faili moja ya `.zip` — FieldWorks na The Combine zote huingiza na kusafirisha kwa njia hiyo — hivyo `sil-lift` husoma na kuandika vifurushi vilivyofungwa kwa `zip` moja kwa moja, katika mpangilio wowote ambao mfumo unatumia: faili ziko mizizi ya hifadhi, au zimepangwa ndani ya folda moja kuu.
 
-- Soma: `sil_lift.load("package.zip")` hutoa maudhui kwenye saraka ya muda, hupata faili moja la `.lift`, na kulipakia (viendani na vyombo vya habari hutatuliwa kama kawaida). Amri za CLI `validate`, `stats`, `check-media`, na `export` pia zinakubali njia ya `.zip`, hivyo lango hapa chini linafanya kazi dhidi ya kifurushi kama kilivyo. Utoaji umeimarishwa dhidi ya hifadhidata hatari — vipengele vya kupita njia vinakataliwa, na idadi ya kuingia na ukubwa wote bila kubanwa (10 GiB) vimewekewa kikomo dhidi ya mabomu ya zip.
-- **Andika:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` hufunga `.lift`, `.lift-ranges` zake, na kila faili nyingine katika folda ya chanzo (media, `WritingSystems/`, `consent/`, ...) katika zipu `wrap_folder` kwa chaguo-msingi huunda folda ya ngazi ya juu inayopewa jina la faili la zip (utaratibu wa kuingiza wa FieldWorks/Combine); toa `False` ili kupata hifadhi tambarare.
+- Soma: `sil_lift.load("package.zip")` hutoa maudhui kwenye saraka ya muda, hupata faili moja la `.lift`, na kulipakia (viendani na vyombo vya habari hutatuliwa kama kawaida).
+  - Amri za CLI `validate`, `stats`, `check-media`, na `export` pia zinakubali njia ya `.zip`, hivyo lango hapa chini linafanya kazi dhidi ya kifurushi kama kilivyo.
+  - mtiririko wa `stats` na `export`, na uchimbe tu `.lift` badala ya kifurushi kizima — ili viwe nafuu kwenye mfumo wenye media nyingi, na kikomo cha uchimbaji kitumike kwa `.lift` pekee badala ya kila kitu kingine.
+  - Utoaji umepunguzwa hadi 10 GiB na wanachama 100,000; kifurushi kinachovuka mojawapo ya mipaka hiyo kinakataliwa kwa `LiftParseError`, vivyo hivyo kifurushi ambacho njia za wanachama zake zinatoka nje ya saraka ya uondoaji.
+- **Andika:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` hufunga `.lift`, `.lift-ranges` zake, na kila faili nyingine katika folda ya chanzo (media, `WritingSystems/`, `consent/`, ...) katika zipu
+  - `wrap_folder` kwa chaguo-msingi huunda folda ya ngazi ya juu inayopewa jina la faili la zip (utaratibu wa kuingiza wa FieldWorks/Combine); toa `False` ili kupata hifadhi tambarare.
 
 `.lift` na `.lift-ranges` huhifadhi uaminifu wa baiti ndani ya kifurushi; chombo cha zip chenyewe hakiruhusu kurejesha baiti kikamilifu.
 
