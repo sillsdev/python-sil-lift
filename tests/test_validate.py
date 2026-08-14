@@ -152,6 +152,33 @@ def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Pat
         assert (tmp_path / name).read_bytes() == (NEGATIVE_DIR / name).read_bytes(), name
 
 
+def test_one_id_referenced_in_two_spellings_still_warns_once() -> None:
+    # The dedup is per id, not per spelling: references that differ from the id
+    # and from each other still collapse into one warning. Which of them the
+    # message names is left unasserted -- the contract is the count, not the
+    # order the references happen to be reached in.
+    name = "ṩ"  # s with dot below and dot above, precomposed
+    # A third spelling: the same two marks in the other order, matching neither
+    # the id nor the parent link below (nfd() orders them canonically).
+    other_order = "ṩ"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    range_ = ranges.add_range("grammatical-info")
+    range_.add_element(name)
+    range_.add_element("Enclitic", parent=nfd(name))
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="ffffffff-1111-4444-8888-ffffffffffff")
+    entry.lexical_unit["en"] = "e1"
+    entry.senses.append(
+        sil_lift.Sense(id="s1", grammatical_info=sil_lift.GrammaticalInfo(other_order))
+    )
+    lexicon.entries.append(entry)
+    problems = list(lexicon.iter_problems())
+    assert codes(problems) == {("warning", "normalization-mismatch")}
+    assert len(problems) == 1
+    assert "range-element id '\\u1e69'" in problems[0].message
+
+
 def test_undefined_range_values_are_warnings() -> None:
     problems = problems_for(NEGATIVE_DIR / "undefined-range-value.lift")
     assert codes(problems) == {("warning", "undefined-range-value")}
