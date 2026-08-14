@@ -21,7 +21,7 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 `sort` solo reescribe el archivo `.lift`; los archivos complementarios `.lift-ranges` se mantienen sin modificar
 (ordénalos por separado con la API `RangesFile`).
 
-`validate`, `stats`, `check-media` y `export` también admiten un paquete LIFT comprimido (un archivo `.zip` con cualquiera de las dos estructuras: archivos en la raíz del archivo comprimido o anidados dentro de una carpeta de nivel superior); este se extrae a un directorio temporal y se elimina una vez finalizado el comando.
+`validate`, `stats`, `check-media` y `export` también admiten un paquete LIFT comprimido (un archivo `.zip` con cualquiera de las dos estructuras: archivos en la raíz del archivo comprimido o anidados dentro de una carpeta de nivel superior); este se extrae a un directorio temporal y se elimina una vez finalizado el comando. Los comandos de streaming `stats` y `export` extraen únicamente el archivo `.lift` en sí, por lo que su ejecución no consume muchos recursos en paquetes con gran cantidad de archivos multimedia; en cambio, `validate` y `check-media` necesitan la carpeta completa y la extraen en su totalidad.
 
 Ejemplos:
 
