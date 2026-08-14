@@ -21,7 +21,7 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 `sort` schreibt nur die `.lift`-Datei neu; die zugehörigen `.lift-ranges`-Dateien bleiben unberührt
 (sortieren Sie diese separat mit der `RangesFile`-API).
 
-`validate`, `stats`, `check-media` und `export` akzeptieren ebenfalls ein komprimiertes LIFT-Paket (eine `.zip`-Datei in einem der beiden Layouts – entweder mit Dateien im Stammverzeichnis des Archivs oder verschachtelt unter einem Ordner der obersten Ebene); dieses wird in ein temporäres Verzeichnis entpackt und nach Abschluss des Befehls gelöscht.
+`validate`, `stats`, `check-media` und `export` akzeptieren ebenfalls ein komprimiertes LIFT-Paket (eine `.zip`-Datei in einem der beiden Layouts – entweder mit Dateien im Stammverzeichnis des Archivs oder verschachtelt unter einem Ordner der obersten Ebene); dieses wird in ein temporäres Verzeichnis entpackt und nach Abschluss des Befehls gelöscht. Die Streaming-Befehle `stats` und `export` extrahieren nur die `.lift`-Datei selbst, sodass sie bei datenintensiven Paketen ressourcenschonend bleiben; `validate` und `check-media` benötigen den gesamten Ordner und extrahieren dessen gesamten Inhalt.
 
 Beispiele:
 
