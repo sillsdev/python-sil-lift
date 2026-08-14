@@ -21,7 +21,7 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 `sort` 仅重写 `.lift` 文件；配套的 `.lift-ranges` 文件则保持不变
 （请使用 `RangesFile` API 单独对这些文件进行排序）。
 
-`validate`、`stats`、`check-media` 和 `export` 还支持接收压缩的 LIFT 包（以任何一种布局格式的 `.zip` 文件——文件位于归档根目录下，或嵌套在某个顶级文件夹下）；该包会在命令执行完毕后解压到临时目录，并被自动删除。
+`validate`、`stats`、`check-media` 和 `export` 还支持接收压缩的 LIFT 包（以任何一种布局格式的 `.zip` 文件——文件位于归档根目录下，或嵌套在某个顶级文件夹下）；该包会在命令执行完毕后解压到临时目录，并被自动删除。 流式处理命令 `stats` 和 `export` 仅提取 `.lift` 文件本身，因此在处理媒体资源较多的包时，其开销较低；而 `validate` 和 `check-media` 则需要整个文件夹，并将其全部提取出来。
 
 示例：
 
