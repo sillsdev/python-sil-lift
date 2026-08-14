@@ -20,7 +20,7 @@ sil-lift export NJIA [-o OUT] [--langs L] [--tsv]
 
 `sort` inaandika upya tu faili ya `.lift`; faili zake washirika za `.lift-ranges` zinaachwa bila kuguswa (ziandike kwa mpangilio tofauti kwa kutumia API ya `RangesFile`).
 
-`validate`, `stats`, `check-media`, na `export` pia hukubali kifurushi cha LIFT kilichobanwa (faili la `.zip` katika mpangilio wowote — faili zikiwa kwenye msingi wa hifadhi, au zimewekwa ndani ya folda moja ya ngazi ya juu); hutolewa kwenye saraka ya muda na kutupwa wakati amri inapomalizika.
+`validate`, `stats`, `check-media`, na `export` pia hukubali kifurushi cha LIFT kilichobanwa (faili la `.zip` katika mpangilio wowote — faili zikiwa kwenye msingi wa hifadhi, au zimewekwa ndani ya folda moja ya ngazi ya juu); hutolewa kwenye saraka ya muda na kutupwa wakati amri inapomalizika. Amri za streaming `stats` na `export` huchukua tu `.lift` yenyewe, hivyo zinabaki nafuu kwa vifurushi vyenye media nyingi; `validate` na `check-media` zinahitaji folda nzima na huchukua yote.
 
 Mifano:
 
