@@ -105,4 +105,4 @@ releases may contain breaking changes.
   ("bulk-editing glosses" and "building a LIFT export from scratch", complete
   runnable scripts with verified output) and
   a "Differences from the C# libraries" page summarizing where sil-lift
-  deviates from SIL.Lift/LiftSorter/Chorus behavior and why.
+  deviates from SIL.Lift/LiftSorter behavior and why.

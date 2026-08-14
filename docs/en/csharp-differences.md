@@ -1,6 +1,6 @@
 # Differences from the C# libraries
 
-sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`), `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use), and the LIFT handlers in [Chorus](https://github.com/sillsdev/chorus). It is a fresh implementation, not a port. This page summarizes where behavior deliberately differs.
+sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). It is a fresh implementation, not a port. This page summarizes where behavior deliberately differs.
 
 ## Scope
 
@@ -8,7 +8,6 @@ sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in
 | ------------------ | ---------------------------------- | ---------------------------------------------------------- |
 | LIFT versions      | 0.10–0.13 (migration built in)     | **0.13 only**; older versions rejected with a clear error  |
 | Version migration  | `Migrator` (XSLT chain)            | none — use the XSLTs in lift-standard for one-off upgrades |
-| 3-way merge / sync | Chorus                             | out of scope                                               |
 | Validation         | RELAX NG only (`Validator`)        | RELAX NG + ranges schema + semantic checks                 |
 | Streaming          | internal entry-granularity parsing | public `open_reader` / `open_writer` API                   |
 
@@ -21,7 +20,7 @@ sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in
 The strongest deliberate difference. Saving with `SIL.Lift` re-serializes the whole document. sil-lift guarantees:
 
 - an unchanged document saves **byte-identically**, and
-- untouched entries keep their exact source bytes even when other entries change — the same per-entry byte chunking Chorus uses, applied automatically.
+- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
 
 See [Fidelity guarantees](fidelity.md).
 
@@ -48,5 +47,5 @@ The spec repo's `canonicalizeLift.xsl` is not used at all: it collapses whitespa
 ## Not carried over
 
 - WeSay-specific conveniences (dashboard/config handling around LIFT files).
-- `SynchronicMerger` (Chorus update merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - LDML writing-system parsing: files in `WritingSystems/` are treated as opaque folder content.
