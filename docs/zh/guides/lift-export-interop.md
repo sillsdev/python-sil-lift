@@ -8,8 +8,12 @@
 
 LIFT 通常以单个 `.zip` 文件的形式进行传输——FieldWorks 和 The Combine 都采用这种方式进行导入和导出——因此 `sil-lift` 可以直接读取和写入压缩包，无论采用生态系统中哪种布局：文件位于归档根目录下，还是嵌套在某个顶级文件夹之下。
 
-- **说明：** `sil_lift.load("package.zip")` 会将文件解压到临时目录中，定位唯一的 `.lift` 文件，并将其加载（相关文件和媒体资源将按常规方式解析）。 `validate`、`stats`、`check-media` 和 `export` 命令行命令也支持 `.zip` 路径，因此下面的门控脚本可直接对该包进行处理。 提取功能已针对恶意归档文件进行了加固——拒绝路径遍历操作，并对条目数量和总未压缩大小（10 GiB）设置了上限，以防范ZIP炸弹攻击。
-- **编写：** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` 会将 `.lift`、其 `.lift-ranges` 以及源文件夹中的所有其他文件（media、`WritingSystems/`、`consent/` 等）打包在一起 打包成zip文件。 `wrap_folder` 的默认行为是创建一个以压缩包命名的顶级文件夹（遵循 FieldWorks/Combine 的导入规范）；若要生成扁平化归档，请传入 `False`。
+- **说明：** `sil_lift.load("package.zip")` 会将文件解压到临时目录中，定位唯一的 `.lift` 文件，并将其加载（相关文件和媒体资源将按常规方式解析）。
+  - `validate`、`stats`、`check-media` 和 `export` 命令行命令也支持 `.zip` 路径，因此下面的门控脚本可直接对该包进行处理。
+  - `stats` 和 `export` 流，并仅提取 `.lift` 文件而非整个包——这样在媒体资源密集的场景下仍能保持低开销，且提取限制仅适用于 `.lift` 文件本身，而不涉及其余内容。
+  - 提取操作的上限为 10 GiB 和 100,000 个成员；超过任一限制的包将因 `LiftParseError` 而被拒绝，成员路径超出提取目录范围的包同样会被拒绝。
+- **编写：** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` 会将 `.lift`、其 `.lift-ranges` 以及源文件夹中的所有其他文件（media、`WritingSystems/`、`consent/` 等）打包在一起 打包成zip文件。
+  - `wrap_folder` 的默认行为是创建一个以压缩包命名的顶级文件夹（遵循 FieldWorks/Combine 的导入规范）；若要生成扁平化归档，请传入 `False`。
 
 `.lift` 和 `.lift-ranges` 在包内部保持字节级精确性；而 zip 容器本身无法实现字节级还原。
 
