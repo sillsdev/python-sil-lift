@@ -1,16 +1,15 @@
 # Diferenças em relação às bibliotecas do C\#
 
-O sil-lift é, de certa forma, análogo às ferramentas LIFT da SIL para C# — principalmente o `SIL.Lift` em [libpalaso](https://github.com/sillsdev/libpalaso) (analisador sintático, validador, migrador, `LiftSorter`), o `SIL.DictionaryServices` no mesmo repositório (o modelo `LexEntry`/`LexSense`, com o seu próprio leitor/gravador LIFT, utilizado pelo The Combine e pelo WeSay), e os manipuladores LIFT no [Chorus](https://github.com/sillsdev/chorus). Trata-se de uma nova implementação, não de uma adaptação. Esta página resume os casos em que o comportamento difere deliberadamente.
+sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). Trata-se de uma nova implementação, não de uma adaptação. Esta página resume os casos em que o comportamento difere deliberadamente.
 
 ## Âmbito
 
-| Capacidade                      | Bibliotecas C#                                           | sil-lift                                                                                  |
-| ------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Versões do LIFT                 | 0,10–0,13 (migração integrada)        | **Apenas 0.13**; as versões mais antigas são rejeitadas com um erro claro |
-| Migração de versão              | `Migrator` (cadeia XSLT)              | nenhuma — utilizar os XSLT do «lift-standard» para atualizações pontuais                  |
-| Fusão/sincronização a três vias | Refrão                                                   | fora do âmbito                                                                            |
-| Validação                       | Apenas RELAX NG (`Validator`)         | RELAX NG + verificações de esquema e semânticas                                           |
-| Streaming                       | análise sintática com granularidade interna das entradas | API pública `open_reader` / `open_writer`                                                 |
+| Capacidade         | Bibliotecas C#                                           | sil-lift                                                                                  |
+| ------------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Versões do LIFT    | 0,10–0,13 (migração integrada)        | **Apenas 0.13**; as versões mais antigas são rejeitadas com um erro claro |
+| Migração de versão | `Migrator` (cadeia XSLT)              | nenhuma — utilizar os XSLT do «lift-standard» para atualizações pontuais                  |
+| Validação          | Apenas RELAX NG (`Validator`)         | RELAX NG + verificações de esquema e semânticas                                           |
+| Streaming          | análise sintática com granularidade interna das entradas | API pública `open_reader` / `open_writer`                                                 |
 
 ## Estrutura da API
 
@@ -21,7 +20,7 @@ O analisador do `SIL.Lift` é orientado por callbacks (`ILexiconMerger`): envia 
 A diferença deliberada mais marcante. Ao guardar com o `SIL.Lift`, todo o documento é novamente serializado. A sil-lift garante:
 
 - um documento inalterado é guardado com **identidade de bytes**, e
-- As entradas não alteradas mantêm os seus bytes de origem exatos, mesmo quando outras entradas são alteradas — trata-se do mesmo agrupamento de bytes por entrada que o Chorus utiliza, aplicado automaticamente.
+- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
 
 Consulte [Garantias da Fidelity](fidelity.md).
 
@@ -48,5 +47,5 @@ O ficheiro `canonicalizeLift.xsl` do repositório de especificações não é ut
 ## Não transitado
 
 - Funcionalidades específicas do WeSay (painel de controlo/gestão de configurações relacionadas com ficheiros LIFT).
-- `SynchronicMerger` (fusão de atualizações do Chorus) — o conceito de divisão em blocos de bytes mantém-se na camada de fidelidade, mas a fusão já não.
+- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - Análise do sistema de escrita LDML: os ficheiros na pasta `WritingSystems/` são tratados como conteúdo opaco da pasta.
