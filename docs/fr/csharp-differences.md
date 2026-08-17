@@ -1,16 +1,15 @@
 # Différences par rapport aux bibliothèques C\#
 
-sil-lift s'apparente vaguement aux outils LIFT de SIL en C# — principalement `SIL.Lift` dans [libpalaso](https://github.com/sillsdev/libpalaso) (analyseur syntaxique, validateur, migrateur, `LiftSorter`), `SIL.DictionaryServices` dans le même dépôt (le modèle `LexEntry`/`LexSense`, doté de son propre lecteur/enregistreur LIFT, utilisé par The Combine et WeSay), ainsi que les gestionnaires LIFT de [Chorus](https://github.com/sillsdev/chorus). Il s'agit d'une nouvelle implémentation, et non d'un portage. Cette page résume les points sur lesquels le comportement diffère délibérément.
+sil-lift s'apparente vaguement aux outils LIFT de SIL en C# — principalement `SIL.Lift` dans [libpalaso](https://github.com/sillsdev/libpalaso) (analyseur syntaxique, validateur, migrateur, `LiftSorter`) et `SIL.DictionaryServices` dans le même dépôt (le modèle `LexEntry`/`LexSense`, doté de son propre lecteur/enregistreur LIFT, utilisé par The Combine et WeSay). Il s'agit d'une nouvelle implémentation, et non d'un portage. Cette page résume les points sur lesquels le comportement diffère délibérément.
 
 ## Champ d'application
 
-| Capacité                               | Bibliothèques C#                                     | sil-lift                                                                                                   |
-| -------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Versions de LIFT                       | 0,10–0,13 (migration intégrée)    | **0.13 uniquement** ; les versions antérieures sont rejetées et génèrent une erreur claire |
-| Migration de version                   | `Migrator` (chaîne XSLT)          | aucun — utiliser les fichiers XSLT du répertoire « lift-standard » pour les mises à jour ponctuelles       |
-| Fusion / synchronisation à trois voies | Refrain                                              | hors du champ d'application                                                                                |
-| Validation                             | RELAX NG uniquement (`Validator`) | RELAX NG + vérifications du schéma et de la sémantique                                                     |
-| Streaming                              | analyse syntaxique interne à granularité d'entrée    | API publique `open_reader` / `open_writer`                                                                 |
+| Capacité             | Bibliothèques C#                                     | sil-lift                                                                                                   |
+| -------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Versions de LIFT     | 0,10–0,13 (migration intégrée)    | **0.13 uniquement** ; les versions antérieures sont rejetées et génèrent une erreur claire |
+| Migration de version | `Migrator` (chaîne XSLT)          | aucun — utiliser les fichiers XSLT du répertoire « lift-standard » pour les mises à jour ponctuelles       |
+| Validation           | RELAX NG uniquement (`Validator`) | RELAX NG + vérifications du schéma et de la sémantique                                                     |
+| Streaming            | analyse syntaxique interne à granularité d'entrée    | API publique `open_reader` / `open_writer`                                                                 |
 
 ## Forme de l'API
 
@@ -21,7 +20,7 @@ Le parseur de `SIL.Lift` fonctionne par callbacks (`ILexiconMerger`) : il transm
 La différence la plus marquée et la plus délibérée. L'enregistrement avec `SIL.Lift` entraîne la resérialisation de l'intégralité du document. sil-lift garantit :
 
 - un document inchangé est enregistré **avec une taille en octets identique**, et
-- Les entrées inchangées conservent exactement les mêmes octets source, même lorsque d'autres entrées sont modifiées — il s'agit du même découpage en blocs d'octets par entrée que celui utilisé par Chorus, appliqué automatiquement.
+- Les entrées inchangées conservent exactement les octets de leur source, même lorsque d'autres entrées sont modifiées — le découpage en blocs d'octets par entrée est appliqué automatiquement.
 
 Consultez les [garanties de fidélité](fidelity.md).
 
@@ -48,5 +47,5 @@ Le fichier `canonicalizeLift.xsl` du dépôt de spécifications n'est absolument
 ## Non reporté
 
 - Fonctionnalités spécifiques à WeSay (tableau de bord / gestion des paramètres liés aux fichiers LIFT).
-- `SynchronicMerger` (fusion des mises à jour Chorus) — le principe du découpage en blocs d'octets est conservé dans la couche de fidélité, mais pas celui de la fusion.
+- `SynchronicMerger` (fusion de fichiers de mise à jour LIFT) — le principe du découpage en blocs d'octets est toujours présent dans la couche de fidélité, mais pas la fusion.
 - Analyse syntaxique du système d'écriture LDML : les fichiers situés dans le répertoire `WritingSystems/` sont considérés comme du contenu de dossier opaque.
