@@ -20,24 +20,10 @@ Three layers, all explicit-call (never implicit on load/save):
      left untouched.
 2. The vendored ``lift-ranges-0.13.rng`` over each tracked ``.lift-ranges``
    companion.
-3. Semantic checks that the grammar cannot express, one ``Problem`` code each:
-
-   - ``duplicate-guid`` — a guid reused, among entries or among the
-     ranges/range-elements of one document.
-   - ``dangling-ref`` — a ``relation/@ref`` or ``variant/@ref`` matching no
-     entry or sense.
-   - ``range-parent`` — a ``range-element/@parent`` no sibling id defines.
-   - ``undefined-range-value`` — a grammatical-info or range-keyed trait value
-     the range does not list, checked however deeply nested in the entry.
-   - ``normalization-mismatch`` — a name that reaches the range or
-     range-element id it refers to only under Unicode NFC normalization,
-     because FLEx writes some ids in NFD and the references to them in NFC.
-   - ``duplicate-form-lang`` — two forms in one multitext sharing a language
-     (the RNG's Schematron rule, which lxml ignores).
-   - ``missing-media`` — a referenced audio or picture file not on disk.
-   - ``dangling-ranges-href`` — a header ``range/@href`` resolving to no
-     companion file.
-   - ``missing-id`` — opt-in: an entry without a guid, a sense without an id.
+3. Semantic checks that the grammar cannot express, one ``Problem`` code each
+   (``missing-id`` opt-in via ``require_ids``). The codes are named on
+   ``Problem.code`` below; ``docs/en/guides/validate.md`` tabulates each one's
+   level and what it flags.
 """
 
 from __future__ import annotations
