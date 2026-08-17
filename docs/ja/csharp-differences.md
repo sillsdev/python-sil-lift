@@ -1,6 +1,6 @@
 # C# ライブラリとの違い
 
-sil-lift は、SIL の C# LIFT ツール群――主に [libpalaso](https://github.com/sillsdev/libpalaso) 内の `SIL.Lift`（パーサー、バリデータ、マイグレーター、`LiftSorter`）、同じリポジトリ内の `SIL.DictionaryServices`（The Combine や WeSay で使用されている、独自の LIFT リーダー／ライターを備えた `LexEntry`／`LexSense` モデル）、および [Chorus](https://github.com/sillsdev/chorus) 内の LIFT ハンドラーなどです。 これは移植版ではなく、新規に実装されたものです。 このページでは、意図的に異なる仕様となっている点をまとめています。
+sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). これは移植版ではなく、新規に実装されたものです。 このページでは、意図的に異なる仕様となっている点をまとめています。
 
 ## 適用範囲
 
@@ -8,7 +8,6 @@ sil-lift は、SIL の C# LIFT ツール群――主に [libpalaso](https://gith
 | ---------- | -------------------------------------------------------- | ---------------------------------------------------- |
 | LIFTのバージョン | 0.10–0.13（移行機能が組み込まれている） | **0.13のみ**；それより古いバージョンは明確なエラーで拒否されます |
 | バージョンの移行   | `Migrator`（XSLTチェーン）                                     | なし — 単発のアップグレードには、lift-standardに含まれるXSLTを使用してください    |
-| 3ウェイマージ／同期 | コーラス                                                     | 対象外                                                  |
 | 検証         | RELAX NG のみ（`Validator`）                                 | RELAX NG + スキーマおよびセマンティックチェックの範囲                     |
 | ストリーミング    | エントリ単位の内部解析                                              | パブリック `open_reader` / `open_writer` API              |
 
@@ -21,7 +20,7 @@ sil-lift は、SIL の C# LIFT ツール群――主に [libpalaso](https://gith
 最も顕著な意図的な違い。 `SIL.Lift` を使用して保存すると、ドキュメント全体が再シリアル化されます。 sil-liftの保証：
 
 - 変更のないドキュメントは**バイト単位で同一**に保存され、
-- 変更されていないエントリは、他のエントリが変更された場合でも、ソースのバイトデータをそのまま保持します。これは、Chorus が採用しているエントリ単位のバイトチャンキングと同じ仕組みであり、自動的に適用されます。
+- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
 
 [フィデリティの保証](fidelity.md)をご覧ください。
 
@@ -48,5 +47,5 @@ sil-lift は、読み込まれたレキシコンの `.lift-ranges` コンパニ�
 ## 繰り越されなかった
 
 - WeSay特有の利便性（ダッシュボード／LIFTファイルに関する設定処理）。
-- `SynchronicMerger`（Chorusの更新マージ）— バイト単位のチャンク化という考え方はフィデリティ層で引き継がれているが、マージ機能自体は引き継がれていない。
+- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - LDMLの表記体系の解析：`WritingSystems/` ディレクトリ内のファイルは、不透明なフォルダ内容として扱われます。
