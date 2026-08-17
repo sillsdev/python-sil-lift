@@ -1,16 +1,15 @@
 # Tofauti na maktaba za C\#
 
-sil-lift ni mfano hafifu wa zana za LIFT za C# za SIL — hasa `SIL.Lift` katika [libpalaso](https://github.com/sillsdev/libpalaso) (mshinikizo, mhakiki, mhamishaji, `LiftSorter`), `SIL.DictionaryServices` katika repo hiyo hiyo (mfano wa `LexEntry`/`LexSense`, ukiwa na msomaji/mwandishi wake wa LIFT, ambao The Combine na WeSay hutumia), na vishughulikiaji vya LIFT katika [Chorus](https://github.com/sillsdev/chorus). Ni utekelezaji mpya, sio toleo lililohamishwa. Ukurasa huu unafupisha mahali tabia inatofautiana kwa makusudi.
+sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). Ni utekelezaji mpya, sio toleo lililohamishwa. Ukurasa huu unafupisha mahali tabia inatofautiana kwa makusudi.
 
 ## Wigo
 
-| Uwezo                               | Maktaba za C#                                                                            | sil-lift                                                                      |
-| ----------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Toleo za LIFT                       | 0.10–0.13 (uhamiaji umejengewa ndani) | **0.13 tu**; matoleo ya zamani yanakataliwa kwa kosa dhahiri  |
-| Uhamishaji wa toleo                 | `Migrator` (mnyororo wa XSLT)                                         | Hakuna — tumia XSLTs katika lifti-kawaida kwa ajili ya masasisho ya mara moja |
-| Muunganiko/Ulinganisho wa njia tatu | Kwaya                                                                                    | Nje ya wigo                                                                   |
-| Uthibitishaji                       | RELAX NG tu (`Validator`)                                             | RELAX NG + masanduku ya schema + ukaguzi wa semantiki                         |
-| Utiririshaji                        | Uchanganuzi wa ndani wa kiwango cha kuingia                                              | API ya umma `open_reader` / `open_writer`                                     |
+| Uwezo               | Maktaba za C#                                                                            | sil-lift                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Toleo za LIFT       | 0.10–0.13 (uhamiaji umejengewa ndani) | **0.13 tu**; matoleo ya zamani yanakataliwa kwa kosa dhahiri  |
+| Uhamishaji wa toleo | `Migrator` (mnyororo wa XSLT)                                         | Hakuna — tumia XSLTs katika lifti-kawaida kwa ajili ya masasisho ya mara moja |
+| Uthibitishaji       | RELAX NG tu (`Validator`)                                             | RELAX NG + masanduku ya schema + ukaguzi wa semantiki                         |
+| Utiririshaji        | Uchanganuzi wa ndani wa kiwango cha kuingia                                              | API ya umma `open_reader` / `open_writer`                                     |
 
 ## Umbo la API
 
@@ -21,7 +20,7 @@ Parser ya `SIL.Lift` inaendeshwa na callback (`ILexiconMerger`): inasukuma matuk
 Tofauti iliyokusudiwa yenye nguvu zaidi. Kuhifadhi kwa kutumia `SIL.Lift` kunaserialisha tena hati nzima. sil-lift inahakikisha:
 
 - Hati isiyobadilika huhifadhi **byte-identically**, na
-- Maingizo yasiyoguswa huhifadhi baiti zao halisi za chanzo hata wakati maingizo mengine yanapobadilika — ni ukataji sawa wa baiti kwa kila ingizo unaotumiwa na Chorus, unaotumika kiotomatiki.
+- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
 
 Tazama [Dhamana za Fidelity](fidelity.md).
 
@@ -48,5 +47,5 @@ sil-lift pia huthibitisha faili za `.lift-ranges` zinazohusiana na kamusi iliyop
 ## Haijahamishwa
 
 - Vifaa maalum vya WeSay (udhibiti wa dashibodi/usanidi kuhusu faili za LIFT).
-- `SynchronicMerger` (Uunganishaji wa masasisho ya kwaya) — wazo la kugawanya baiti katika vipande linaendelea kuishi katika safu ya uaminifu, lakini uunganishaji wenyewe hauendelei.
+- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - Uchanganuzi wa mfumo wa uandishi wa LDML: faili zilizo katika `WritingSystems/` zinachukuliwa kama yaliyomo yasiyoonekana ya folda.
