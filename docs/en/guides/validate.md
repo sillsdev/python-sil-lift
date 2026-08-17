@@ -18,7 +18,7 @@ lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
 
-Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `message`, and an address: `file`, plus `entry_id`, `guid`, and `line` when the finding belongs to one entry. Findings about a document rather than an entry — `range-parent`, `normalization-mismatch`, `dangling-ranges-href` — carry the file alone (for a finding about a range, the `.lift-ranges` companion that defines it), and the unset fields are `None` (`null` in `--format json`, where every key is always present).
+Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `message`, and as much of an address as the finding has: `file` (`None` when the lexicon has no path), `entry_id` when it concerns one entry, `guid` when the object it concerns has one (an entry, or a range-element), and `line` when it maps to a line in the document. A finding about a range is addressed to the `.lift-ranges` companion that defines it, and carries no entry. Unset fields are `None` — `null` in `--format json`, where every key is always present.
 
 ## The layers
 
