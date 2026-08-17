@@ -97,11 +97,10 @@ that script; committed so tests don't depend on regeneration.
 
 ## Not fetchable as files
 
-- **chorus / LiftTools test data**: verified at pinned SHAs (`7313dd6…`,
-  `f3e87cc…`) that neither repo contains any standalone `.lift`/`.lift-ranges`
-  file — their LIFT test data is inline C# strings. The C# suites remain a
-  behavioral oracle; targeted extraction into `negative/`/edge-case fixtures
-  happens as needed.
+- **LiftTools test data**: verified at a pinned SHA (`f3e87cc…`) that the repo
+  contains no standalone `.lift`/`.lift-ranges` file — its LIFT test data is
+  inline C# strings. The C# suites remain a behavioral oracle; targeted
+  extraction into `negative/`/edge-case fixtures happens as needed.
 - **libpalaso inline edge-case XML**: extracted as needed.
 - **Enggano export**: license/permission check pending; not fetched.
 

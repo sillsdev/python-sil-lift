@@ -48,8 +48,8 @@ byte-identity tests and property-based (Hypothesis) round-trip tests.
   rejected with a clear error; one-off migration of legacy files is possible
   with the XSLTs in the
   [lift-standard](https://github.com/sillsdev/lift-standard) repository.
-- No merging (see [Chorus](https://github.com/sillsdev/chorus)) and no LDML
-  interpretation (writing-system files are carried, not parsed).
+- No merging and no LDML interpretation (writing-system files are carried, not
+  parsed).
 
 ## Versioning
 
