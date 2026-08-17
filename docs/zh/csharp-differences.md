@@ -1,6 +1,6 @@
 # 与 C# 库的区别
 
-sil-lift 与 SIL 的 C# LIFT 工具集大致类似——主要包括 [libpalaso](https://github.com/sillsdev/libpalaso) 中的 `SIL.Lift`（解析器、验证器、迁移器、`LiftSorter`）、同一仓库中的 `SIL.DictionaryServices`（该仓库中的 `LexEntry`/`LexSense` 模型，带有专用的 LIFT 读写器，被 The Combine 和 WeSay 所采用），以及 [Chorus](https://github.com/sillsdev/chorus) 中的 LIFT 处理程序。 这是一个全新的实现，而不是移植。 本页总结了行为在哪些方面存在有意差异。
+sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). 这是一个全新的实现，而不是移植。 本页总结了行为在哪些方面存在有意差异。
 
 ## 范围
 
@@ -8,7 +8,6 @@ sil-lift 与 SIL 的 C# LIFT 工具集大致类似——主要包括 [libpalaso]
 | ------- | ------------------------------------------------- | ---------------------------------------- |
 | LIFT 版本 | 0.10–0.13（内置迁移功能） | **仅限 0.13 版**；旧版本将被明确拒绝  |
 | 版本迁移    | `Migrator`（XSLT 链）                                | 无 — 对于一次性升级，请使用 lift-standard 中的 XSLT 文件 |
-| 三向合并/同步 | 合唱                                                | 超出范围                                     |
 | 验证      | 仅限 RELAX NG（`Validator`）                          | RELAX NG + 范围模式 + 语义检查                   |
 | 流媒体     | 内部条目级别的解析                                         | 公共 `open_reader` / `open_writer` API     |
 
@@ -21,7 +20,7 @@ sil-lift 与 SIL 的 C# LIFT 工具集大致类似——主要包括 [libpalaso]
 最显著的刻意差异。 使用 `SIL.Lift` 保存时，会将整个文档重新序列化。 sil-lift 保证：
 
 - 未发生更改的文档在存储时**字节完全一致**，并且
-- 即使其他条目发生变化，未被修改的条目仍会保留其原始字节内容——这正是 Chorus 采用的、针对每个条目自动应用的字节分块机制。
+- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
 
 请参阅[富达保证](fidelity.md)。
 
@@ -48,5 +47,5 @@ sil-lift 还会根据独立范围文档的模式（该模式与基础 LIFT 语�
 ## 未结转
 
 - WeSay 特有的便捷功能（围绕 LIFT 文件的仪表盘/配置管理）。
-- `SynchronicMerger`（Chorus 更新合并）——字节分块的理念在保真层中得以延续，但合并操作已不复存在。
+- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - LDML 书写系统解析：`WritingSystems/` 目录下的文件将被视为不透明的文件夹内容。
