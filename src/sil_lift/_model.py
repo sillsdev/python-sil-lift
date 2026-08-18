@@ -454,36 +454,28 @@ def _normalize_href(href: str) -> Path | None:
 
 
 def _fold(text: str) -> str:
-    """A filename reduced to what a forgiving filesystem treats as one name.
+    """A filename reduced to what a case-folding filesystem treats as one name.
 
-    ``casefold`` rather than ``lower`` for the non-ASCII cases (Turkish dotted
-    and dotless I), and NFC because normalization forms get mixed within a
-    single export — FLEx writes the ``.lift`` in NFC and its companion in NFD —
-    and macOS folds them together where Linux does not. Neither NTFS's nor
-    APFS's own folding table is reproduced exactly; this is an approximation
-    over LIFT filenames, not a general equivalence.
+    ``casefold`` for what ``lower`` gets wrong (the Turkish dotless i), NFC
+    because FLEx mixes normalization forms within one export. An approximation
+    of NTFS's and APFS's tables, not a general equivalence.
     """
     return unicodedata.normalize("NFC", text).casefold()
 
 
 def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Path | None:
-    """``candidate`` if it is a file, else one whose name differs only in spelling.
+    """``candidate`` if it is a file, else one whose name folds onto it.
 
     LIFT folders are written on Windows, where the filesystem folds case, and
-    read everywhere. A folder whose ``.lift`` and ``.lift-ranges`` disagree in
-    case (``Dict.LIFT`` beside ``Dict.lift-ranges``) resolves there and, before
-    this fallback, silently did not on a case-sensitive filesystem. See
-    :func:`_fold` for what counts as the same name.
+    read everywhere: ``Dict.LIFT`` beside ``Dict.lift-ranges`` resolves there
+    and, before this fallback, silently did not on a case-sensitive filesystem.
 
-    The fallback runs only where the exact name matched no file, so a
-    case-folding filesystem never reaches it and nothing changes there. Only
-    the final path component is folded: a candidate under a *directory* spelled
-    in another case still does not resolve, which the hrefs this serves — bare
-    basenames, or relatives within the folder — do not need. Where several
-    names fold together, the first in code point order wins (so ``Dict.LIFT``
-    ahead of ``Dict.lift``) — arbitrary, but stable across runs and platforms,
-    which "whatever the directory yields first" would not be. ``listings``
-    caches one directory read per folder.
+    Only the final component folds — the hrefs this serves are basenames or
+    same-folder relatives — and only after the exact name misses, so a
+    case-folding filesystem never reaches this. Among names that fold together
+    the first in code point order wins: arbitrary, but stable across runs and
+    platforms, which directory order is not. ``listings`` caches one directory
+    read per folder.
     """
     try:
         if candidate.is_file():
@@ -506,13 +498,12 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Pa
 
 
 def _same_file(left: Path, right: Path) -> bool:
-    """Whether two paths differing only in spelling denote one file.
+    """Whether two paths that fold together denote one file.
 
-    ``Path.resolve()`` canonicalizes case on Windows but not on macOS, so on
-    the latter one file reached under two spellings yields two distinct keys —
-    tracked twice, and written twice by :meth:`Lexicon.save`. Only paths that
-    :func:`_fold` together are compared, since the inode check alone would
-    conflate distinct files on the filesystems that report ``st_ino`` as 0.
+    ``Path.resolve()`` canonicalizes case on Windows but not on macOS, where
+    one file reached under two spellings yields two keys — tracked twice, and
+    written twice by :meth:`Lexicon.save`. The fold pre-check keeps the inode
+    comparison from conflating distinct files where ``st_ino`` is 0.
     """
     if _fold(str(left)) != _fold(str(right)):
         return False
