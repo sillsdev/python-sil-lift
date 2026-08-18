@@ -1,6 +1,6 @@
 # Отличия от библиотек C\#
 
-sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). Это новая реализация, а не порт. На этой странице приведены краткие сведения о том, в каких случаях поведение намеренно отличается.
+sil-lift в общих чертах аналогичен инструментарию SIL для C# под названием LIFT — в первую очередь `SIL.Lift` из [libpalaso](https://github.com/sillsdev/libpalaso) (парсер, валидатор, мигратор, `LiftSorter`) и `SIL.DictionaryServices` в том же репозитории (модель `LexEntry`/`LexSense` с собственным считывателем/записывателем LIFT, которую используют The Combine и WeSay). Это новая реализация, а не порт. На этой странице приведены краткие сведения о том, в каких случаях поведение намеренно отличается.
 
 ## Область применения
 
@@ -20,7 +20,7 @@ sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in
 Самое явное намеренное отличие. При сохранении с помощью `SIL.Lift` происходит повторная сериализация всего документа. Компания «Sil-Lift» гарантирует:
 
 - неизменённый документ сохраняется **с идентичным количеством байтов**, и
-- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
+- Неизмененные записи сохраняют свои исходные байты в точности, даже если другие записи изменяются — автоматически применяется разбиение на байтовые блоки для каждой записи.
 
 См. [Гарантии Fidelity](fidelity.md).
 
@@ -47,5 +47,5 @@ sil-lift также проверяет соответствие файлов `.l
 ## Не перенесено
 
 - Удобства, характерные для WeSay (работа с панелью управления и настройками, связанными с файлами LIFT).
-- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger` (объединение файлов обновлений в LIFT) — идея разбиения на байтовые блоки сохраняется в уровне точности, а сам процесс объединения — нет.
 - Анализ систем письма LDML: файлы в папке `WritingSystems/` рассматриваются как непрозрачное содержимое папки.
