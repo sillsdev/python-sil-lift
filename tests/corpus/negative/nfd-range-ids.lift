@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): FLEx's normalization asymmetry, as seen
+     in exports written before its fix (see PROVENANCE.md). The companion's
+     range-element ids are NFD while every reference to them - the @parent
+     attributes and this file's grammatical-info value - is NFC, so three
+     references resolve to one id only after NFC normalization.
+     Expected: warning normalization-mismatch (once, for the id they resolve
+     to) + error range-parent for the one parent that no sibling defines in
+     any normalization. Schema-valid otherwise. -->
+<lift version="0.13">
+<header>
+<ranges>
+<range id="grammatical-info" href="nfd-range-ids.lift-ranges"/>
+</ranges>
+</header>
+<entry id="one">
+<lexical-unit><form lang="pt"><text>de</text></form></lexical-unit>
+<sense id="one-s1"><grammatical-info value="Preposição"/></sense>
+</entry>
+</lift>

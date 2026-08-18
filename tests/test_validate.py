@@ -1,3 +1,4 @@
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,11 @@ def problems_for(path: Path) -> list[Problem]:
 
 def codes(problems: list[Problem]) -> set[tuple[str, str]]:
     return {(p.level, p.code) for p in problems}
+
+
+def nfd(value: str) -> str:
+    """The decomposed spelling, as FLEx left ids that used to skip its normalizer."""
+    return unicodedata.normalize("NFD", value)
 
 
 def test_duplicate_guid_is_error_with_addressing() -> None:
@@ -39,6 +45,139 @@ def test_range_parent_integrity() -> None:
     (problem,) = problems
     assert (problem.level, problem.code) == ("error", "range-parent")
     assert "Nooun" in problem.message
+
+
+def test_range_parent_tolerates_flex_normalization_asymmetry() -> None:
+    # Regression: FLEx used to write a grammatical-info range-element id as
+    # NFD but normalized the parent attribute to NFC (see PROVENANCE.md), so
+    # the two spellings of one name differ within a single element. The parent
+    # link is sound; only the encoding differs.
+    parent_name = "Compl\u00e9ments"  # NFC, the form FLEx wrote a parent in
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    range_ = ranges.add_range("grammatical-info")
+    range_.add_element(nfd(parent_name))  # ids skipped FLEx's normalizer
+    range_.add_element(nfd("Compl\u00e9ment du lieu"), parent=parent_name)
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="bbbbbbbb-1111-4444-8888-bbbbbbbbbbbb")
+    entry.lexical_unit["en"] = "e1"
+    lexicon.entries.append(entry)
+    assert [p for p in lexicon.iter_problems() if p.code == "range-parent"] == []
+
+
+def test_normalization_mismatch_prefers_an_exactly_matching_sibling() -> None:
+    # A range may hold both spellings of one name -- ids are unique as strings,
+    # and FLEx normalized some writes and not others. Every reference here
+    # matches a sibling exactly, so none of them needed normalizing.
+    name = "Preposi\u00e7\u00e3o"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    range_ = ranges.add_range("grammatical-info")
+    range_.add_element(nfd(name))
+    range_.add_element(name)
+    range_.add_element("Associativo", parent=nfd(name))
+    range_.add_element("Prepositional phrase", parent=name)
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="cccccccc-1111-4444-8888-cccccccccccc")
+    entry.lexical_unit["en"] = "e1"
+    entry.senses.append(
+        sil_lift.Sense(id="s1", grammatical_info=sil_lift.GrammaticalInfo(nfd(name)))
+    )
+    lexicon.entries.append(entry)
+    assert list(lexicon.iter_problems()) == []
+
+
+def test_trait_name_reaches_a_range_id_in_another_normalization() -> None:
+    # A custom FLEx list becomes a range whose id is the list name and traits
+    # whose name is that same string -- written at separate sites, so any writer
+    # can spell the two in different normalizations, just as an id and the
+    # values naming it can differ. The range has to be resolved for its values to be
+    # checked at all: an unresolved name looks like a trait no range keys, which
+    # is silently accepted.
+    name = "Cat\u00e9gorie"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    range_ = ranges.add_range(nfd(name))
+    range_.add_element("Nom")
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="dddddddd-1111-4444-8888-dddddddddddd")
+    entry.lexical_unit["en"] = "e1"
+    entry.traits.append(sil_lift.Trait(name=name, value="Verbe"))
+    lexicon.entries.append(entry)
+    problems = list(lexicon.iter_problems())
+    assert codes(problems) == {
+        ("warning", "undefined-range-value"),
+        ("warning", "normalization-mismatch"),
+    }
+    (mismatch,) = [p for p in problems if p.code == "normalization-mismatch"]
+    assert "range id" in mismatch.message
+    assert "Cate\\u0301gorie" in mismatch.message
+    assert "Cat\\xe9gorie" in mismatch.message
+
+
+def test_header_range_id_reaches_a_companion_id_in_another_normalization() -> None:
+    # Regression: the resolution used to sit inside the dangling-href check,
+    # which runs only for a lexicon read from disk, so this went unreported.
+    name = "Cat\u00e9gorie"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    ranges.add_range(nfd(name)).add_element("Nom")
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")  # header id as written
+    lexicon.header.ranges.append(sil_lift.Range(id=name, href="x.lift-ranges"))
+    entry = sil_lift.Entry(id="e1", guid="eeeeeeee-1111-4444-8888-eeeeeeeeeeee")
+    entry.lexical_unit["en"] = "e1"
+    lexicon.entries.append(entry)
+    problems = list(lexicon.iter_problems())
+    assert codes(problems) == {("warning", "normalization-mismatch")}
+    assert "range id" in problems[0].message
+
+
+def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Path) -> None:
+    path = NEGATIVE_DIR / "nfd-range-ids.lift"
+    problems = problems_for(path)
+    assert codes(problems) == {("error", "range-parent"), ("warning", "normalization-mismatch")}
+    (dangling,) = [p for p in problems if p.code == "range-parent"]
+    assert "Preposicao" in dangling.message
+    # The element is in the companion, so that is where the error is addressed.
+    assert dangling.file is not None and dangling.file.suffix == ".lift-ranges"
+    # Two parent attributes and one grammatical-info value resolve to the same
+    # id: one finding, against the companion the id lives in, naming both
+    # spellings by code point (they are indistinguishable rendered).
+    (mismatch,) = [p for p in problems if p.code == "normalization-mismatch"]
+    assert mismatch.file is not None and mismatch.file.suffix == ".lift-ranges"
+    assert "Preposic\\u0327a\\u0303o" in mismatch.message
+    assert "Preposi\\xe7\\xe3o" in mismatch.message
+    # Normalization belongs to the comparison only: the mixed forms survive.
+    sil_lift.Lexicon.load(path).save(tmp_path / path.name)
+    for name in (path.name, "nfd-range-ids.lift-ranges"):
+        assert (tmp_path / name).read_bytes() == (NEGATIVE_DIR / name).read_bytes(), name
+
+
+def test_one_id_referenced_in_two_spellings_still_warns_once() -> None:
+    # The dedup is per id, not per spelling: references that differ from the id
+    # and from each other still collapse into one warning. Which of them the
+    # message names is left unasserted -- the contract is the count, not the
+    # order the references happen to be reached in.
+    name = "\u1e69"  # s with dot below and dot above, precomposed
+    # A third spelling: the same two marks in the other order, matching neither
+    # the id nor the parent link below (nfd() orders them canonically).
+    other_order = "s\u0307\u0323"
+    lexicon = sil_lift.Lexicon()
+    ranges = sil_lift.RangesFile()
+    range_ = ranges.add_range("grammatical-info")
+    range_.add_element(name)
+    range_.add_element("Enclitic", parent=nfd(name))
+    lexicon.add_ranges_file(ranges, href="x.lift-ranges")
+    entry = sil_lift.Entry(id="e1", guid="ffffffff-1111-4444-8888-ffffffffffff")
+    entry.lexical_unit["en"] = "e1"
+    entry.senses.append(
+        sil_lift.Sense(id="s1", grammatical_info=sil_lift.GrammaticalInfo(other_order))
+    )
+    lexicon.entries.append(entry)
+    problems = list(lexicon.iter_problems())
+    assert codes(problems) == {("warning", "normalization-mismatch")}
+    assert len(problems) == 1
+    assert "range-element id '\\u1e69'" in problems[0].message
 
 
 def test_undefined_range_values_are_warnings() -> None:
@@ -199,10 +338,15 @@ def test_sango_real_defects_are_found() -> None:
     by_code: dict[str, int] = {}
     for problem in problems:
         by_code[problem.code] = by_code.get(problem.code, 0) + 1
-    # Two genuinely dangling range-element parents + one undefined POS value
-    # ('prenom') in the real export; NFC-normalization keeps the count at 1.
-    assert by_code.get("range-parent") == 2
+    # One undefined POS value ('prenom') in the real export; NFC-normalization
+    # keeps the count at 1. No range-parent finding: the two parent links that
+    # differ from their target's spelling are FLEx's NFD ids under an NFC
+    # parent (see PROVENANCE.md), not dangling references. Those two and 80
+    # NFC grammatical-info values reach 5 NFD ids; the aliased POS list below
+    # holds one of them under each of its two range ids, so 6 warnings.
+    assert by_code.get("range-parent") is None
     assert by_code.get("undefined-range-value") == 1
+    assert by_code.get("normalization-mismatch") == 6
     assert by_code.get("schema", 0) > 0  # companion's trait/field extensions
     # 37 real duplicate guids: FLEx aliases its POS list under both
     # "grammatical-info" and "from-part-of-speech" (same range-element guids

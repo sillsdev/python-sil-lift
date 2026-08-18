@@ -155,6 +155,33 @@ with one `HashSet` and would flag this too — so sil-lift's `duplicate-guid`
 check reports it as an error, matching that behavior. `tests/test_validate.py`
 locks in the exact counts found (5 in AllFLExFields, 37 in Sango).
 
+## Known Unicode normalization asymmetry in real fixtures
+
+FLEx holds strings as NFD and normalizes them to NFC on export, but in the
+version that wrote the Sango pair (`SIL.FLEx 9.1.15.658`) a few writes bypassed
+its normalizing helper and emitted the NFD unchanged (fixed upstream in
+LT-22697). In `large/sango/sango.lift-ranges` the `grammatical-info`,
+`from-part-of-speech`, and `lexical-relation` range-element `id`s are NFD while
+everything around them — their `label`/`abbrev`/`description`, the `parent`
+attribute of those same elements, the
+`semantic-domain-ddp4`/`translation-type`/`usage-type` ids, and every value in
+`large/sango/sango.lift` — is NFC.
+
+So one name appears in two spellings within a single element: the part of
+speech whose id decomposes as `Comple` \+ U+0301 \+ `ments` is named by a
+child element's `parent` attribute with the precomposed U+00E9 instead. Both
+`range-parent` and `undefined-range-value` therefore compare under NFC
+normalization; without it, this fixture reports two dangling parents and an
+extra undefined part of speech that are artifacts of the encoding, not defects.
+The one genuine `undefined-range-value` left in Sango is the part of speech
+`prenom`, which no range defines in any normalization.
+
+What did match only after normalizing is still reported, as a
+`normalization-mismatch` warning per range-element id: 2 parent links and 80
+grammatical-info values reach 5 ids in Sango, one of them under both aliases
+of the part-of-speech list, so 6 warnings — and none in the other fixtures.
+`negative/nfd-range-ids.lift` is the hand-authored version of the same shape.
+
 ## generated/ — synthetic large files (not committed)
 
 Produced by `tests/tools/generate_large.py` for streaming/perf tests;
@@ -166,8 +193,11 @@ Each file carries an XML comment documenting its defect and the expected
 Problem code: `duplicate-guid`, `dangling-ref`, `range-parent`,
 `undefined-range-value` (2 warnings \+ a clean control entry),
 `duplicate-form-lang` (the Schematron-only rule), `schema-invalid`
-(structural), `missing-media/` (a folder fixture), and `flex-quirks`
-(URI quirks that must yield warnings, never schema errors).
+(structural), `missing-media/` (a folder fixture), `flex-quirks`
+(URI quirks that must yield warnings, never schema errors), and
+`nfd-range-ids` (a `.lift` \+ `.lift-ranges` pair carrying FLEx's
+historical normalization asymmetry: NFD ids, NFC references, and one
+parent that dangles in every normalization).
 `schema-invalid.lift` and `flex-quirks.lift` are raw-RNG-invalid (the
 latter only under libxml2's anyURI check) and appear in the corpus test's
 expected-invalid list.

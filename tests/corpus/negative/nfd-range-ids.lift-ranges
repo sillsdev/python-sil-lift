@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Companion of nfd-range-ids.lift: ids in NFD, @parent in NFC. The last
+     element's parent ("Preposicao") is a genuinely dangling reference - no
+     normalization makes it match a sibling id. -->
+<lift-ranges>
+<range id="grammatical-info">
+<range-element id="Preposição">
+<label><form lang="pt"><text>Preposição</text></form></label>
+</range-element>
+<range-element id="Associativo" parent="Preposição"/>
+<range-element id="Prepositional phrase" parent="Preposição"/>
+<range-element id="Órfão" parent="Preposicao"/>
+</range>
+</lift-ranges>

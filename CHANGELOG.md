@@ -67,15 +67,13 @@ releases may contain breaking changes.
 - Validation: `validate_file()` / `iter_problems()` /
   `Lexicon.iter_problems()` returning a `Problem` stream, each carrying the
   file, entry, and line it concerns. RELAX NG layer with two documented
-  deviations from raw libxml2 (href masking with `uri-not-rfc` warnings;
-  tag-grouped validation to sidestep libxml2's interleave limitation); vendored
-  ranges schema over companions; semantic checks: duplicate-guid (entries, and
-  ranges/range-elements within their own document — matching the C#
-  `Validator`'s document-wide guid scan), dangling-ref, range-parent,
-  undefined-range-value (every grammatical-info and range-keyed trait
-  reachable from an entry, however nested \+ NFC-normalized),
-  duplicate-form-lang, missing-media, dangling-ranges-href, and (opt-in via
-  `require_ids`) missing-id.
+  departures from strict validation (invalid `file://` hrefs downgraded to
+  `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
+  ranges schema over companions; and nine semantic checks the grammar cannot
+  express, one `Problem` code each (with missing-id opt-in via `require_ids`).
+  Names resolve against range and range-element ids under NFC; a match that
+  needed normalizing is reported as normalization-mismatch, once per id.
+  Every code is described in `docs/en/guides/validate.md`.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and
