@@ -1,6 +1,6 @@
 # Tofauti na maktaba za C\#
 
-sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). Ni utekelezaji mpya, sio toleo lililohamishwa. Ukurasa huu unafupisha mahali tabia inatofautiana kwa makusudi.
+sil-lift ni mfano hafifu wa zana za LIFT za C# za SIL — hasa `SIL.Lift` katika [libpalaso](https://github.com/sillsdev/libpalaso) (mshinikizo, mhakiki, mhamishaji, `LiftSorter`) na `SIL.DictionaryServices` katika repo hiyo hiyo (mfano wa `LexEntry`/`LexSense`, na msomaji/mwandishi wake wa LIFT, ambao The Combine na WeSay hutumia). Ni utekelezaji mpya, sio toleo lililohamishwa. Ukurasa huu unafupisha mahali tabia inatofautiana kwa makusudi.
 
 ## Wigo
 
@@ -20,7 +20,7 @@ Parser ya `SIL.Lift` inaendeshwa na callback (`ILexiconMerger`): inasukuma matuk
 Tofauti iliyokusudiwa yenye nguvu zaidi. Kuhifadhi kwa kutumia `SIL.Lift` kunaserialisha tena hati nzima. sil-lift inahakikisha:
 
 - Hati isiyobadilika huhifadhi **byte-identically**, na
-- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
+- Ningizo zisizoguswa huhifadhi baiti zao halisi za chanzo hata wakati nyingo zingine zinabadilika — ugawaji wa baiti kwa kila nyingo, unaotumika kiotomatiki.
 
 Tazama [Dhamana za Fidelity](fidelity.md).
 
@@ -47,5 +47,5 @@ sil-lift pia huthibitisha faili za `.lift-ranges` zinazohusiana na kamusi iliyop
 ## Haijahamishwa
 
 - Vifaa maalum vya WeSay (udhibiti wa dashibodi/usanidi kuhusu faili za LIFT).
-- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger` (kuunganisha faili za sasisho za LIFT) — wazo la kugawanya kwa baiti linaendelea kuishi katika safu ya uaminifu, lakini uunganishaji wenyewe haupo.
 - Uchanganuzi wa mfumo wa uandishi wa LDML: faili zilizo katika `WritingSystems/` zinachukuliwa kama yaliyomo yasiyoonekana ya folda.
