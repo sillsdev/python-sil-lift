@@ -1,6 +1,6 @@
 # C# लाइब्रेरियों से अंतर
 
-sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). यह एक नया कार्यान्वयन है, पोर्ट नहीं। यह पृष्ठ उन स्थानों का सारांश प्रस्तुत करता है जहाँ व्यवहार जानबूझकर भिन्न होता है।
+sil-lift मोटे तौर पर SIL के C# LIFT टूलिंग के समान है — मुख्य रूप से [libpalaso](https://github.com/sillsdev/libpalaso) में `SIL.Lift` (पार्सर, वैलिडेटर, माइग्रेटर, `LiftSorter`) और `SIL.DictionaryServices` उसी रिपॉजिटरी में (`LexEntry`/`LexSense` मॉडल, अपने स्वयं के LIFT रीडर/राइटर के साथ, जिसका उपयोग The Combine और WeSay करते हैं)। यह एक नया कार्यान्वयन है, पोर्ट नहीं। यह पृष्ठ उन स्थानों का सारांश प्रस्तुत करता है जहाँ व्यवहार जानबूझकर भिन्न होता है।
 
 ## दायरा
 
@@ -20,7 +20,7 @@ sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in
 सबसे मजबूत जानबूझकर किया गया अंतर। `SIL.Lift` के साथ सेव करने पर पूरा दस्तावेज़ पुनः सीरियलाइज़ हो जाता है। सिल-लिफ्ट गारंटियाँ:
 
 - एक अपरिवर्तित दस्तावेज़ **बाइट-समान रूप से** सहेजता है, और
-- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
+- अछूटी प्रविष्टियाँ अपने सटीक स्रोत बाइट्स को तब भी बनाए रखती हैं जब अन्य प्रविष्टियाँ बदलती हैं — प्रत्येक प्रविष्टि के लिए बाइट चंकिंग, स्वचालित रूप से लागू।
 
 देखें [फिडेलिटी गारंटी](fidelity.md)।
 
@@ -47,5 +47,5 @@ spec रिपॉजिटरी का `canonicalizeLift.xsl` बिल्क�
 ## आगे नहीं बढ़ाया गया
 
 - WeSay-विशिष्ट सुविधाएँ (LIFT फ़ाइलों के संबंध में डैशबोर्ड/कॉन्फ़िग हैंडलिंग)
-- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger` (LIFT अपडेट-फ़ाइल मर्जिंग) — बाइट-चंकिंग का विचार फ़िडेलिटी लेयर में जीवित है, मर्जिंग नहीं।
 - LDML लेखन-प्रणाली पार्सिंग: `WritingSystems/` में मौजूद फ़ाइलों को अपारदर्शी फ़ोल्डर सामग्री के रूप में माना जाता है।
