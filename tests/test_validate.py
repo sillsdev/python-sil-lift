@@ -94,7 +94,7 @@ def test_trait_name_reaches_a_range_id_in_another_normalization() -> None:
     # values naming it can differ. The range has to be resolved for its values to be
     # checked at all: an unresolved name looks like a trait no range keys, which
     # is silently accepted.
-    name = "Catégorie"
+    name = "Cat\u00e9gorie"
     lexicon = sil_lift.Lexicon()
     ranges = sil_lift.RangesFile()
     range_ = ranges.add_range(nfd(name))
@@ -118,7 +118,7 @@ def test_trait_name_reaches_a_range_id_in_another_normalization() -> None:
 def test_header_range_id_reaches_a_companion_id_in_another_normalization() -> None:
     # Regression: the resolution used to sit inside the dangling-href check,
     # which runs only for a lexicon read from disk, so this went unreported.
-    name = "Catégorie"
+    name = "Cat\u00e9gorie"
     lexicon = sil_lift.Lexicon()
     ranges = sil_lift.RangesFile()
     ranges.add_range(nfd(name)).add_element("Nom")
@@ -158,10 +158,10 @@ def test_one_id_referenced_in_two_spellings_still_warns_once() -> None:
     # and from each other still collapse into one warning. Which of them the
     # message names is left unasserted -- the contract is the count, not the
     # order the references happen to be reached in.
-    name = "ṩ"  # s with dot below and dot above, precomposed
+    name = "\u1e69"  # s with dot below and dot above, precomposed
     # A third spelling: the same two marks in the other order, matching neither
     # the id nor the parent link below (nfd() orders them canonically).
-    other_order = "ṩ"
+    other_order = "s\u0307\u0323"
     lexicon = sil_lift.Lexicon()
     ranges = sil_lift.RangesFile()
     range_ = ranges.add_range("grammatical-info")
