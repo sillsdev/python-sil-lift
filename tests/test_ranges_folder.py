@@ -1,4 +1,5 @@
 import shutil
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -226,7 +227,7 @@ def test_missing_media_flags_broken_ref(tmp_path: Path) -> None:
 
 
 def _write_case_variant_pair(folder: Path, lift_name: str, ranges_name: str) -> Path:
-    """A loadable .lift plus companion under arbitrary filename casing.
+    """A loadable .lift plus companion under arbitrary filename spellings.
 
     Deliberately not named after the fixture, so the header's ``range/@href``
     basename candidate finds nothing — only the sibling candidate resolves these.
@@ -237,9 +238,22 @@ def _write_case_variant_pair(folder: Path, lift_name: str, ranges_name: str) -> 
     return folder / lift_name
 
 
+def _write_lift_with_href(folder: Path, lift_name: str, href: str) -> Path:
+    """The fixture .lift under another name, its companion href rewritten."""
+    folder.mkdir(parents=True, exist_ok=True)
+    source = (PAIR_DIR / "test20080407.lift").read_bytes()
+    patched = source.replace(b'"file://test20080407.lift-ranges"', f'"{href}"'.encode())
+    assert patched != source, "fixture href changed; the replacement no longer matches"
+    (folder / lift_name).write_bytes(patched)
+    return folder / lift_name
+
+
 def _case_sensitive_filesystem(folder: Path) -> bool:
-    (folder / "CaseProbe").mkdir()
-    return not (folder / "caseprobe").exists()
+    probe = folder / "CaseProbe"
+    probe.mkdir(exist_ok=True)
+    sensitive = not (folder / "caseprobe").exists()
+    probe.rmdir()
+    return sensitive
 
 
 def test_companion_resolves_when_lift_suffix_is_uppercase(tmp_path: Path) -> None:
@@ -272,6 +286,52 @@ def test_absent_companion_stays_absent(tmp_path: Path) -> None:
     folder.mkdir()
     (folder / "Dict.lift").write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
     assert sil_lift.load(folder / "Dict.lift").ranges_files == {}
+
+
+def test_companion_resolves_across_unicode_normalization(tmp_path: Path) -> None:
+    # FLEx mixes NFC and NFD within one export, and the mismatch reaches the
+    # filenames; only macOS folds the two forms together on its own.
+    composed = "Caf\N{LATIN SMALL LETTER E WITH ACUTE}.lift"
+    decomposed = unicodedata.normalize("NFD", f"{composed}-ranges")
+    lift = _write_case_variant_pair(tmp_path / "pkg", composed, decomposed)
+    lexicon = sil_lift.load(lift)
+    assert lexicon.all_ranges()["grammatical-info"].elements
+
+
+def test_lift_without_an_extension_loads(tmp_path: Path) -> None:
+    # Loading never inspects the extension, so the sibling candidate is built
+    # from a name that may have none; this companion is the href's basename.
+    folder = tmp_path / "pkg"
+    folder.mkdir()
+    (folder / "Dict").write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
+    shutil.copy(PAIR_DIR / "test20080407.lift-ranges", folder)
+    lexicon = sil_lift.load(folder / "Dict")
+    assert lexicon.all_ranges()["grammatical-info"].elements
+
+
+def test_href_folding_onto_the_lift_itself_is_not_a_companion(tmp_path: Path) -> None:
+    # Dict.lift beside a Dict.LIFT is the lexicon, not its ranges: loading it
+    # as one would raise on the root and take the whole load down.
+    lift = _write_lift_with_href(tmp_path / "pkg", "Dict.LIFT", "Dict.lift")
+    assert sil_lift.load(lift).ranges_files == {}
+
+
+# Defines the range the header points at, but no elements — so the merged view
+# cannot vouch for the href and the check falls through to the filesystem.
+ELEMENTLESS_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift-ranges>
+  <range id="grammatical-info"/>
+</lift-ranges>
+"""
+
+
+def test_case_variant_companion_is_not_reported_dangling(tmp_path: Path) -> None:
+    folder = tmp_path / "pkg"
+    lift = _write_lift_with_href(folder, "Dict.LIFT", "Dict.LIFT-ranges")
+    (folder / "Dict.lift-ranges").write_bytes(ELEMENTLESS_RANGES)
+    lexicon = sil_lift.load(lift)
+    assert lexicon.ranges_files  # the companion resolved
+    assert [p for p in lexicon.iter_problems() if p.code == "dangling-ranges-href"] == []
 
 
 @pytest.mark.parametrize(

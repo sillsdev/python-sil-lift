@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING, Literal
 from lxml import etree
 
 from ._errors import LiftValidationError
-from ._model import GrammaticalInfo, Lexicon, _normalize_href
+from ._model import GrammaticalInfo, Lexicon, _existing_file, _normalize_href
 from ._text import Multitext, Trait
 
 if TYPE_CHECKING:
@@ -435,9 +435,12 @@ def _semantic_problems(
     # Absolute/file:// hrefs are ones FLEx writes knowing they will not resolve
     # (they are resolved by basename when the companion is in the same folder)
     # and are not checked here; this catches an exporter that writes a relative
-    # href but not the file.
+    # href but not the file. Existence is the same notion load resolves
+    # companions by (_existing_file), so a companion spelled in another case is
+    # not reported missing on a case-sensitive filesystem.
     if lexicon.path is not None:
         base = lexicon.path.parent
+        listings: dict[Path, dict[str, Path]] = {}
         for range_ in lexicon.header.ranges:
             if not range_.href or range_.elements:
                 continue
@@ -447,7 +450,7 @@ def _semantic_problems(
             resolved = all_ranges.get(range_.id)
             if resolved is not None and resolved.elements:
                 continue  # supplied by a sibling companion instead
-            if not (base / relative).is_file():
+            if _existing_file(base / relative, listings) is None:
                 yield Problem(
                     "warning",
                     "dangling-ranges-href",
