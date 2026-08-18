@@ -12,7 +12,7 @@ lex.all_ranges()                            # merged {id: Range} view
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-Companion discovery handles the real world: a `range/@href` that points at an existing file is used; FieldWorks' dangling absolute `file://C:/...` hrefs fall back to the href's basename next to the `.lift`; and the conventional `<name>.lift-ranges` sibling is picked up even when nothing references it. Each of those resolves a name that differs only in case or Unicode normalization form, so a folder written on Windows — `Dict.LIFT` beside `Dict.lift-ranges` — loads the same way on a case-sensitive filesystem.
+Companion discovery handles the real world: a `range/@href` that points at an existing file is used; FieldWorks' dangling absolute `file://C:/...` hrefs fall back to the href's basename next to the `.lift`; and the conventional `<name>.lift-ranges` sibling is picked up even when nothing references it.
 
 `lex.save()` writes the `.lift` and every tracked companion together. Edits to a `RangesFile` save back to _its_ file; untouched ranges keep their exact bytes. Standalone use:
 

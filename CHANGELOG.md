@@ -51,9 +51,8 @@ releases may contain breaking changes.
   against the most recent `save()`.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
-  (`Lexicon.ranges_files`, resolving a companion whose filename differs from
-  the `.lift` only in case or Unicode normalization form, as Windows- and
-  FLEx-authored folders do), `save()` writes companions together,
+  (`Lexicon.ranges_files`, matching companion filenames across case and
+  Unicode normalization differences), `save()` writes companions together,
   `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
   build-from-scratch helpers `Lexicon.add_ranges_file()` /
   `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
