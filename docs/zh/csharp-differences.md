@@ -1,6 +1,6 @@
 # 与 C# 库的区别
 
-sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in [libpalaso](https://github.com/sillsdev/libpalaso) (parser, validator, migrator, `LiftSorter`) and `SIL.DictionaryServices` in the same repo (the `LexEntry`/`LexSense` model, with its own LIFT reader/writer, that The Combine and WeSay use). 这是一个全新的实现，而不是移植。 本页总结了行为在哪些方面存在有意差异。
+sil-lift 与 SIL 的 C# LIFT 工具集大致类似——主要包括 [libpalaso](https://github.com/sillsdev/libpalaso) 中的 `SIL.Lift`（解析器、验证器、迁移工具、`LiftSorter`）以及同一仓库中的 `SIL.DictionaryServices`（即 `LexEntry`/`LexSense` 模型，带有专属的 LIFT 读写器，被 The Combine 和 WeSay 所采用）。 这是一个全新的实现，而不是移植。 本页总结了行为在哪些方面存在有意差异。
 
 ## 范围
 
@@ -20,7 +20,7 @@ sil-lift is loosely analogous to SIL's C# LIFT tooling — chiefly `SIL.Lift` in
 最显著的刻意差异。 使用 `SIL.Lift` 保存时，会将整个文档重新序列化。 sil-lift 保证：
 
 - 未发生更改的文档在存储时**字节完全一致**，并且
-- untouched entries keep their exact source bytes even when other entries change — per-entry byte chunking, applied automatically.
+- 即使其他条目发生变化，未被修改的条目仍会保留其原始字节——这是按条目进行的字节分块，且会自动应用。
 
 请参阅[富达保证](fidelity.md)。
 
@@ -47,5 +47,5 @@ sil-lift 还会根据独立范围文档的模式（该模式与基础 LIFT 语�
 ## 未结转
 
 - WeSay 特有的便捷功能（围绕 LIFT 文件的仪表盘/配置管理）。
-- `SynchronicMerger` (LIFT update-file merging) — the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger`（LIFT 更新文件合并）——字节分块的理念在保真层中得以延续，但合并操作已不复存在。
 - LDML 书写系统解析：`WritingSystems/` 目录下的文件将被视为不透明的文件夹内容。
