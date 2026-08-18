@@ -157,13 +157,15 @@ locks in the exact counts found (5 in AllFLExFields, 37 in Sango).
 
 ## Known Unicode normalization asymmetry in real fixtures
 
-FLEx holds strings as NFD and normalizes them to NFC on export, but a few writes
-bypass its normalizing helper and emit the NFD unchanged. In
-`large/sango/sango.lift-ranges` the `grammatical-info`, `from-part-of-speech`,
-and `lexical-relation` range-element `id`s are NFD while everything around them
-— their `label`/`abbrev`/`description`, the `parent` attribute of those same
-elements, the `semantic-domain-ddp4`/`translation-type`/`usage-type` ids, and
-every value in `large/sango/sango.lift` — is NFC.
+FLEx holds strings as NFD and normalizes them to NFC on export, but in the
+version that wrote the Sango pair (`SIL.FLEx 9.1.15.658`) a few writes bypassed
+its normalizing helper and emitted the NFD unchanged (fixed upstream in
+LT-22697). In `large/sango/sango.lift-ranges` the `grammatical-info`,
+`from-part-of-speech`, and `lexical-relation` range-element `id`s are NFD while
+everything around them — their `label`/`abbrev`/`description`, the `parent`
+attribute of those same elements, the
+`semantic-domain-ddp4`/`translation-type`/`usage-type` ids, and every value in
+`large/sango/sango.lift` — is NFC.
 
 So one name appears in two spellings within a single element: the part of
 speech whose id decomposes as `Comple` \+ U+0301 \+ `ments` is named by a
@@ -194,8 +196,8 @@ Problem code: `duplicate-guid`, `dangling-ref`, `range-parent`,
 (structural), `missing-media/` (a folder fixture), `flex-quirks`
 (URI quirks that must yield warnings, never schema errors), and
 `nfd-range-ids` (a `.lift` \+ `.lift-ranges` pair carrying FLEx's
-normalization asymmetry: NFD ids, NFC references, and one parent that
-dangles in every normalization).
+historical normalization asymmetry: NFD ids, NFC references, and one
+parent that dangles in every normalization).
 `schema-invalid.lift` and `flex-quirks.lift` are raw-RNG-invalid (the
 latter only under libxml2's anyURI check) and appear in the corpus test's
 expected-invalid list.

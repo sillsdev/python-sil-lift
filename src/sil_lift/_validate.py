@@ -413,8 +413,8 @@ def _semantic_problems(
                     line=at(index),
                 )
 
-    # FLEx writes some ids in NFD but every reference to them in NFC, so
-    # resolving a name to an id has to compare both forms.
+    # FLEx used to write some ids in NFD but every reference to them in NFC,
+    # so resolving a name to an id has to compare both forms.
     def nfc(value: str) -> str:
         return unicodedata.normalize("NFC", value)
 

@@ -19,7 +19,7 @@ def codes(problems: list[Problem]) -> set[tuple[str, str]]:
 
 
 def nfd(value: str) -> str:
-    """The decomposed spelling, as FLEx leaves the ids that skip its normalizer."""
+    """The decomposed spelling, as FLEx left ids that used to skip its normalizer."""
     return unicodedata.normalize("NFD", value)
 
 
@@ -48,15 +48,15 @@ def test_range_parent_integrity() -> None:
 
 
 def test_range_parent_tolerates_flex_normalization_asymmetry() -> None:
-    # Regression: FLEx writes a grammatical-info range-element id straight from
-    # its NFD in-memory string but normalizes the parent attribute to NFC (see
-    # PROVENANCE.md), so the two spellings of one name differ within a single
-    # element. The parent link is sound; only the encoding differs.
-    parent_name = "Compl\u00e9ments"  # NFC, the form FLEx writes a parent in
+    # Regression: FLEx used to write a grammatical-info range-element id as
+    # NFD but normalized the parent attribute to NFC (see PROVENANCE.md), so
+    # the two spellings of one name differ within a single element. The parent
+    # link is sound; only the encoding differs.
+    parent_name = "Compl\u00e9ments"  # NFC, the form FLEx wrote a parent in
     lexicon = sil_lift.Lexicon()
     ranges = sil_lift.RangesFile()
     range_ = ranges.add_range("grammatical-info")
-    range_.add_element(nfd(parent_name))  # ids skip FLEx's normalizer
+    range_.add_element(nfd(parent_name))  # ids skipped FLEx's normalizer
     range_.add_element(nfd("Compl\u00e9ment du lieu"), parent=parent_name)
     lexicon.add_ranges_file(ranges, href="x.lift-ranges")
     entry = sil_lift.Entry(id="e1", guid="bbbbbbbb-1111-4444-8888-bbbbbbbbbbbb")
@@ -67,7 +67,7 @@ def test_range_parent_tolerates_flex_normalization_asymmetry() -> None:
 
 def test_normalization_mismatch_prefers_an_exactly_matching_sibling() -> None:
     # A range may hold both spellings of one name -- ids are unique as strings,
-    # and FLEx normalizes some writes and not others. Every reference here
+    # and FLEx normalized some writes and not others. Every reference here
     # matches a sibling exactly, so none of them needed normalizing.
     name = "Preposi\u00e7\u00e3o"
     lexicon = sil_lift.Lexicon()
@@ -89,10 +89,11 @@ def test_normalization_mismatch_prefers_an_exactly_matching_sibling() -> None:
 
 def test_trait_name_reaches_a_range_id_in_another_normalization() -> None:
     # A custom FLEx list becomes a range whose id is the list name and traits
-    # whose name is that same string -- separate writes, so they can differ in
-    # normalization exactly as an id and the values naming it do. The range has
-    # to be resolved for its values to be checked at all: an unresolved name
-    # looks like a trait no range keys, which is silently accepted.
+    # whose name is that same string -- written at separate sites, so any writer
+    # can spell the two in different normalizations, just as an id and the
+    # values naming it can differ. The range has to be resolved for its values to be
+    # checked at all: an unresolved name looks like a trait no range keys, which
+    # is silently accepted.
     name = "Catégorie"
     lexicon = sil_lift.Lexicon()
     ranges = sil_lift.RangesFile()

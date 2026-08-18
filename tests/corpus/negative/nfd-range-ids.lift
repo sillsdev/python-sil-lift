@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Negative fixture (hand-authored): FLEx's normalization asymmetry, as seen
-     in real exports (see PROVENANCE.md). The companion's range-element ids are
-     NFD while every reference to them - the @parent attributes and this file's
-     grammatical-info value - is NFC, so three references resolve to one id
-     only after NFC normalization.
+     in exports written before its fix (see PROVENANCE.md). The companion's
+     range-element ids are NFD while every reference to them - the @parent
+     attributes and this file's grammatical-info value - is NFC, so three
+     references resolve to one id only after NFC normalization.
      Expected: warning normalization-mismatch (once, for the id they resolve
      to) + error range-parent for the one parent that no sibling defines in
      any normalization. Schema-valid otherwise. -->
