@@ -11,6 +11,7 @@ node's ``extra`` and the model field stays ``None``.
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -452,36 +453,73 @@ def _normalize_href(href: str) -> Path | None:
     return Path(normalized)
 
 
+def _fold(text: str) -> str:
+    """A filename reduced to what a forgiving filesystem treats as one name.
+
+    ``casefold`` rather than ``lower`` for the non-ASCII cases (Turkish dotted
+    and dotless I), and NFC because normalization forms get mixed within a
+    single export — FLEx writes the ``.lift`` in NFC and its companion in NFD —
+    and macOS folds them together where Linux does not. Neither NTFS's nor
+    APFS's own folding table is reproduced exactly; this is an approximation
+    over LIFT filenames, not a general equivalence.
+    """
+    return unicodedata.normalize("NFC", text).casefold()
+
+
 def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Path | None:
-    """``candidate`` if it is a file, else one whose name differs only in case.
+    """``candidate`` if it is a file, else one whose name differs only in spelling.
 
     LIFT folders are written on Windows, where the filesystem folds case, and
     read everywhere. A folder whose ``.lift`` and ``.lift-ranges`` disagree in
     case (``Dict.LIFT`` beside ``Dict.lift-ranges``) resolves there and, before
-    this fallback, silently did not on a case-sensitive filesystem.
+    this fallback, silently did not on a case-sensitive filesystem. See
+    :func:`_fold` for what counts as the same name.
 
     The fallback runs only where the exact name matched no file, so a
-    case-folding filesystem never reaches it and nothing changes there. Where
-    several names fold together, the lexicographically first wins — arbitrary,
-    but stable across runs, which "whatever the directory yields first" would
-    not be. ``listings`` caches one directory read per folder.
+    case-folding filesystem never reaches it and nothing changes there. Only
+    the final path component is folded: a candidate under a *directory* spelled
+    in another case still does not resolve, which the hrefs this serves — bare
+    basenames, or relatives within the folder — do not need. Where several
+    names fold together, the first in code point order wins (so ``Dict.LIFT``
+    ahead of ``Dict.lift``) — arbitrary, but stable across runs and platforms,
+    which "whatever the directory yields first" would not be. ``listings``
+    caches one directory read per folder.
     """
     try:
         if candidate.is_file():
             return candidate
     except OSError:
-        return None
+        pass  # unstattable exact spelling: a case variant of it may still stat
     folder = candidate.parent
     if folder not in listings:
         files: dict[str, Path] = {}
         try:
-            for path in sorted(folder.iterdir()):
+            # By name, not by Path: PurePath ordering is case-folded on Windows,
+            # which would leave the tie-break to directory order there.
+            for path in sorted(folder.iterdir(), key=lambda entry: entry.name):
                 if path.is_file():
-                    files.setdefault(path.name.lower(), path)
+                    files.setdefault(_fold(path.name), path)
         except OSError:
             pass  # unreadable folder: no candidate resolves out of it
         listings[folder] = files
-    return listings[folder].get(candidate.name.lower())
+    return listings[folder].get(_fold(candidate.name))
+
+
+def _same_file(left: Path, right: Path) -> bool:
+    """Whether two paths differing only in spelling denote one file.
+
+    ``Path.resolve()`` canonicalizes case on Windows but not on macOS, so on
+    the latter one file reached under two spellings yields two distinct keys —
+    tracked twice, and written twice by :meth:`Lexicon.save`. Only paths that
+    :func:`_fold` together are compared, since the inode check alone would
+    conflate distinct files on the filesystems that report ``st_ino`` as 0.
+    """
+    if _fold(str(left)) != _fold(str(right)):
+        return False
+    try:
+        return left.samefile(right)
+    except OSError:
+        return False
 
 
 def _same_dir(left: Path, right: Path | None) -> bool:
@@ -544,8 +582,9 @@ class Lexicon:
         hrefs are usually dangling absolute ``file://C:/...`` paths from the
         exporting machine, so the basename is what resolves locally). A
         candidate that no file matches exactly still resolves to a file whose
-        name differs only in case, so a folder authored on Windows loads the
-        same way on a case-sensitive filesystem.
+        name differs only in case or Unicode normalization, so a folder
+        authored on Windows loads the same way on a case-sensitive filesystem.
+        The ``.lift`` itself is never taken as its own companion.
 
         A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
         to a temporary directory (kept alive for the returned lexicon's
@@ -567,9 +606,16 @@ class Lexicon:
         if self.path is None:
             return
         base = self.path.parent
+        try:
+            own = self.path.resolve()
+        except OSError:
+            own = self.path
         candidates: list[Path] = []
-        sibling = self.path.with_suffix(self.path.suffix + "-ranges")
-        candidates.append(sibling)
+        # with_name, not with_suffix: they agree on every name that has an
+        # extension, but with_suffix rejects "-ranges" outright on a name
+        # without one, and nothing upstream requires the document to be named
+        # ``.lift`` — parse_document never looks at the extension.
+        candidates.append(self.path.with_name(self.path.name + "-ranges"))
         for range_ in self.header.ranges:
             if range_.href is None:
                 continue
@@ -588,8 +634,15 @@ class Lexicon:
                 resolved = found.resolve()
             except OSError:
                 continue
-            if resolved not in self.ranges_files:
-                self.ranges_files[resolved] = RangesFile.load(found)
+            # Skip a spelling of something already tracked (macOS keeps two
+            # keys for one file) and the .lift itself, which a header href
+            # naming it in another case now folds onto — RangesFile.load would
+            # reject its root and take the whole load down with it.
+            if resolved in self.ranges_files or any(
+                _same_file(resolved, other) for other in (own, *self.ranges_files)
+            ):
+                continue
+            self.ranges_files[resolved] = RangesFile.load(found)
 
     def save(self, path: str | os.PathLike[str] | None = None) -> None:
         """Write the ``.lift`` file and every tracked ``.lift-ranges`` companion.
