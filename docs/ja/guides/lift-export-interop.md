@@ -92,7 +92,7 @@ docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 </lift-ranges>
 ```
 
-エントリは、ID によって値を参照します。例えば、品詞は `<grammatical-info value="Noun"/>`、意味領域は `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>` となります。 `sil-lift validate` は、値がその範囲内で定義されていない場合に警告（`undefined-range-value`）を出し、`parent` が兄弟要素の ID ではない場合にエラー（`range-parent`）を返します。したがって、データで実際に使用されている範囲を指定してください。 「範囲とメディア」も参照してください（folder-media.md）。
+エントリは、ID によって値を参照します。例えば、品詞は `<grammatical-info value="Noun"/>`、意味領域は `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>` となります。 `sil-lift validate` は、値がその範囲内で定義されていない場合に警告（`undefined-range-value`）を出し、`parent` が兄弟要素の ID ではない場合にエラー（`range-parent`）を返します。したがって、データで実際に使用されている範囲を指定してください。 これらの比較はNFC正規化に基づいているため、IDと、それを参照する値または`parent`との間で、Unicode正規化が異なる場合があります。この違いはエラーではなく`normalization-mismatch`という警告として扱われますが、可能であれば一貫した正規化形式で記述してください。生の文字列を比較する側では、こうした参照は解決されないからです。 「範囲とメディア」も参照してください（folder-media.md）。
 
 Pythonでエクスポートを構築する場合、`Lexicon.add_ranges_file()`、`RangesFile.add_range()`、および`Range.add_element()`がコンパニオンを構築し、ヘッダー参照を自動的に追加してくれます。 `open_writer(..., ranges=...)` は、ストリーミングパス上でも同様の処理を行います。
 
