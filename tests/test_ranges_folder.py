@@ -313,6 +313,17 @@ def test_href_folding_onto_the_lift_itself_is_not_a_companion(tmp_path: Path) ->
     # Dict.lift beside a Dict.LIFT is the lexicon, not its ranges: loading it
     # as one would raise on the root and take the whole load down.
     lift = _write_lift_with_href(tmp_path / "pkg", "Dict.LIFT", "Dict.lift")
+    lexicon = sil_lift.load(lift)
+    assert lexicon.ranges_files == {}
+    assert "dangling-ranges-href" in [p.code for p in lexicon.iter_problems()]
+
+
+def test_folder_shaped_href_stays_inside_the_folder(tmp_path: Path) -> None:
+    if not _case_sensitive_filesystem(tmp_path):
+        pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
+    # An empty href names the folder itself; folding it would search the parent.
+    lift = _write_lift_with_href(tmp_path / "pkg", "Dict.lift", "")
+    (tmp_path / "PKG").write_bytes(b"<lift/>")
     assert sil_lift.load(lift).ranges_files == {}
 
 

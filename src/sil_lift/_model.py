@@ -480,6 +480,10 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Pa
     try:
         if candidate.is_file():
             return candidate
+        if candidate.is_dir():
+            # An href of "" or "sub/" lands here; folding a folder's own name
+            # would search its parent and match anything spelled like it.
+            return None
     except OSError:
         pass  # unstattable exact spelling: a case variant of it may still stat
     folder = candidate.parent
