@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING, Literal
 from lxml import etree
 
 from ._errors import LiftValidationError, LiftWriteError
-from ._model import GrammaticalInfo, Lexicon, _existing_file, _normalize_href
+from ._model import GrammaticalInfo, Lexicon, _existing_file, _normalize_href, _same_file
 from ._text import Multitext, Trait
 
 if TYPE_CHECKING:
@@ -527,7 +527,10 @@ def _semantic_problems(
                 continue
             if header_ranges[range_.id] is not None:
                 continue  # supplied by a sibling companion instead
-            if _existing_file(base / relative, listings) is None:
+            found = _existing_file(base / relative, listings)
+            # _resolve_ranges refuses the lexicon as its own companion, so an
+            # href folding onto it supplies nothing and dangles too.
+            if found is None or _same_file(found, lexicon.path):
                 yield Problem(
                     "warning",
                     "dangling-ranges-href",
