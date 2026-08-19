@@ -318,6 +318,15 @@ def test_href_folding_onto_the_lift_itself_is_not_a_companion(tmp_path: Path) ->
     assert "dangling-ranges-href" in [p.code for p in lexicon.iter_problems()]
 
 
+def test_self_referencing_href_dangles_however_it_is_spelled(tmp_path: Path) -> None:
+    # The ".." keeps the href from matching the lexicon's path as spelled, so
+    # both sides have to resolve before deciding what the reference supplies.
+    lift = _write_lift_with_href(tmp_path / "pkg", "Dict.LIFT", "../pkg/Dict.lift")
+    lexicon = sil_lift.load(lift)
+    assert lexicon.ranges_files == {}
+    assert "dangling-ranges-href" in [p.code for p in lexicon.iter_problems()]
+
+
 def test_folder_shaped_href_stays_inside_the_folder(tmp_path: Path) -> None:
     if not _case_sensitive_filesystem(tmp_path):
         pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
