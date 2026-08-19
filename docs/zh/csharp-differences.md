@@ -30,7 +30,7 @@ C# 的 `Validator` 会执行一次 RELAX NG 验证，并将首次检测到的错
 
 - **无效的 URI 属于警告，而非错误。** C# RELAX NG 引擎从未强制执行 `anyURI` 数据类型，因此 FieldWorks (FLEx) 多年来一直将 `file://C:/...` 格式的 href 写入实际词汇表中。 如果拒绝这些文件，几乎所有 FLEx 导出文件都会被标记。
 - **Schematron 规则已强制执行**（作为语义检查）：LIFT 语法中重复的表单语言和类似的协同约束，在 C# 和原生 lxml 验证中均被静默忽略。
-- **跨文件比较已进行 Unicode 标准化**，因为 FLEx 将 `.lift` 文件以 NFC 格式写入，而配套的 `.lift-ranges` 文件则以 NFD 格式写入。
+- **范围 ID 的比较采用 Unicode 规范化形式**（NFC），因为 FLEx 的导出结果在内部并不总是保持一致：虽然导出时会将其规范化为 NFC，但过去有少数 `.lift-ranges` 写入操作会绕过这一步骤，直接输出 NFD， 因此，`grammatical-info` 或 `lexical-relation` 的范围元素 `id` 可能为 NFD，而其标签、该元素的 `parent` 属性以及引用它的 `.lift` 值却均为 NFC。 规范化仅适用于比较操作：sil-lift 绝不会重写 ID，而那些只有在规范化后才能解析的引用会被报告为 `normalization-mismatch` 警告——这是一项在 C# 中没有对应检查的检查——因此，对于那些采用精确比较的用户而言，编码拆分仍然可见。
 
 sil-lift 还会根据独立范围文档的模式（该模式与基础 LIFT 语法一同由 `lift-standard` 提供）来验证已加载词汇表的 `.lift-ranges` 伴随文件 —— 每次验证 `.lift` 文件时，都会检查所有被追踪的外部范围文件 —— 而 C# 领域中则不存在此类模式（或检查）。 （目前尚无独立于 `.lift` 文件之外、专门用于验证 `.lift-ranges` 文件的入口点。）
 
