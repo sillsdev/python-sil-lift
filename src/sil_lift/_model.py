@@ -456,9 +456,9 @@ def _normalize_href(href: str) -> Path | None:
 def _fold(text: str) -> str:
     """A filename reduced to what a case-folding filesystem treats as one name.
 
-    ``casefold`` for what ``lower`` gets wrong (the Turkish dotless i), NFC
-    because FLEx mixes normalization forms within one export. An approximation
-    of NTFS's and APFS's tables, not a general equivalence.
+    ``casefold`` for what ``lower`` gets wrong (the Turkish dotless i), NFC for
+    names that arrive decomposed, as ones written or zipped on macOS do. An
+    approximation of NTFS's and APFS's tables, not a general equivalence.
     """
     return unicodedata.normalize("NFC", text).casefold()
 
@@ -467,15 +467,14 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Pa
     """``candidate`` if it is a file, else one whose name folds onto it.
 
     LIFT folders are written on Windows, where the filesystem folds case, and
-    read everywhere: ``Dict.LIFT`` beside ``Dict.lift-ranges`` resolves there
-    and, before this fallback, silently did not on a case-sensitive filesystem.
+    read everywhere. ``Dict.LIFT`` beside ``Dict.lift-ranges`` is a pair there
+    and nowhere else.
 
     Only the final component folds — the hrefs this serves are basenames or
     same-folder relatives — and only after the exact name misses, so a
     case-folding filesystem never reaches this. Among names that fold together
-    the first in code point order wins: arbitrary, but stable across runs and
-    platforms, which directory order is not. ``listings`` caches one directory
-    read per folder.
+    the first in code point order wins: arbitrary, but stable, which directory
+    order is not. ``listings`` caches one directory read per folder.
     """
     try:
         if candidate.is_file():
@@ -571,16 +570,16 @@ class Lexicon:
 
         With ``resolve_ranges`` (the default), companion ``.lift-ranges``
         files are loaded and tracked in :attr:`ranges_files`. Several
-        candidates are tried and every one that exists is loaded: the
-        conventional ``<name>.lift-ranges`` sibling, and for each header
+        candidates are tried and every distinct file among them is loaded:
+        the conventional ``<name>.lift-ranges`` sibling, and for each header
         ``range/@href`` both the href resolved as a path relative to the
         ``.lift`` file and its bare basename in the same directory (FLEx
         hrefs are usually dangling absolute ``file://C:/...`` paths from the
-        exporting machine, so the basename is what resolves locally). A
-        candidate that no file matches exactly still resolves to a file whose
-        name differs only in case or Unicode normalization, so a folder
-        authored on Windows loads the same way on a case-sensitive filesystem.
-        The ``.lift`` itself is never taken as its own companion.
+        exporting machine, so the basename is what resolves locally).
+
+        A candidate matching no file exactly resolves across differences in
+        case or Unicode normalization, so a folder authored on Windows loads
+        the same way everywhere; the ``.lift`` is never its own companion.
 
         A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
         to a temporary directory (kept alive for the returned lexicon's

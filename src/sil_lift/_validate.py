@@ -509,13 +509,10 @@ def _semantic_problems(
     # here, not inside the file check below, which a lexicon with no path skips.
     header_ranges = {range_.id: range_named(range_.id) for range_ in lexicon.header.ranges}
 
-    # Header <range href> references (relative) that resolve to no companion.
-    # Absolute/file:// hrefs are ones FLEx writes knowing they will not resolve
-    # (they are resolved by basename when the companion is in the same folder)
-    # and are not checked here; this catches an exporter that writes a relative
-    # href but not the file. Existence is the same notion load resolves
-    # companions by (_existing_file), so a companion spelled in another case is
-    # not reported missing on a case-sensitive filesystem.
+    # Header <range href> references that resolve to no companion — an exporter
+    # that wrote the href but not the file. Absolute and file:// hrefs are
+    # skipped: FLEx writes those knowing they will not resolve, and load reaches
+    # their companions by basename in the same folder instead.
     if lexicon.path is not None:
         base = lexicon.path.parent
         listings: dict[Path, dict[str, Path]] = {}
