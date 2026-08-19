@@ -92,7 +92,7 @@ Kiambatisho kinabeba ufafanuzi kamili wa kila safu. Thamani ni `<range-element>`
 </lift-ranges>
 ```
 
-Kisha, kila kipengee kinarejelea thamani kwa kutumia ID: sehemu ya hotuba ya hisia ni `<grammatical-info value="Noun"/>`, na uwanja wa semantiki ni `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` inatoa onyo (`undefined-range-value`) wakati thamani haijafafanuliwa katika upeo wake na makosa (`range-parent`) wakati `parent` si id ya ndugu — kwa hivyo toa upeo ambao data yako inatumia kweli. Tazama pia [Vipimo na vyombo vya habari](folder-media.md).
+Kisha, kila kipengee kinarejelea thamani kwa kutumia ID: sehemu ya hotuba ya hisia ni `<grammatical-info value="Noun"/>`, na uwanja wa semantiki ni `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` inatoa onyo (`undefined-range-value`) wakati thamani haijafafanuliwa katika upeo wake na makosa (`range-parent`) wakati `parent` si id ya ndugu — kwa hivyo toa upeo ambao data yako inatumia kweli. Mlinganisho huo umeendana na utaratibu wa kawaida wa NFC, hivyo kitambulisho na thamani yake au `parent` inayorejelea inaweza kutofautiana katika utaratibu wa kawaida wa Unicode — tofauti hiyo ni onyo la `normalization-mismatch` badala ya kosa, lakini andika utaratibu mmoja wa kawaida endelevu ikiwa unaweza: watumiaji wanaolinganisha nyuzi ghafi hawatatatua marejeleo hayo. Tazama pia [Vipimo na vyombo vya habari](folder-media.md).
 
 Ukijenga toleo la kusafirisha kwa kutumia Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, na `Range.add_element()` huunda kiambatisho na kuongeza marejeleo ya kichwa kwa niaba yako; `open_writer(..., ranges=...)` hufanya vivyo hivyo kwenye njia ya utiririshaji.
 
