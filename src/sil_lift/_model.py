@@ -506,12 +506,13 @@ def _same_file(left: Path, right: Path) -> bool:
 
     ``Path.resolve()`` canonicalizes case on Windows but not on macOS, where
     one file reached under two spellings yields two keys — tracked twice, and
-    written twice by :meth:`Lexicon.save`. The fold pre-check keeps the inode
-    comparison from conflating distinct files where ``st_ino`` is 0.
+    written twice by :meth:`Lexicon.save`. Both sides resolve first, so an
+    href's ``..`` or a symlink compares alike; the fold pre-check then keeps
+    the inode comparison from conflating distinct files where ``st_ino`` is 0.
     """
-    if _fold(str(left)) != _fold(str(right)):
-        return False
     try:
+        if _fold(str(left.resolve())) != _fold(str(right.resolve())):
+            return False
         return left.samefile(right)
     except OSError:
         return False
@@ -601,10 +602,6 @@ class Lexicon:
         if self.path is None:
             return
         base = self.path.parent
-        try:
-            own = self.path.resolve()
-        except OSError:
-            own = self.path
         candidates: list[Path] = []
         # with_name, not with_suffix: they agree on every name that has an
         # extension, but with_suffix rejects "-ranges" outright on a name
@@ -634,7 +631,7 @@ class Lexicon:
             # naming it in another case now folds onto — RangesFile.load would
             # reject its root and take the whole load down with it.
             if resolved in self.ranges_files or any(
-                _same_file(resolved, other) for other in (own, *self.ranges_files)
+                _same_file(resolved, other) for other in (self.path, *self.ranges_files)
             ):
                 continue
             self.ranges_files[resolved] = RangesFile.load(found)
