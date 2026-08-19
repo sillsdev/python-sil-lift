@@ -92,7 +92,7 @@ docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 </lift-ranges>
 ```
 
-随后，条目通过 ID 引用该值：词类的 ID 为 `<grammatical-info value="Noun"/>`，语义领域的 ID 为 `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`。 当某个值未在其范围内定义时，`sil-lift validate` 会发出警告（`undefined-range-value`）；当 `parent` 不是同级 ID 时，会报错（`range-parent`）——因此请仅输出数据实际使用的范围。 另请参阅 [频段与传输介质](folder-media.md)。
+随后，条目通过 ID 引用该值：词类的 ID 为 `<grammatical-info value="Noun"/>`，语义领域的 ID 为 `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`。 当某个值未在其范围内定义时，`sil-lift validate` 会发出警告（`undefined-range-value`）；当 `parent` 不是同级 ID 时，会报错（`range-parent`）——因此请仅输出数据实际使用的范围。 这些比较是基于NFC规范化的，因此一个标识符及其对应的值或引用该标识符的`parent`在Unicode规范化方面可能存在差异——这种差异会触发`normalization-mismatch`警告而非错误，但若可能，请采用一种一致的规范化方式：比较原始字符串的消费者无法解析这些引用。 另请参阅 [频段与传输介质](folder-media.md)。
 
 如果你使用 Python 构建导出文件，`Lexicon.add_ranges_file()`、`RangesFile.add_range()` 和 `Range.add_element()` 会自动为你构建关联对象并添加头文件引用； `open_writer(..., ranges=...)` 则在流式路径上执行相同操作。
 
