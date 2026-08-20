@@ -456,25 +456,28 @@ def _normalize_href(href: str) -> Path | None:
 def _fold(text: str) -> str:
     """A filename reduced to what a case-folding filesystem treats as one name.
 
-    ``casefold`` for what ``lower`` gets wrong (the Turkish dotless i), NFC for
-    names that arrive decomposed, as ones written or zipped on macOS do. An
+    ``casefold`` for what ``lower`` gets wrong (e.g. the Turkish dotless i);
+    NFC for names that arrive decomposed (e.g. ones zipped on macOS). An
     approximation of NTFS's and APFS's tables, not a general equivalence.
     """
     return unicodedata.normalize("NFC", text).casefold()
 
 
 def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Path | None:
-    """``candidate`` if it is a file, else one whose name folds onto it.
+    """The file ``candidate`` names, matched exactly or by folded name.
 
-    LIFT folders are written on Windows, where the filesystem folds case, and
-    read everywhere. ``Dict.LIFT`` beside ``Dict.lift-ranges`` is a pair there
-    and nowhere else.
+    Where the authoring filesystem folds case, as on Windows and macOS, an
+    inconsistently spelled pair goes unnoticed: ``Dict.LIFT`` beside
+    ``Dict.lift-ranges`` is a pair there but not everywhere.
 
-    Only the final component folds — the hrefs this serves are basenames or
-    same-folder relatives — and only after the exact name misses, so a
-    case-folding filesystem never reaches this. Among names that fold together
-    the first in code point order wins: arbitrary, but stable, which directory
-    order is not. ``listings`` caches one directory read per folder.
+    An exact hit is always returned unchanged: folding runs only after the
+    exact name misses, and then only on the final component — the hrefs this
+    serves are basenames or same-folder relatives.
+
+    Among names that fold together the first in code point order wins:
+    arbitrary, but stable, which directory order is not.
+
+    ``listings`` caches one directory read per folder.
     """
     try:
         if candidate.is_file():
@@ -505,9 +508,11 @@ def _same_file(left: Path, right: Path) -> bool:
 
     ``Path.resolve()`` canonicalizes case on Windows but not on macOS, where
     one file reached under two spellings yields two keys — tracked twice, and
-    written twice by :meth:`Lexicon.save`. Both sides resolve first, so an
-    href's ``..`` or a symlink compares alike; the fold pre-check then keeps
-    the inode comparison from conflating distinct files where ``st_ino`` is 0.
+    written twice by :meth:`Lexicon.save`.
+
+    Both sides resolve first, so ``..`` segments and symlinks compare alike;
+    the fold pre-check then keeps the inode comparison from conflating
+    distinct files where ``st_ino`` is 0.
     """
     try:
         if _fold(str(left.resolve())) != _fold(str(right.resolve())):
@@ -602,10 +607,9 @@ class Lexicon:
             return
         base = self.path.parent
         candidates: list[Path] = []
-        # with_name, not with_suffix: they agree on every name that has an
-        # extension, but with_suffix rejects "-ranges" outright on a name
-        # without one, and nothing upstream requires the document to be named
-        # ``.lift`` — parse_document never looks at the extension.
+        # with_name and with_suffix agree on every name that has an extension,
+        # but with_suffix would raise on a name that has none — which
+        # parse_document accepts, since it never inspects the extension.
         candidates.append(self.path.with_name(self.path.name + "-ranges"))
         for range_ in self.header.ranges:
             if range_.href is None:
@@ -625,10 +629,10 @@ class Lexicon:
                 resolved = found.resolve()
             except OSError:
                 continue
-            # Skip a spelling of something already tracked (macOS keeps two
-            # keys for one file) and the .lift itself, which a header href
-            # naming it in another case now folds onto — RangesFile.load would
-            # reject its root and take the whole load down with it.
+            # A header href naming the .lift in another case folds onto it, and
+            # RangesFile.load rejects that root, failing the whole load; two
+            # spellings of one companion, which resolve() leaves distinct on
+            # macOS, would load and write it twice.
             if resolved in self.ranges_files or any(
                 _same_file(resolved, other) for other in (self.path, *self.ranges_files)
             ):

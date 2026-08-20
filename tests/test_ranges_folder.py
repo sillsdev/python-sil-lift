@@ -248,7 +248,7 @@ def _write_lift_with_href(folder: Path, lift_name: str, href: str) -> Path:
     return folder / lift_name
 
 
-def _case_sensitive_filesystem(folder: Path) -> bool:
+def _case_sensitive(folder: Path) -> bool:
     probe = folder / "CaseProbe"
     probe.mkdir(exist_ok=True)
     sensitive = not (folder / "caseprobe").exists()
@@ -269,7 +269,7 @@ def test_companion_resolves_when_companion_suffix_is_uppercase(tmp_path: Path) -
 
 
 def test_case_folded_companions_resolve_deterministically(tmp_path: Path) -> None:
-    if not _case_sensitive_filesystem(tmp_path):
+    if not _case_sensitive(tmp_path):
         pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
     # Neither spelling matches the Dict.LIFT-ranges candidate exactly, so the
     # tie-break picks one: lexicographically first, the same one every run.
@@ -328,7 +328,7 @@ def test_self_referencing_href_dangles_however_it_is_spelled(tmp_path: Path) -> 
 
 
 def test_folder_shaped_href_stays_inside_the_folder(tmp_path: Path) -> None:
-    if not _case_sensitive_filesystem(tmp_path):
+    if not _case_sensitive(tmp_path):
         pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
     # An empty href names the folder itself; folding it would search the parent.
     lift = _write_lift_with_href(tmp_path / "pkg", "Dict.lift", "")
