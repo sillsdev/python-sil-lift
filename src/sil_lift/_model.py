@@ -475,7 +475,7 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Pa
     serves are basenames or same-folder relatives.
 
     Among names that fold together the first in code point order wins:
-    arbitrary, but stable, which directory order is not.
+    arbitrary, but deterministic, which directory order is not.
 
     ``listings`` caches one directory read per folder.
     """
