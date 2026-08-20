@@ -8,7 +8,7 @@ pairs code units — and these tests pin that down, because the fidelity contrac
 exactly the input that would break a scanner that guessed at character
 boundaries.
 
-Two halves:
+Three parts:
 
 - **Non-BMP content is ordinary content**: byte-identical round trips, exact
   scanner regions, verbatim untouched entries under edit, streaming reads and
@@ -19,6 +19,10 @@ Two halves:
   tools that mishandle UTF-16 internally emit (each surrogate half individually
   UTF-8-encoded instead of paired first). Both are rejected at parse time as
   ``LiftParseError``, not silently mangled.
+- **One assigned through the API is refused on the way out**: XML cannot
+  represent it in any encoding, so every entry point that serializes raises
+  ``LiftWriteError`` naming the node and the codepoint, and validation reports
+  it as a ``lone-surrogate`` error rather than crashing.
 
 UTF-16 sources are covered here too: they load, and — being non-ASCII-compatible
 — re-serialize canonically as UTF-8 rather than byte-identically, which is the
@@ -27,13 +31,18 @@ documented exception, not a defect.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 import sil_lift
-from sil_lift import LiftParseError, Span
+from sil_lift import LiftError, LiftParseError, LiftWriteError, Span
 from sil_lift._scan import scan
+from sil_lift._writer import _guarded
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 PARTY = "\U0001f389"  # PARTY POPPER, plane 1 (emoji)
 CJK_B = "\U00020000"  # CJK Ext. B ideograph, plane 2
@@ -236,3 +245,112 @@ def test_utf16_source_with_non_bmp_loads_and_saves_as_utf8(tmp_path: Path) -> No
     again = tmp_path / "again.lift"
     reloaded.save(again)
     assert again.read_bytes() == written
+
+
+# --- lone surrogates assigned through the API -----------------------------------
+
+LONE = "a\ud800b"  # the only way in: no LIFT file can carry U+D800
+
+
+def _lexicon_with_lone_surrogate() -> sil_lift.Lexicon:
+    lexicon = sil_lift.Lexicon()
+    entry = sil_lift.Entry(id="abat", guid="6b1b7ce6-4b3a-4d16-9a1f-8f1e3b0f2a03")
+    entry.lexical_unit["en"] = LONE
+    lexicon.entries.append(entry)
+    return lexicon
+
+
+def test_save_refuses_a_lone_surrogate_and_writes_nothing(tmp_path: Path) -> None:
+    lexicon = _lexicon_with_lone_surrogate()
+    out = tmp_path / "lone.lift"
+    with pytest.raises(LiftWriteError) as caught:
+        lexicon.save(out)
+    message = str(caught.value)
+    assert "entry 'abat'" in message  # which node
+    assert "U+D800" in message  # which codepoint
+    assert not out.exists()
+    assert isinstance(caught.value, LiftError)  # catchable with the base class
+    assert str(lexicon.entries[0].lexical_unit["en"]) == LONE  # model untouched
+
+
+def _stream_out(lexicon: sil_lift.Lexicon, path: Path) -> None:
+    with sil_lift.open_writer(path) as writer:
+        writer.write(lexicon.entries[0])
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda lexicon, path: lexicon.save(path),
+        lambda lexicon, path: lexicon.changes(),
+        lambda lexicon, path: lexicon.changed_entries(),
+        _stream_out,
+    ],
+    ids=["save", "changes", "changed-entries", "streaming-write"],
+)
+def test_every_serializing_entry_point_refuses(
+    call: Callable[[sil_lift.Lexicon, Path], object], tmp_path: Path
+) -> None:
+    """Not just save(): the change guard serializes to compare digests, and the
+    streaming writer builds the same entry elements. All three used to surface a
+    bare UnicodeEncodeError from inside lxml."""
+    source = _write(tmp_path, "loaded.lift", NON_BMP_LIFT)
+    lexicon = sil_lift.load(source)  # loaded, so the change guard has a baseline
+    lexicon.entries[0].lexical_unit["en"] = LONE
+
+    with pytest.raises(LiftWriteError, match=r"U\+D800"):
+        call(lexicon, tmp_path / "out.lift")
+
+
+def test_lone_surrogate_in_the_root_or_a_range_names_that_node(tmp_path: Path) -> None:
+    """The refusal covers every node the writer builds, not only entries."""
+    lexicon = sil_lift.Lexicon(producer=LONE)
+    with pytest.raises(LiftWriteError, match="<lift> root"):
+        lexicon.save(tmp_path / "root.lift")
+
+    ranges_file = sil_lift.RangesFile()
+    ranges_file.ranges.append(sil_lift.Range(id=f"etymology{LONE}"))
+    with pytest.raises(LiftWriteError, match="range 'etymology"):
+        ranges_file.save(tmp_path / "companion.lift-ranges")
+
+
+def test_validation_reports_a_lone_surrogate_instead_of_crashing() -> None:
+    """Validation renders the document first, so it cannot check an unrenderable
+    one — it reports the reason as its single finding."""
+    (problem,) = _lexicon_with_lone_surrogate().iter_problems()
+    assert problem.level == "error"
+    assert problem.code == "lone-surrogate"
+    assert "U+D800" in problem.message
+
+
+def test_validation_reports_a_lone_surrogate_in_a_companion(tmp_path: Path) -> None:
+    """An unwritable companion is addressed to the companion, and the .lift's own
+    layers keep running around it."""
+    source = _write(tmp_path, "with-companion.lift", NON_BMP_LIFT)
+    lexicon = sil_lift.load(source)
+    ranges_file = lexicon.add_ranges_file(href="with-companion.lift-ranges")
+    ranges_file.add_range("etymology")
+    lexicon.save()  # the companion exists on disk, so findings can address it
+    ranges_file.add_range(f"borrowed{LONE}")
+    # A finding on the .lift side, to show it is still reached.
+    lexicon.entries[1].relations.append(sil_lift.Relation(type="synonym", ref="nope"))
+
+    problems = list(lexicon.iter_problems())
+    (surrogate,) = [problem for problem in problems if problem.code == "lone-surrogate"]
+    assert surrogate.message.startswith("range 'borrowed")
+    assert "U+D800" in surrogate.message
+    assert surrogate.file is not None
+    assert surrogate.file.name == "with-companion.lift-ranges"
+    assert "dangling-ref" in {problem.code for problem in problems}
+
+
+def test_guard_re_raises_anything_that_is_not_a_surrogate() -> None:
+    """Nothing else in a str is unencodable as UTF-8, so the guard must not
+    relabel a hypothetical other UnicodeEncodeError as a lone surrogate."""
+    other = UnicodeEncodeError("ascii", "é", 0, 1, "ordinal not in range(128)")
+
+    def build() -> bytes:
+        raise other
+
+    with pytest.raises(UnicodeEncodeError):
+        _guarded("entry 'x'", build)

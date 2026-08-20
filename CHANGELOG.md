@@ -31,7 +31,10 @@ releases may contain breaking changes.
   documents and untouched entries are written byte-identically; touched entries
   re-serialize canonically with all out-of-schema content preserved. Fidelity
   contract documented in `docs/en/fidelity.md` and enforced by corpus
-  byte-identity tests plus Hypothesis round-trip properties.
+  byte-identity tests plus Hypothesis round-trip properties. Content XML cannot
+  represent — a lone surrogate, which only an API assignment can introduce — is
+  refused with `LiftWriteError` naming the node, and reported by validation as
+  `lone-surrogate`.
 - Change detection against the loaded document, reading the same parse-time
   digests. `Lexicon.changed_entries()` reports entries whose content differs
   (an entry's digest covers its whole subtree, so an edit at any depth reports

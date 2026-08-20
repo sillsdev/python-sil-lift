@@ -44,6 +44,8 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `undefined-range-value`  | warning | a grammatical-info or range-keyed trait value the range does not list      |
 | `uri-not-rfc`            | warning | an href that is not a valid URI — FLEx's `file://C:/...`                   |
 
+All three layers work from what `save()` would write, so a document that cannot be serialized at all is reported as a single `lone-surrogate` error instead — see [Fidelity guarantees](../fidelity.md#content-xml-cannot-represent).
+
 ## Real-world FieldWorks (FLEx) output
 
 FieldWorks systematically writes some content that strict tooling rejects. Here is sil-lift's policy, so that real lexicons validate usefully:

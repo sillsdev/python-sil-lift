@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ._canonical import canonicalize
-from ._errors import LiftError, LiftParseError, LiftValidationError
+from ._errors import LiftError, LiftParseError, LiftValidationError, LiftWriteError
 from ._extras import Extras
 from ._header import FieldDefinition, Header, Range, RangeElement
 from ._model import (
@@ -59,6 +59,7 @@ __all__ = [
     "LiftParseError",
     "LiftReader",
     "LiftValidationError",
+    "LiftWriteError",
     "LiftWriter",
     "MediaRef",
     "Multitext",

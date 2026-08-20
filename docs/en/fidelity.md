@@ -26,6 +26,12 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 !!! note "&quot;Canonical&quot; here is not related to any other Canonical XML"
     Canonical form on this page means `sil-lift`'s own documented shape, described in a bullet above. It is unrelated to W3C's Canonical XML (C14N) process. It is unrelated to `SIL.Core`'s `CanonicalXmlSettings` class.
 
+## Content XML cannot represent
+
+Non-BMP characters — emoji, CJK Extension B, Adlam, anything above U+FFFF — are ordinary content and round-trip byte-identically. A "surrogate pair" is a UTF-16 encoding detail: Python strings are sequences of codepoints, so nothing in the reader, the byte scanner, or the writer ever sees one.
+
+A _lone_ surrogate (U+D800–U+DFFF) is different: a Python string may hold one, an XML document may not, in any encoding. It can never arrive from a file — the parser rejects both spellings, a `&#xD800;` character reference and CESU-8/WTF-8 bytes — only from a string assigned through the API. Saving such a model raises `LiftWriteError` naming the node and the codepoint and writes nothing; validation reports it as a single `lone-surrogate` error, since the document cannot be serialized for the schema layers to check.
+
 ## Known approximations (touched nodes only)
 
 - Comments _inside_ a `<text>` run are preserved but moved next to the run, not kept at their exact character offset.
