@@ -15,6 +15,8 @@ Two paths out of a :class:`~sil_lift._model.Lexicon`:
   reassembles byte-identically.
 
 Snapshots are sha256 digests of canonical bytes, taken at parse time.
+
+Both paths refuse content XML cannot represent: see :func:`_guarded`.
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ from typing import TYPE_CHECKING
 
 from lxml import etree
 
+from ._errors import LiftWriteError
 from ._extras import Extras
 from ._header import FieldDefinition, Header, Range, RangeElement
 from ._model import (
@@ -67,6 +70,34 @@ __all__ = [
 ]
 
 _FRAGMENT_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
+
+
+def _guarded(what: str, build: Callable[[], bytes]) -> bytes:
+    """Serialize one node, turning unrepresentable content into a LIFT error.
+
+    A Python string may hold a lone surrogate; XML may not, in any encoding.
+    lxml reports it as a bare ``UnicodeEncodeError`` from wherever the text or
+    attribute was set — deep inside the builders below, naming no node. Every
+    entry point that builds and serializes a node passes through here so the
+    failure arrives as a :class:`~sil_lift.LiftWriteError` that says which node
+    and which codepoint. Nothing else in a ``str`` is unencodable as UTF-8, so
+    anything else is re-raised untouched rather than mislabelled.
+    """
+    try:
+        return build()
+    except UnicodeEncodeError as exc:
+        char = exc.object[exc.start]
+        if not 0xD800 <= ord(char) <= 0xDFFF:
+            raise
+        raise LiftWriteError(
+            f"{what}: U+{ord(char):04X} is a lone surrogate, which XML cannot "
+            f"represent in any encoding (in {exc.object!r})"
+        ) from exc
+
+
+def _entry_label(entry: Entry) -> str:
+    name = entry.id or entry.guid
+    return f"entry {name!r}" if name else "entry (no id or guid)"
 
 
 # --- byte-reuse state (created by the reader, consumed here) ---------------------
@@ -111,15 +142,15 @@ class _RangesSourceInfo:
 
 
 def entry_digest(entry: Entry) -> bytes:
-    return hashlib.sha256(_node_bytes(_entry_el(entry))).digest()
+    return hashlib.sha256(canonical_entry_bytes(entry)).digest()
 
 
 def header_digest(header: Header) -> bytes:
-    return hashlib.sha256(_node_bytes(_header_el(header))).digest()
+    return hashlib.sha256(canonical_header_bytes(header)).digest()
 
 
 def range_digest(range_: Range) -> bytes:
-    return hashlib.sha256(_node_bytes(_range_el(range_))).digest()
+    return hashlib.sha256(canonical_range_bytes(range_)).digest()
 
 
 # --- canonical building blocks ---------------------------------------------------
@@ -624,24 +655,31 @@ def _node_bytes(el: etree._Element) -> bytes:
 
 
 def canonical_entry_bytes(entry: Entry) -> bytes:
-    return _node_bytes(_entry_el(entry))
+    return _guarded(_entry_label(entry), lambda: _node_bytes(_entry_el(entry)))
 
 
 def canonical_header_bytes(header: Header) -> bytes:
-    return _node_bytes(_header_el(header))
+    return _guarded("header", lambda: _node_bytes(_header_el(header)))
+
+
+def canonical_range_bytes(range_: Range) -> bytes:
+    return _guarded(f"range {range_.id!r}", lambda: _node_bytes(_range_el(range_)))
 
 
 # --- document rendering ------------------------------------------------------------
 
 
 def _root_open_bytes(lexicon: Lexicon) -> bytes:
-    el = _element(
-        "lift",
-        [("version", "0.13"), ("producer", lexicon.producer)],
-        lexicon.extra,
-    )
-    serialized = etree.tostring(el, encoding="unicode").encode("utf-8")
-    return serialized[:-2] + b">"  # "<lift .../>" -> "<lift ...>"
+    def build() -> bytes:
+        el = _element(
+            "lift",
+            [("version", "0.13"), ("producer", lexicon.producer)],
+            lexicon.extra,
+        )
+        serialized = etree.tostring(el, encoding="unicode").encode("utf-8")
+        return serialized[:-2] + b">"  # "<lift .../>" -> "<lift ...>"
+
+    return _guarded("<lift> root", build)
 
 
 def canonical_document(
@@ -659,7 +697,7 @@ def canonical_document(
         if node.kind == "text":
             continue  # character data at root level is not representable
         position = min(node.index, len(chunks))
-        chunks.insert(position, node.xml.encode("utf-8") + b"\n")
+        chunks.insert(position, _guarded("root-level residue", node.xml.encode) + b"\n")
     parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', _root_open_bytes(lexicon), b"\n"]
     # Each chunk's trailing newline is the inter-chunk separator. Byte-reused
     # (untouched) regions end at ">", so append the newline they lack — without
@@ -818,20 +856,32 @@ def render_document(lexicon: Lexicon) -> bytes:
 # --- .lift-ranges documents ----------------------------------------------------------
 
 
+def _ranges_root_open_bytes(ranges_file: RangesFile) -> bytes:
+    def build() -> bytes:
+        root = _element("lift-ranges", [], ranges_file.extra)
+        serialized = etree.tostring(root, encoding="unicode").encode("utf-8")
+        return serialized[:-2] + b">"  # "<lift-ranges .../>" -> "<lift-ranges ...>"
+
+    return _guarded("<lift-ranges> root", build)
+
+
 def canonical_ranges_document(
     ranges_file: RangesFile,
     range_bytes: Callable[[Range], bytes] | None = None,
 ) -> bytes:
     if range_bytes is None:
-        range_bytes = lambda r: _node_bytes(_range_el(r))  # noqa: E731
+        range_bytes = canonical_range_bytes
     chunks = [range_bytes(range_) for range_ in ranges_file.ranges]
     for node in sorted(ranges_file.extra._nodes, key=lambda n: n.index):
         if node.kind == "text":
             continue
-        chunks.insert(min(node.index, len(chunks)), node.xml.encode("utf-8") + b"\n")
-    root = _element("lift-ranges", [], ranges_file.extra)
-    serialized = etree.tostring(root, encoding="unicode").encode("utf-8")
-    parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', serialized[:-2] + b">", b"\n"]
+        fragment = _guarded("root-level residue", node.xml.encode)
+        chunks.insert(min(node.index, len(chunks)), fragment + b"\n")
+    parts = [
+        b'<?xml version="1.0" encoding="UTF-8"?>\n',
+        _ranges_root_open_bytes(ranges_file),
+        b"\n",
+    ]
     # See canonical_document: reused regions need the newline they lack, or the
     # chunk runs into its neighbor.
     parts.extend(chunk if chunk.endswith(b"\n") else chunk + b"\n" for chunk in chunks)
@@ -852,7 +902,7 @@ def _range_bytes_fn(source: _RangesSourceInfo) -> Callable[[Range], bytes]:
             record, region = found
             if range_digest(range_) == record.digest:
                 return source.data[region.start : region.end]
-        return _node_bytes(_range_el(range_))
+        return canonical_range_bytes(range_)
 
     return fn
 
@@ -883,9 +933,7 @@ def render_ranges_document(ranges_file: RangesFile) -> bytes:
     if root_unchanged:
         parts.append(data[source.root_open_start : source.root_open_end])
     else:
-        root = _element("lift-ranges", [], ranges_file.extra)
-        serialized = etree.tostring(root, encoding="unicode").encode("utf-8")
-        parts.append(serialized[:-2] + b">")
+        parts.append(_ranges_root_open_bytes(ranges_file))
     position = source.root_open_end
     range_index = 0
     for region in source.children:

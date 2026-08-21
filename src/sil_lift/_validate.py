@@ -24,6 +24,10 @@ Three layers, all explicit-call (never implicit on load/save):
    (``missing-id`` opt-in via ``require_ids``). The codes are named on
    ``Problem.code`` below; ``docs/en/guides/validate.md`` tabulates each one's
    level and what it flags.
+
+A document that cannot be serialized at all — a lone surrogate assigned through
+the API — is reported as a single ``lone-surrogate`` error instead of the layers
+above, all of which need the rendered bytes.
 """
 
 from __future__ import annotations
@@ -35,7 +39,7 @@ from typing import TYPE_CHECKING, Literal
 
 from lxml import etree
 
-from ._errors import LiftValidationError
+from ._errors import LiftValidationError, LiftWriteError
 from ._model import GrammaticalInfo, Lexicon, _normalize_href
 from ._text import Multitext, Trait
 
@@ -57,9 +61,7 @@ class Problem:
     """One validation finding, addressable to a file/entry/line."""
 
     level: Literal["error", "warning"]
-    code: str  # "schema", "duplicate-guid", "dangling-ref", "range-parent",
-    # "undefined-range-value", "normalization-mismatch", "duplicate-form-lang",
-    # "missing-media", "uri-not-rfc", "dangling-ranges-href", "missing-id"
+    code: str  # e.g. "schema", "duplicate-guid", "dangling-ref", ...
     message: str
     file: Path | None = None
     entry_id: str | None = None
@@ -101,11 +103,25 @@ def iter_lexicon_problems(lexicon: Lexicon, *, require_ids: bool = False) -> Ite
     # source, so line numbers keep matching the file on disk — and rendered
     # entry order always matches lexicon.entries, keeping the entry_lines
     # table aligned for semantic addressing even after edits or sort().
-    data = render_document(lexicon)
+    #
+    # A lone surrogate makes the document unrenderable, so it is reported as
+    # the one finding and nothing else runs: every layer below needs the
+    # rendered bytes (the schema layers parse them, and the semantic layer
+    # addresses findings by their line numbers). Reporting it here is what
+    # makes it diagnosable at all — save() would raise the same refusal.
+    try:
+        data = render_document(lexicon)
+    except LiftWriteError as exc:
+        yield Problem("error", "lone-surrogate", str(exc), file=lexicon.path)
+        return
     entry_lines, problems = _schema_problems(data, lift_schema, lexicon.path)
     yield from problems
     for ranges_file in lexicon.ranges_files.values():
-        rdata = render_ranges_document(ranges_file)
+        try:
+            rdata = render_ranges_document(ranges_file)
+        except LiftWriteError as exc:
+            yield Problem("error", "lone-surrogate", str(exc), file=ranges_file.path)
+            continue
         _, range_problems = _schema_problems(rdata, ranges_schema, ranges_file.path)
         yield from range_problems
     yield from _semantic_problems(lexicon, entry_lines, require_ids=require_ids)

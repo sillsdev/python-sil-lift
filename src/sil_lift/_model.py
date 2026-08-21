@@ -565,7 +565,9 @@ class Lexicon:
         paths (they are shared with the original document, not copied).
 
         Raises :class:`ValueError` if no target path is available (none was
-        passed and the lexicon was not loaded from a file).
+        passed and the lexicon was not loaded from a file), and
+        :class:`~sil_lift.LiftWriteError` if the model holds content XML cannot
+        represent (a lone surrogate) — nothing is written in that case.
         """
         from ._writer import render_document
 

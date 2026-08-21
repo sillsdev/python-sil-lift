@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ._validate import Problem
 
-__all__ = ["LiftError", "LiftParseError", "LiftValidationError"]
+__all__ = ["LiftError", "LiftParseError", "LiftValidationError", "LiftWriteError"]
 
 
 class LiftError(Exception):
@@ -21,6 +21,10 @@ class LiftParseError(LiftError):
     than 0.13 (sil-lift does not migrate; see the lift-standard repo's XSLTs
     for one-off migration of legacy files).
     """
+
+
+class LiftWriteError(LiftError):
+    """An in-memory document holds content that XML cannot represent, so it cannot be written."""
 
 
 class LiftValidationError(LiftError):

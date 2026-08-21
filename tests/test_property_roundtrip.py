@@ -26,10 +26,16 @@ from sil_lift._writer import canonical_document
 # non-characters; \r is excluded (parsers normalize it), \t and \n are added
 # back via explicit alternatives where allowed.
 _CHARS = st.characters(min_codepoint=0x20, codec="utf-8", exclude_characters="￾￿")
-_TEXT = st.text(alphabet=st.one_of(_CHARS, st.sampled_from("\t\n")), max_size=30)
+# Non-BMP codepoints — 4-byte UTF-8, one surrogate pair each in a UTF-16 source
+# — drawn explicitly: they are what a byte scanner guessing at character
+# boundaries would break on, and _CHARS alone reaches them too rarely to count
+# as coverage. See tests/test_unicode.py for the deterministic cases.
+_NON_BMP = st.sampled_from("\U0001f389\U00020000\U0001e900\U0001d11e\U000e0021")
+_CHARS_INCL_NON_BMP = st.one_of(_CHARS, _NON_BMP)
+_TEXT = st.text(alphabet=st.one_of(_CHARS_INCL_NON_BMP, st.sampled_from("\t\n")), max_size=30)
 # Attribute values: XML parsers normalize \t\n in attributes to spaces, so keep
 # tokens to characters that round-trip verbatim.
-_TOKEN = st.text(alphabet=_CHARS, min_size=1, max_size=15)
+_TOKEN = st.text(alphabet=_CHARS_INCL_NON_BMP, min_size=1, max_size=15)
 _LANG = st.sampled_from(["en", "fr", "th", "sg", "es", "qaa-x-test"])
 
 _WHEN = st.one_of(
