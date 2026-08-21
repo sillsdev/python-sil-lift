@@ -24,16 +24,7 @@ class LiftParseError(LiftError):
 
 
 class LiftWriteError(LiftError):
-    """A model holds content that XML cannot represent, so it cannot be written.
-
-    The only such content is a lone surrogate (U+D800-U+DFFF): a Python string
-    may hold one, an XML document may not, in any encoding. It cannot come from
-    a LIFT file — the parser rejects both spellings, a numeric character
-    reference and CESU-8/WTF-8 bytes — so it is always a string assigned
-    through the API. Raised by :meth:`Lexicon.save` and by everything else that
-    serializes (:meth:`Lexicon.changes`, validation, the streaming writer);
-    nothing is written, and the model is left untouched.
-    """
+    """An in-memory document holds content that XML cannot represent, so it cannot be written."""
 
 
 class LiftValidationError(LiftError):
