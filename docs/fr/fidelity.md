@@ -26,6 +26,12 @@ Exceptions (le programme de lecture revient à la sérialisation canonique compl
 !!! note "&quot;Le fichier XML canonique&quot; ne fait référence à aucun autre fichier XML canonique."
     Sur cette page, on entend par « forme canonique » la forme propre à `sil-lift`, telle qu'elle est décrite dans l'un des points ci-dessus. Cela n'a aucun rapport avec le processus « Canonical XML (C14N) » du W3C. Cela n'a aucun rapport avec la classe `CanonicalXmlSettings` de `SIL.Core`.
 
+## Le format XML ne permet pas de représenter
+
+Les caractères non BMP — emojis, extension CJK B, Adlam, tout ce qui se trouve au-delà de U+FFFF — constituent du contenu ordinaire et sont transférés à l'identique, octet par octet, dans les deux sens. Une « paire de substitution » est une subtilité de l'encodage UTF-16 : les chaînes Python étant des séquences de points de code, ni le lecteur, ni le scanner d'octets, ni l'écrivain n'en voient jamais.
+
+Un caractère de remplacement _isolé_ (U+D800–U+DFFF) est différent : une chaîne Python peut en contenir un, mais ce n'est pas forcément le cas d'un document XML, quel que soit son encodage. Elle ne peut en aucun cas provenir d'un fichier — l'analyseur syntaxique rejette les deux orthographes, à savoir la référence de caractère `&#xD800;` et les octets CESU-8/WTF-8 — mais uniquement d'une chaîne attribuée via l'API. L'enregistrement d'un tel modèle génère une erreur `LiftWriteError` indiquant le nom du nœud et le point de code, sans rien écrire ; la validation signale cela comme une seule erreur de type `lone-surrogate`, car le document ne peut pas être sérialisé pour permettre aux couches de schéma de le vérifier.
+
 ## Approximations connues (nœuds touchés uniquement)
 
 - Les commentaires situés _à l'intérieur_ d'une exécution `<text>` sont conservés, mais déplacés à côté de l'exécution, et non pas maintenus à leur position exacte dans le texte.
