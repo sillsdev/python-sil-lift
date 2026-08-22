@@ -44,6 +44,8 @@ Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Eben
 | `Wert außerhalb des zulässigen Bereichs` | Warnung | ein grammatikalischer oder bereichsbezogener Merkmalswert, der in dem Bereich nicht aufgeführt ist                          |
 | `uri-not-rfc`                            | Warnung | Ein href, der keine gültige URI ist – FLExs `file://C:/...`                                                                 |
 
+Alle drei Ebenen stützen sich auf das, was `save()` schreiben würde; daher wird ein Dokument, das überhaupt nicht serialisiert werden kann, stattdessen als einzelner `lone-surrogate`-Fehler gemeldet – siehe [Genauigkeitsgarantien](../fidelity.md#content-xml-cannot-represent).
+
 ## Praktische FieldWorks (FLEx)-Ergebnisse
 
 FieldWorks schreibt systematisch bestimmte Inhalte, die von strengen Validierungstools abgelehnt werden. Hier sind die Richtlinien von sil-lift, damit echte Lexika sinnvoll validiert werden können:
