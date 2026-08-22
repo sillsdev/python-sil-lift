@@ -26,6 +26,12 @@ Ausnahmen (der Writer greift auf die vollständige kanonische Serialisierung zur
 !!! note "&quot;Die Canonical-&quot; -Datei hier steht in keinem Zusammenhang mit anderen Canonical-XML-Dateien."
     Unter „kanonischer Form“ wird auf dieser Seite die in einem der obigen Aufzählungspunkte beschriebene, von `sil-lift` selbst dokumentierte Form verstanden. Dies steht in keinem Zusammenhang mit dem „Canonical XML (C14N)“-Prozess des W3C. Es steht in keinem Zusammenhang mit der Klasse `CanonicalXmlSettings` von `SIL.Core`.
 
+## XML-Inhalte können Folgendes nicht darstellen
+
+Nicht-BMP-Zeichen – Emojis, CJK Extension B, Adlam und alles oberhalb von U+FFFF – sind gewöhnliche Inhalte und werden bei der Hin- und Rücksendung byteweise identisch übertragen. Ein „Surrogate-Paar“ ist ein Detail der UTF-16-Kodierung: Python-Zeichenketten bestehen aus einer Folge von Codepunkten, sodass weder der Leser noch der Byte-Scanner noch der Schreiber jemals eines davon zu Gesicht bekommt.
+
+Ein _einzelner_ Platzhalter (U+D800–U+DFFF) ist etwas anderes: Ein Python-String kann einen enthalten, ein XML-Dokument hingegen nicht, unabhängig von der Kodierung. Es kann niemals aus einer Datei stammen – der Parser lehnt beide Schreibweisen ab, sowohl eine Zeichenreferenz `&#xD800;` als auch CESU-8/WTF-8-Bytes –, sondern nur aus einer über die API zugewiesenen Zeichenkette. Das Speichern eines solchen Modells löst einen `LiftWriteError` aus, der den Knoten und den Codepunkt nennt, und es wird nichts geschrieben; die Validierung meldet dies als einen einzelnen `lone-surrogate`-Fehler, da das Dokument nicht serialisiert werden kann, damit die Schemaebenen es überprüfen können.
+
 ## Bekannte Näherungswerte (nur berührte Knoten)
 
 - Kommentare _innerhalb_ eines `<text>`-Laufs bleiben erhalten, werden jedoch neben den Lauf verschoben und nicht an ihrer genauen Zeichenposition beibehalten.
