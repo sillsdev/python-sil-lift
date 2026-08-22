@@ -44,6 +44,8 @@ Chaque résultat comporte l'un de ces éléments, quelle que soit la couche qui 
 | `valeur hors plage`         | avertissement | une valeur de caractère liée à une information grammaticale ou à une plage que cette plage ne mentionne pas       |
 | `uri-not-rfc`               | avertissement | un lien `href` qui n'est pas un URI valide — `file://C:/...` dans FLEx                                            |
 
+Ces trois couches s'appuient sur ce que la fonction `save()` écrirait ; ainsi, un document qui ne peut absolument pas être sérialisé est signalé par une seule erreur de type `lone-surrogate` — voir [Garanties de fidélité](../fidelity.md#content-xml-cannot-represent).
+
 ## Résultats concrets de FieldWorks (FLEx)
 
 FieldWorks génère systématiquement certains contenus qui sont rejetés par des outils de validation rigoureux. Voici la politique de sil-lift, afin que les véritables lexiques puissent être validés de manière utile :
