@@ -44,6 +44,8 @@ Cada resultado incluye uno de estos elementos, independientemente de la capa en 
 | `valor-de-rango-indefinido`  | advertencia | un valor de rasgo con clave gramatical o de rango que no figura en la lista del rango                      |
 | `uri-not-rfc`                | advertencia | un enlace `href` que no es un URI válido — `file://C:/...` de FLEx                                         |
 
+Las tres capas se basan en lo que escribiría `save()`, por lo que un documento que no se pueda serializar en absoluto se notifica como un único error `lone-surrogate`; véanse las [Garantías de fidelidad](../fidelity.md#content-xml-cannot-represent).
+
 ## Resultados de FieldWorks (FLEx) en el mundo real
 
 FieldWorks genera de forma sistemática cierto contenido que las herramientas más estrictas rechazan. A continuación se expone la política de sil-lift, para que los léxicos reales resulten útiles:
