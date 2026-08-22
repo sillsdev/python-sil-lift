@@ -26,6 +26,12 @@ Vilevyo vya kipekee (mwandishi anarudi kwenye mfululizo kamili wa kanoniki, amba
 !!! note "&quot;&quot; rasmi hapa haihusiani na XML rasmi nyingine yoyote."
     Fomu kanoniki kwenye ukurasa huu inamaanisha umbo halisi lililoandikwa la `sil-lift`, lililoelezwa katika nukta hapo juu. Haifungamani na mchakato wa W3C wa Canonical XML (C14N). Haijahusiana na darasa la `CanonicalXmlSettings` la `SIL.Core`.
 
+## Maudhui ya XML hayawezi kuwakilisha
+
+Herufi zisizo za BMP — emoji, CJK Extension B, Adlam, chochote kilicho juu ya U+FFFF — ni maudhui ya kawaida na hubadilishwa na kurudi kwa utambulisho sawa wa baiti. "Jozi mbadala" ni undani wa usimbaji wa UTF-16: nyuzi za Python ni mfululizo wa alama za msimbo, hivyo hakuna chochote katika msomaji, skana ya baiti, au mwandishi kinachoona moja.
+
+Surrogate _peke yake_ (U+D800–U+DFFF) ni tofauti: mstari wa Python unaweza kubeba moja, hati ya XML haiwezi, katika msimbo wowote. Haiwezi kamwe kufika kutoka kwenye faili — mchanganuzi anakataa tahajia zote mbili, rejeleo la alama `&#xD800;` na baiti za CESU-8/WTF-8 — inapatikana tu kutoka kwenye msururu uliopewa kupitia API. Kuhifadhi mfano kama huo kunasababisha `LiftWriteError` inayotaja node na codepoint na hakuna chochote kinachoandikwa; uthibitishaji unaripoti kama kosa moja la `lone-surrogate`, kwa kuwa hati haiwezi kuseriwaliswa ili tabaka za skema ziweze kuikagua.
+
 ## Makadirio yanayojulikana (nodsi zilizoguswa pekee)
 
 - Maoni ndani ya utekelezaji wa `<text>` huhifadhiwa lakini huhamishwa kando ya utekelezaji, badala ya kuwekwa mahali pake hasa kulingana na nafasi ya herufi.
