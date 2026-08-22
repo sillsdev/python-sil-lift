@@ -44,6 +44,8 @@ Cada resultado inclui um destes, independentemente da camada que o tenha gerado 
 | `valor-fora-do-intervalo`           | aviso | um valor de característica com chave gramatical ou de intervalo que não conste do intervalo         |
 | `uri-não-rfc`                       | aviso | um atributo `href` que não é um URI válido — `file://C:/...` do FLEx                                |
 
+As três camadas baseiam-se no que a função `save()` escreveria; por isso, um documento que não possa ser serializado de todo é sinalizado como um único erro `lone-surrogate` — ver [Garantias de fidelidade](../fidelity.md#content-xml-cannot-represent).
+
 ## Resultados do FieldWorks (FLEx) em condições reais
 
 O FieldWorks cria sistematicamente algum conteúdo que as ferramentas de verificação rigorosas rejeitam. Eis a política do sil-lift, para que os léxicos reais sejam validados de forma útil:
