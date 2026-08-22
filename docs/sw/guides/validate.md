@@ -44,6 +44,8 @@ Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha �
 | Thamani-ya-wigo-isiyoainishwa  | Onyo     | Thamani ya sifa ya taarifa ya kisarufi au yenye funguo za wigo ambayo wigo haitaorodhesha              |
 | URL si RFC                     | Onyo     | href ambayo si URI halali — `file://C:/...` ya FLEx                                                    |
 
+Tabaka zote tatu hufanya kazi kulingana na kile `save()` ingeandika, hivyo hati ambayo haiwezi kuserealizishwa kabisa huripotiwa kama kosa moja la `lone-surrogate` badala yake — angalia [Dhamana za Uaminifu](../fidelity.md#content-xml-cannot-represent).
+
 ## Matokeo halisi ya FieldWorks (FLEx)
 
 FieldWorks kwa utaratibu huandika baadhi ya maudhui ambayo zana kali hupinga. Hapa kuna sera ya sil-lift, ili kamusi halisi ziwe na manufaa:
