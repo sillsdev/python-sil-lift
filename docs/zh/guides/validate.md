@@ -44,6 +44,8 @@ problems = list(lex.iter_problems())
 | `未定义的范围值`              | 警告 | 一个语法信息或基于范围键的特征值，而该范围中未列出该值                     |
 | `uri-not-rfc`          | 警告 | 一个不是有效 URI 的 href — FLEx 的 `file://C:/...`      |
 
+这三层都基于 `save()` 会写入的内容进行处理，因此，如果某个文档完全无法序列化，则会报告一个 `lone-surrogate` 错误——参见 [保真度保证](../fidelity.md#content-xml-cannot-represent)。
+
 ## FieldWorks（FLEx）的实际应用输出
 
 FieldWorks 会系统性地生成一些会被严格工具过滤掉的内容。 以下是 sil-lift 的政策，旨在确保真实的词汇表能够发挥实际作用：
