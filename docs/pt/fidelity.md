@@ -26,6 +26,12 @@ Exceções (o gravador recorre à serialização canónica completa, que é sema
 !!! note "&quot;O XML canónico&quot; aqui apresentado não está relacionado com nenhum outro XML canónico"
     A forma canónica nesta página refere-se à forma documentada do próprio `sil-lift`, descrita num ponto anterior. Não tem qualquer relação com o processo «Canonical XML» (C14N) do W3C. Não tem qualquer relação com a classe `CanonicalXmlSettings` do `SIL.Core`.
 
+## O XML de conteúdo não pode representar
+
+Os caracteres não BMP — emojis, CJK Extension B, Adlam, tudo o que estiver acima de U+FFFF — são conteúdo normal e são transmitidos com idêntica precisão de bytes na ida e na volta. Um «par substituto» é um pormenor da codificação UTF-16: as cadeias de caracteres em Python são sequências de pontos de código, pelo que nem o leitor, nem o analisador de bytes, nem o gravador alguma vez o detetam.
+
+Um caractere de substituição _isolado_ (U+D800–U+DFFF) é diferente: uma cadeia de caracteres em Python pode conter um, mas um documento XML pode não conter, independentemente da codificação. Nunca pode provir de um ficheiro — o analisador rejeita ambas as formas de escrita, uma referência de caractere `&#xD800;` e os bytes CESU-8/WTF-8 — apenas de uma cadeia de caracteres atribuída através da API. Ao guardar esse modelo, é gerado um erro `LiftWriteError` que indica o nome do nó e o ponto de código, sem que seja gravado nada; a validação reporta-o como um único erro `lone-surrogate`, uma vez que o documento não pode ser serializado para que as camadas de esquema o verifiquem.
+
 ## Aproximações conhecidas (apenas nós tocados)
 
 - Os comentários _dentro_ de uma execução `<text>` são preservados, mas são movidos para junto da execução, não sendo mantidos na sua posição exata em termos de caracteres.
