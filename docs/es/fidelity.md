@@ -26,6 +26,12 @@ Excepciones (el escritor recurre a la serialización canónica completa, que es 
 !!! note "&quot;El XML canónico&quot; que aparece aquí no está relacionado con ningún otro XML canónico."
     En esta página, por «forma canónica» se entiende la forma documentada propia de «sil-lift», descrita en uno de los puntos anteriores. No guarda relación alguna con el proceso «Canonical XML (C14N)» del W3C. No tiene nada que ver con la clase `CanonicalXmlSettings` de `SIL.Core`.
 
+## El XML de contenido no puede representar
+
+Los caracteres que no pertenecen al BMP —emoji, CJK Extension B, Adlam y cualquier carácter situado por encima de U+FFFF — se consideran contenido normal y se transmiten con la misma secuencia de bytes en ambos sentidos. Un «par sustituto» es un detalle de la codificación UTF-16: las cadenas de Python son secuencias de puntos de código, por lo que ni el lector, ni el escáner de bytes, ni el escritor llegan a verlo nunca.
+
+Un carácter de sustitución _único_ (U+D800–U+DFFF) es diferente: una cadena de Python puede contener uno, pero un documento XML no, independientemente de la codificación. Nunca puede proceder de un archivo —el analizador rechaza ambas formas de escritura, tanto la referencia de carácter `&#xD800;` como los bytes CESU-8/WTF-8—; solo puede proceder de una cadena asignada a través de la API. Al guardar un modelo de este tipo, se produce un error `LiftWriteError` en el que se indican el nombre del nodo y el punto de código, y no se escribe nada; la validación lo señala como un único error de tipo `lone-surrogate`, ya que el documento no se puede serializar para que las capas de esquema lo comprueben.
+
 ## Aproximaciones conocidas (solo nodos tocados)
 
 - Los comentarios que se encuentran _dentro_ de una ejecución de `<text>` se conservan, pero se trasladan junto a la ejecución, en lugar de mantenerse en su posición exacta en caracteres.
