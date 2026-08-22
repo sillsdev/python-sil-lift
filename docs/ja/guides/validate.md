@@ -44,6 +44,8 @@ problems = list(lex.iter_problems())
 | `未定義の範囲値`              | 警告  | 文法情報または範囲キー付き形質値のうち、その範囲にリストされていないもの                |
 | `uri-not-rfc`          | 警告  | 有効なURIではないhref — FLExの `file://C:/...`              |
 
+3つのレイヤーはすべて、`save()` が書き込む内容を基に動作するため、まったくシリアライズできないドキュメントについては、代わりに単一の `lone-surrogate` エラーとして報告されます。詳細は [忠実度の保証](../fidelity.md#content-xml-cannot-represent) を参照してください。
+
 ## 実環境におけるFieldWorks（FLEx）の出力結果
 
 FieldWorksは、厳格なツールによって拒否されるようなコンテンツを体系的に生成してしまう。 実際の辞書が有用に検証されるよう、sil-liftの方針は以下の通りです：
