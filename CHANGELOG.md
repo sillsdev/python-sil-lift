@@ -18,18 +18,6 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
-### Fixed
-
-- CLI output is UTF-8 whether or not it is redirected. stdout and stderr were
-  left on the locale encoding when they were not a console — cp1252 on Windows,
-  ASCII under a C/POSIX locale — so a character it could not represent raised
-  `UnicodeEncodeError` and killed the command mid-output: `sil-lift validate
-  ... > out.txt` died on an NFD range-element id, and `export` left a truncated
-  file whose bytes were neither UTF-8 nor complete.
-- `export` to stdout writes the same bytes as `-o`. csv's CRLF row terminator
-  was doubled by a stdout that translates newlines, putting a blank row between
-  every data row on Windows.
-
 ## [0.1.0] - 2026-07-TBD
 
 ### Added
