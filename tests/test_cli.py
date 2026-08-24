@@ -2,6 +2,8 @@ import csv
 import io
 import json
 import shutil
+import sys
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,18 @@ import pytest
 from sil_lift._cli import main
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
+
+
+def _redirect(monkeypatch: pytest.MonkeyPatch, name: str, encoding: str) -> io.BytesIO:
+    """Stand in for a redirected standard stream: a byte sink under a locale codec.
+
+    ``newline="\r\n"`` is what a Windows stream does with no newline argument,
+    spelled explicitly so the CRLF-doubling regression is testable anywhere.
+    """
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding=encoding, newline="\r\n")
+    monkeypatch.setattr(sys, name, stream)
+    return raw
 
 
 def test_validate_clean_file(capsys: pytest.CaptureFixture[str]) -> None:
@@ -282,3 +296,44 @@ def test_export_filename_with_space(tmp_path: Path) -> None:
     out = tmp_path / "out.csv"
     assert main(["export", str(path), "-o", str(out)]) == 0
     assert out.is_file()
+
+
+def test_validate_text_output_survives_a_cp1252_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
+    raw = _redirect(monkeypatch, "stdout", "cp1252")
+    assert main(["validate", str(CORPUS_DIR / "negative" / "nfd-range-ids.lift")]) == 1
+    sys.stdout.flush()
+    out = raw.getvalue().decode("utf-8")
+    assert unicodedata.normalize("NFD", "Órfão") in out  # the id cp1252 cannot hold
+    assert out.splitlines()[-1].endswith("warning(s)")  # ran to the summary, not truncated
+
+
+def test_export_to_a_locale_stdout_matches_the_output_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "multiple-forms.lift"
+    to_file = tmp_path / "out.csv"
+    assert main(["export", str(source), "-o", str(to_file)]) == 0
+
+    raw = _redirect(monkeypatch, "stdout", "ascii")
+    assert main(["export", str(source)]) == 0
+    assert raw.getvalue() == to_file.read_bytes()
+    assert "เอว" in raw.getvalue().decode("utf-8")  # a gloss ascii cannot hold
+
+
+def test_error_message_survives_an_ascii_stderr(monkeypatch: pytest.MonkeyPatch) -> None:
+    raw = _redirect(monkeypatch, "stderr", "ascii")
+    assert main(["validate", str(CORPUS_DIR / "Órfão.lift")]) == 2
+    sys.stderr.flush()
+    assert "Órfão.lift" in raw.getvalue().decode("utf-8")
+
+
+def test_a_stdout_that_is_not_a_text_wrapper_is_left_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A replaced stdout has no encoding to fix and no byte layer to wrap."""
+    sink = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", sink)
+    assert main(["export", str(CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift")]) == 0
+    assert main(["validate", str(CORPUS_DIR / "ranges" / "test20080407.lift")]) == 0
+    assert "entry_id" in sink.getvalue()
+    assert "0 error(s), 0 warning(s)" in sink.getvalue()

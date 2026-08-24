@@ -12,7 +12,9 @@ Deliberately stdlib-only.
 from __future__ import annotations
 
 import argparse
+import codecs
 import csv
+import io
 import json
 import sys
 import tempfile
@@ -230,10 +232,19 @@ def _cmd_export(args: argparse.Namespace) -> int:
             header.extend([f"gloss_{lang}", f"definition_{lang}"])
 
         out_file: TextIO
-        if args.output is None:
-            out_file = sys.stdout
-        else:
+        stdout_wrapper: io.TextIOWrapper | None = None
+        if args.output is not None:
             out_file = args.output.open("w", encoding="utf-8", newline="")
+        elif isinstance(sys.stdout, io.TextIOWrapper):
+            # csv writes CRLF row terminators, and a stdout that translates
+            # newlines doubles the CR into a blank row between every data row.
+            # Writing through an explicit wrapper gives a redirected run the
+            # same bytes --output writes, instead of platform-dependent ones.
+            out_file = stdout_wrapper = io.TextIOWrapper(
+                sys.stdout.buffer, encoding="utf-8", newline=""
+            )
+        else:  # a replaced stdout need not have a byte layer to wrap
+            out_file = sys.stdout
         try:
             writer = csv.writer(out_file, delimiter="\t" if args.tsv else ",")
             writer.writerow(header)
@@ -249,12 +260,36 @@ def _cmd_export(args: argparse.Namespace) -> int:
                             row.append(_text_or_empty(sense.definition.get(lang)))
                         writer.writerow(row)
         finally:
-            if args.output is not None:
+            out_file.flush()
+            if stdout_wrapper is not None:
+                stdout_wrapper.detach()  # leave sys.stdout usable
+            elif args.output is not None:
                 out_file.close()
     return 0
 
 
+def _force_utf8(stream: TextIO) -> None:
+    """Make one of the standard streams write UTF-8, whatever the locale is.
+
+    A stream that is not a console gets the locale encoding — cp1252 on
+    Windows, ASCII under a C/POSIX locale — which cannot hold LIFT content, so
+    one unrepresentable character killed the command mid-output. ``-o`` has
+    always forced UTF-8; this makes a redirect agree with it.
+
+    Errors stay strict: the only content UTF-8 cannot encode is a lone
+    surrogate, and no file can carry one into the CLI — both readers reject it,
+    and the finding that reports one escapes it anyway.
+    """
+    if not isinstance(stream, io.TextIOWrapper):  # a replaced stream may be anything
+        return
+    if codecs.lookup(stream.encoding).name == "utf-8":
+        return
+    stream.reconfigure(encoding="utf-8")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    _force_utf8(sys.stdout)
+    _force_utf8(sys.stderr)
     parser = argparse.ArgumentParser(
         prog="sil-lift",
         description="Utilities for LIFT 0.13 lexicon files.",
