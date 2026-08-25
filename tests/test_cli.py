@@ -13,14 +13,18 @@ from sil_lift._cli import main
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
 
-def _redirect(monkeypatch: pytest.MonkeyPatch, name: str, encoding: str) -> io.BytesIO:
+def _redirect(
+    monkeypatch: pytest.MonkeyPatch, name: str, encoding: str, errors: str = "strict"
+) -> io.BytesIO:
     """Stand in for a redirected standard stream: a byte sink under a locale codec.
 
     ``newline="\r\n"`` is what a Windows stream does with no newline argument,
     spelled explicitly so the CRLF-doubling regression is testable anywhere.
+    ``errors`` is the handler CPython hands that stream: strict for stdout
+    (surrogateescape on some platforms), backslashreplace for stderr.
     """
     raw = io.BytesIO()
-    stream = io.TextIOWrapper(raw, encoding=encoding, newline="\r\n")
+    stream = io.TextIOWrapper(raw, encoding=encoding, errors=errors, newline="\r\n")
     monkeypatch.setattr(sys, name, stream)
     return raw
 
@@ -321,7 +325,7 @@ def test_export_to_a_locale_stdout_matches_the_output_flag(
 
 
 def test_error_message_survives_an_ascii_stderr(monkeypatch: pytest.MonkeyPatch) -> None:
-    raw = _redirect(monkeypatch, "stderr", "ascii")
+    raw = _redirect(monkeypatch, "stderr", "ascii", errors="backslashreplace")
     assert main(["validate", str(CORPUS_DIR / "Órfão.lift")]) == 2
     sys.stderr.flush()
     assert "Órfão.lift" in raw.getvalue().decode("utf-8")
@@ -337,3 +341,25 @@ def test_a_stdout_that_is_not_a_text_wrapper_is_left_alone(
     assert main(["validate", str(CORPUS_DIR / "ranges" / "test20080407.lift")]) == 0
     assert "entry_id" in sink.getvalue()
     assert "0 error(s), 0 warning(s)" in sink.getvalue()
+
+
+def test_each_stream_keeps_its_own_error_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only the encoding is forced; reconfiguring resets the handler otherwise."""
+    _redirect(monkeypatch, "stdout", "cp1252", errors="surrogateescape")
+    _redirect(monkeypatch, "stderr", "cp1252", errors="backslashreplace")
+    assert main(["validate", str(CORPUS_DIR / "ranges" / "test20080407.lift")]) == 0
+    assert (sys.stdout.encoding, sys.stdout.errors) == ("utf-8", "surrogateescape")
+    assert (sys.stderr.encoding, sys.stderr.errors) == ("utf-8", "backslashreplace")
+
+
+def test_export_to_a_broken_pipe_leaves_stdout_usable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The csv sink borrows stdout's byte layer, so it must not close it."""
+
+    def broken(data: object) -> int:
+        raise BrokenPipeError(32, "Broken pipe")
+
+    raw = _redirect(monkeypatch, "stdout", "utf-8")
+    monkeypatch.setattr(raw, "write", broken)
+    assert main(["export", str(CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift")]) == 2
+    assert not raw.closed
+    assert not sys.stdout.closed

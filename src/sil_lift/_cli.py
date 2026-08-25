@@ -30,7 +30,7 @@ from ._validate import iter_problems
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
-    from typing import TextIO
+    from typing import BinaryIO, TextIO
 
     from ._model import Entry, Sense
     from ._text import Text
@@ -212,6 +212,25 @@ def _text_or_empty(text: Text | None) -> str:
     return str(text) if text is not None else ""
 
 
+class _Utf8Sink:
+    """A csv sink writing UTF-8 to a byte stream it does not own.
+
+    csv writes CRLF row terminators, and a stdout that translates newlines
+    doubles the CR into a blank row between every data row, so a redirected
+    export is not the file ``--output`` writes. Going straight to the byte
+    layer settles both halves of that. A ``TextIOWrapper`` around the same
+    buffer would too, but it owns the buffer until detached, and an error on
+    the way out would take stdout down with it.
+    """
+
+    def __init__(self, buffer: BinaryIO) -> None:
+        self._buffer = buffer
+
+    def write(self, text: str) -> int:
+        """Bytes written, not characters; csv discards the count either way."""
+        return self._buffer.write(text.encode("utf-8"))
+
+
 def _cmd_export(args: argparse.Namespace) -> int:
     from ._zip import lift_source
 
@@ -231,22 +250,17 @@ def _cmd_export(args: argparse.Namespace) -> int:
         for lang in langs:
             header.extend([f"gloss_{lang}", f"definition_{lang}"])
 
-        out_file: TextIO
-        stdout_wrapper: io.TextIOWrapper | None = None
+        out_file: TextIO | None = None
+        sink: TextIO | _Utf8Sink
         if args.output is not None:
-            out_file = args.output.open("w", encoding="utf-8", newline="")
+            out_file = sink = args.output.open("w", encoding="utf-8", newline="")
         elif isinstance(sys.stdout, io.TextIOWrapper):
-            # csv writes CRLF row terminators, and a stdout that translates
-            # newlines doubles the CR into a blank row between every data row.
-            # Writing through an explicit wrapper gives a redirected run the
-            # same bytes --output writes, instead of platform-dependent ones.
-            out_file = stdout_wrapper = io.TextIOWrapper(
-                sys.stdout.buffer, encoding="utf-8", newline=""
-            )
-        else:  # a replaced stdout need not have a byte layer to wrap
-            out_file = sys.stdout
+            sys.stdout.flush()  # nothing of its own may sit behind these bytes
+            sink = _Utf8Sink(sys.stdout.buffer)
+        else:  # a replaced stdout need not have a byte layer to write to
+            sink = sys.stdout
         try:
-            writer = csv.writer(out_file, delimiter="\t" if args.tsv else ",")
+            writer = csv.writer(sink, delimiter="\t" if args.tsv else ",")
             writer.writerow(header)
             with open_reader(lift_path) as reader:
                 for entry in reader:
@@ -260,10 +274,7 @@ def _cmd_export(args: argparse.Namespace) -> int:
                             row.append(_text_or_empty(sense.definition.get(lang)))
                         writer.writerow(row)
         finally:
-            out_file.flush()
-            if stdout_wrapper is not None:
-                stdout_wrapper.detach()  # leave sys.stdout usable
-            elif args.output is not None:
+            if out_file is not None:
                 out_file.close()
     return 0
 
@@ -276,15 +287,17 @@ def _force_utf8(stream: TextIO) -> None:
     one unrepresentable character killed the command mid-output. ``-o`` has
     always forced UTF-8; this makes a redirect agree with it.
 
-    Errors stay strict: the only content UTF-8 cannot encode is a lone
-    surrogate, and no file can carry one into the CLI — both readers reject it,
-    and the finding that reports one escapes it anyway.
+    Only the encoding changes. ``reconfigure`` resets the error handler to
+    ``strict`` unless it is passed one, and each stream's own is worth keeping:
+    stderr is ``backslashreplace`` so a message always arrives, and stdout is
+    ``surrogateescape`` on some platforms, which is what round-trips a filename
+    the filesystem encoding could not decode.
     """
     if not isinstance(stream, io.TextIOWrapper):  # a replaced stream may be anything
         return
     if codecs.lookup(stream.encoding).name == "utf-8":
         return
-    stream.reconfigure(encoding="utf-8")
+    stream.reconfigure(encoding="utf-8", errors=stream.errors)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
