@@ -47,7 +47,7 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 
 All three layers work from what `save()` would write, so a document that cannot be serialized at all is reported as a single `lone-surrogate` error instead — see [Fidelity guarantees](../fidelity.md#content-xml-cannot-represent).
 
-Companions are matched by folded filename — case and Unicode normalization — so a folder authored on Windows loads the same way on a case-sensitive filesystem. Where that folding leaves one name matching several files, none of them is loaded: which one it meant is not recoverable. `ambiguous-ranges-file` reports the collision; renaming or removing all but one resolves it.
+A companion name matching several files loads none of them: the ranges they define go absent until all but one is renamed or removed.
 
 ## Real-world FieldWorks (FLEx) output
 
