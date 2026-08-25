@@ -215,12 +215,11 @@ def _text_or_empty(text: Text | None) -> str:
 class _Utf8Sink:
     """A csv sink writing UTF-8 to a byte stream it does not own.
 
-    csv writes CRLF row terminators, and a stdout that translates newlines
-    doubles the CR into a blank row between every data row, so a redirected
-    export is not the file ``--output`` writes. Going straight to the byte
-    layer settles both halves of that. A ``TextIOWrapper`` around the same
-    buffer would too, but it owns the buffer until detached, and an error on
-    the way out would take stdout down with it.
+    csv writes CRLF row terminators, which a stdout that translates newlines
+    doubles into a blank row between every data row; the byte layer translates
+    nothing, so a redirected export is the file ``--output`` writes. Nothing
+    here closes or detaches the stream it borrowed — stdout has to stay usable
+    after a write fails partway.
     """
 
     def __init__(self, buffer: BinaryIO) -> None:
