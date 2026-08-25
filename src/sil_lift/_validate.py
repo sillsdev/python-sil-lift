@@ -539,7 +539,7 @@ def _semantic_problems(
             if key in reported:
                 continue
             reported.add(key)
-            # Two spellings can differ only by normalization and render
+            # Two spellings can differ only in normalization and render
             # identically, so name them by code point, as the mismatch
             # findings above do.
             spellings = ", ".join(f"{name!a}" for name in names)
@@ -547,7 +547,7 @@ def _semantic_problems(
                 "warning",
                 "ambiguous-ranges-file",
                 f"companion {candidate.name!a} matches {spellings}; they differ only "
-                "by case or Unicode normalization, so none of them is loaded",
+                "in case or Unicode normalization, so none of them is loaded",
                 file=lexicon.path,
             )
 

@@ -32,7 +32,7 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 
 | code                     | level   | what it flags                                                              |
 | ------------------------ | ------- | -------------------------------------------------------------------------- |
-| `ambiguous-ranges-file`  | warning | a companion name matching several files that differ only by case or NFC    |
+| `ambiguous-ranges-file`  | warning | several files answering to one companion name under case folding and NFC   |
 | `dangling-ranges-href`   | warning | a header `range/@href` resolving to no companion file                      |
 | `dangling-ref`           | error   | a `relation/@ref` or `variant/@ref` matching no entry or sense             |
 | `duplicate-form-lang`    | warning | two forms in one multitext sharing a language                              |
