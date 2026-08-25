@@ -529,6 +529,9 @@ def _semantic_problems(
             matches = _folded_matches(candidate, listings)
             if len(matches) < 2:
                 continue
+            # One of the colliding files loaded, named exactly by another candidate.
+            if any(_same_file(path, loaded) for path in matches for loaded in lexicon.ranges_files):
+                continue
             names = sorted(path.name for path in matches)
             key = (candidate.parent, tuple(names))
             if key in reported:

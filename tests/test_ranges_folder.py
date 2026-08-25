@@ -339,6 +339,22 @@ def test_normalization_folded_companions_resolve_to_neither(tmp_path: Path) -> N
     assert "dangling-ranges-href" in [p.code for p in problems]
 
 
+def test_a_collision_including_the_loaded_companion_is_not_reported(tmp_path: Path) -> None:
+    if not _normalization_sensitive(tmp_path):
+        pytest.skip("needs a filesystem that keeps normalization forms apart")
+    # The sibling names the composed spelling exactly and loads it; the href,
+    # spelled a third way, folds onto both files and resolves to neither.
+    folder = tmp_path / "pkg"
+    lift = _write_lift_with_href(folder, f"{_COMPOSED}.lift", f"{_BOTH_SPLIT}.lift-ranges")
+    source = (PAIR_DIR / "test20080407.lift-ranges").read_bytes()
+    (folder / f"{_COMPOSED}.lift-ranges").write_bytes(source)
+    (folder / f"{_N_SPLIT}.lift-ranges").write_bytes(source)
+    lexicon = sil_lift.load(lift)
+    assert [path.name for path in lexicon.ranges_files] == [f"{_COMPOSED}.lift-ranges"]
+    assert lexicon.all_ranges()["grammatical-info"].elements
+    assert [p for p in lexicon.iter_problems() if p.code == "ambiguous-ranges-file"] == []
+
+
 def test_absent_companion_stays_absent(tmp_path: Path) -> None:
     # The fallback must not look outside the folder for a name not in it.
     folder = tmp_path / "pkg"
