@@ -268,16 +268,75 @@ def test_companion_resolves_when_companion_suffix_is_uppercase(tmp_path: Path) -
     assert lexicon.all_ranges()["grammatical-info"].elements
 
 
-def test_case_folded_companions_resolve_deterministically(tmp_path: Path) -> None:
+def test_case_folded_companions_resolve_to_neither(tmp_path: Path) -> None:
     if not _case_sensitive(tmp_path):
         pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
-    # Neither spelling matches the Dict.LIFT-ranges candidate exactly, so the
-    # tie-break picks one: lexicographically first, the same one every run.
+    # Neither spelling matches the Dict.LIFT-ranges candidate exactly, and
+    # nothing says which one it meant, so no companion is loaded for it.
     folder = tmp_path / "pkg"
     lift = _write_case_variant_pair(folder, "Dict.LIFT", "Dict.lift-ranges")
     (folder / "Dict.Lift-ranges").write_bytes((folder / "Dict.lift-ranges").read_bytes())
     lexicon = sil_lift.load(lift)
-    assert [path.name for path in lexicon.ranges_files] == ["Dict.Lift-ranges"]
+    assert lexicon.ranges_files == {}
+    ambiguous = [p for p in lexicon.iter_problems() if p.code == "ambiguous-ranges-file"]
+    assert [p.level for p in ambiguous] == ["warning"]
+    assert "'Dict.LIFT-ranges' matches 'Dict.Lift-ranges', 'Dict.lift-ranges'" in (
+        ambiguous[0].message
+    )
+
+
+def test_an_exactly_named_companion_ignores_the_variant_beside_it(tmp_path: Path) -> None:
+    if not _case_sensitive(tmp_path):
+        pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
+    # The candidate names one of the two exactly, so folding never runs: a case
+    # variant is only ambiguous when nothing answers to the name as written.
+    folder = tmp_path / "pkg"
+    lift = _write_case_variant_pair(folder, "Dict.lift", "Dict.lift-ranges")
+    (folder / "Dict.LIFT-ranges").write_bytes((folder / "Dict.lift-ranges").read_bytes())
+    lexicon = sil_lift.load(lift)
+    assert [path.name for path in lexicon.ranges_files] == ["Dict.lift-ranges"]
+    assert [p for p in lexicon.iter_problems() if p.code == "ambiguous-ranges-file"] == []
+
+
+# One stem in the four spellings a filesystem that folds case still keeps
+# apart: each accent composed or decomposed, independently.
+_COMPOSED = "Ñandú"
+_N_SPLIT = "Ñandú"
+_U_SPLIT = "Ñandú"
+_BOTH_SPLIT = "Ñandú"
+
+
+def _normalization_sensitive(folder: Path) -> bool:
+    probe = folder / "NormProbé"
+    probe.mkdir()
+    sensitive = not (folder / unicodedata.normalize("NFC", probe.name)).exists()
+    probe.rmdir()
+    return sensitive
+
+
+def test_normalization_folded_companions_resolve_to_neither(tmp_path: Path) -> None:
+    if not _normalization_sensitive(tmp_path):
+        pytest.skip("needs a filesystem that keeps normalization forms apart")
+    # Which accent is decomposed, rather than case, is what separates these two
+    # companions — the only way to reach the collision where the exact-name stat
+    # is itself case-insensitive, as it is on NTFS and APFS.
+    folder = tmp_path / "pkg"
+    # The sibling candidate is fully composed and the href fully decomposed:
+    # two names folding onto the same pair, so one finding covers both.
+    lift = _write_lift_with_href(folder, f"{_COMPOSED}.lift", f"{_BOTH_SPLIT}.lift-ranges")
+    source = (PAIR_DIR / "test20080407.lift-ranges").read_bytes()
+    (folder / f"{_N_SPLIT}.lift-ranges").write_bytes(source)
+    (folder / f"{_U_SPLIT}.lift-ranges").write_bytes(source)
+    lexicon = sil_lift.load(lift)
+    assert lexicon.ranges_files == {}
+    problems = list(lexicon.iter_problems())
+    ambiguous = [p for p in problems if p.code == "ambiguous-ranges-file"]
+    assert [p.level for p in ambiguous] == ["warning"]
+    # Spellings that render identically, named by code point.
+    assert ascii(f"{_N_SPLIT}.lift-ranges") in ambiguous[0].message
+    assert ascii(f"{_U_SPLIT}.lift-ranges") in ambiguous[0].message
+    # The collision says why nothing resolved; the href, which range went unmet.
+    assert "dangling-ranges-href" in [p.code for p in problems]
 
 
 def test_absent_companion_stays_absent(tmp_path: Path) -> None:

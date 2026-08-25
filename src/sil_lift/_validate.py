@@ -40,7 +40,15 @@ from typing import TYPE_CHECKING, Literal
 from lxml import etree
 
 from ._errors import LiftValidationError, LiftWriteError
-from ._model import GrammaticalInfo, Lexicon, _existing_file, _normalize_href, _same_file
+from ._model import (
+    GrammaticalInfo,
+    Lexicon,
+    _existing_file,
+    _folded_matches,
+    _normalize_href,
+    _ranges_candidates,
+    _same_file,
+)
 from ._text import Multitext, Trait
 
 if TYPE_CHECKING:
@@ -509,13 +517,45 @@ def _semantic_problems(
     # here, not inside the file check below, which a lexicon with no path skips.
     header_ranges = {range_.id: range_named(range_.id) for range_ in lexicon.header.ranges}
 
-    # Header <range href> references that resolve to no companion — an exporter
-    # that wrote the href but not the file. Absolute and file:// hrefs are
-    # skipped: FLEx writes those knowing they will not resolve, and load reaches
-    # their companions by basename in the same folder instead.
+    # The two companion checks that need a folder to look in, sharing its
+    # listing: whether a candidate name picks out one file, and whether a
+    # header href reaches one at all.
     if lexicon.path is not None:
         base = lexicon.path.parent
-        listings: dict[Path, dict[str, Path]] = {}
+        listings: dict[Path, dict[str, list[Path]]] = {}
+
+        # A candidate name that several files answer to once case and Unicode
+        # normalization are folded together. Load refuses to guess between
+        # them, so nothing is loaded for that name — including the sibling
+        # candidate, which no href reports on. One finding per colliding group,
+        # however many candidates fold onto it.
+        reported: set[tuple[Path, tuple[str, ...]]] = set()
+        for candidate in _ranges_candidates(lexicon.path, lexicon.header.ranges):
+            matches = _folded_matches(candidate, listings)
+            if len(matches) < 2:
+                continue
+            names = sorted(path.name for path in matches)
+            key = (candidate.parent, tuple(names))
+            if key in reported:
+                continue
+            reported.add(key)
+            # Two spellings can differ only by normalization and render
+            # identically, so name them by code point, as the mismatch
+            # findings above do.
+            spellings = ", ".join(f"{name!a}" for name in names)
+            yield Problem(
+                "warning",
+                "ambiguous-ranges-file",
+                f"companion {candidate.name!a} matches {spellings}; they differ only "
+                "by case or Unicode normalization, so none of them is loaded",
+                file=lexicon.path,
+            )
+
+        # Header <range href> references that resolve to no companion — an
+        # exporter that wrote the href but not the file. Absolute and file://
+        # hrefs are skipped: FLEx writes those knowing they will not resolve,
+        # and load reaches their companions by basename in the same folder
+        # instead.
         for range_ in lexicon.header.ranges:
             if not range_.href or range_.elements:
                 continue

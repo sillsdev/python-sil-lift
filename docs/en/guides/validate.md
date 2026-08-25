@@ -24,14 +24,15 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 
 1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard — a byte-identical copy committed into this package).
 2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion, addressed to the companion rather than the `.lift`.
-3. **Semantic checks** the grammar cannot express — nine of them, one code each.
+3. **Semantic checks** the grammar cannot express — ten of them, one code each.
 
 ## Problem codes
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other nine are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other ten are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
 
 | code                     | level   | what it flags                                                              |
 | ------------------------ | ------- | -------------------------------------------------------------------------- |
+| `ambiguous-ranges-file`  | warning | a companion name matching several files that differ only by case or NFC    |
 | `dangling-ranges-href`   | warning | a header `range/@href` resolving to no companion file                      |
 | `dangling-ref`           | error   | a `relation/@ref` or `variant/@ref` matching no entry or sense             |
 | `duplicate-form-lang`    | warning | two forms in one multitext sharing a language                              |
@@ -45,6 +46,8 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `uri-not-rfc`            | warning | an href that is not a valid URI — FLEx's `file://C:/...`                   |
 
 All three layers work from what `save()` would write, so a document that cannot be serialized at all is reported as a single `lone-surrogate` error instead — see [Fidelity guarantees](../fidelity.md#content-xml-cannot-represent).
+
+Companions are matched by folded filename — case and Unicode normalization — so a folder authored on Windows loads the same way on a case-sensitive filesystem. Where that folding leaves one name matching several files, none of them is loaded: which one it meant is not recoverable. `ambiguous-ranges-file` reports the collision; renaming or removing all but one resolves it.
 
 ## Real-world FieldWorks (FLEx) output
 

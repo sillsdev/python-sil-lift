@@ -52,7 +52,8 @@ releases may contain breaking changes.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`, matching companion filenames across case and
-  Unicode normalization differences), `save()` writes companions together,
+  Unicode normalization differences, and loading nothing for a name several
+  files answer to that way), `save()` writes companions together,
   `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
   build-from-scratch helpers `Lexicon.add_ranges_file()` /
   `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
@@ -73,7 +74,7 @@ releases may contain breaking changes.
   file, entry, and line it concerns. RELAX NG layer with two documented
   departures from strict validation (invalid `file://` hrefs downgraded to
   `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and nine semantic checks the grammar cannot
+  ranges schema over companions; and ten semantic checks the grammar cannot
   express, one `Problem` code each (with missing-id opt-in via `require_ids`).
   Names resolve against range and range-element ids under NFC; a match that
   needed normalizing is reported as normalization-mismatch, once per id.

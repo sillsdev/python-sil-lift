@@ -24,7 +24,7 @@ from ._text import Annotation, Form, Multitext, Text, Trait
 if TYPE_CHECKING:
     import os
     import tempfile
-    from collections.abc import Iterator
+    from collections.abc import Iterable, Iterator
     from typing import Literal
 
     from ._validate import Problem
@@ -463,44 +463,76 @@ def _fold(text: str) -> str:
     return unicodedata.normalize("NFC", text).casefold()
 
 
-def _existing_file(candidate: Path, listings: dict[Path, dict[str, Path]]) -> Path | None:
-    """The file ``candidate`` names, matched exactly or by folded name.
+def _folded_matches(candidate: Path, listings: dict[Path, dict[str, list[Path]]]) -> list[Path]:
+    """The files ``candidate`` names: the exact one, or those folding onto it.
 
     Where the authoring filesystem folds case, as on Windows and macOS, an
     inconsistently spelled pair goes unnoticed: ``Dict.LIFT`` beside
     ``Dict.lift-ranges`` is a pair there but not everywhere.
 
-    An exact hit is always returned unchanged: folding runs only after the
-    exact name misses, and then only on the final component — the hrefs this
-    serves are basenames or same-folder relatives.
+    An exact hit is the only match: folding runs only after the exact name
+    misses, and then only on the final component — the hrefs this serves are
+    basenames or same-folder relatives.
 
-    Among names that fold together the first in code point order wins:
-    arbitrary, but deterministic, which directory order is not.
+    Several matches mean the folder holds names the filesystem that wrote them
+    could not have told apart, so which one the name meant is not recoverable.
 
     ``listings`` caches one directory read per folder.
     """
     try:
         if candidate.is_file():
-            return candidate
+            return [candidate]
         if candidate.is_dir():
             # An href of "" or "sub/" lands here; folding a folder's own name
             # would search its parent and match anything spelled like it.
-            return None
+            return []
     except OSError:
         pass  # unstattable exact spelling: a case variant of it may still stat
     folder = candidate.parent
     if folder not in listings:
-        files: dict[str, Path] = {}
+        files: dict[str, list[Path]] = {}
         try:
-            # By name, not by Path: PurePath ordering is case-folded on Windows,
-            # which would leave the tie-break to directory order there.
-            for path in sorted(folder.iterdir(), key=lambda entry: entry.name):
+            for path in folder.iterdir():
                 if path.is_file():
-                    files.setdefault(_fold(path.name), path)
+                    files.setdefault(_fold(path.name), []).append(path)
         except OSError:
             pass  # unreadable folder: no candidate resolves out of it
         listings[folder] = files
-    return listings[folder].get(_fold(candidate.name))
+    return listings[folder].get(_fold(candidate.name), [])
+
+
+def _existing_file(candidate: Path, listings: dict[Path, dict[str, list[Path]]]) -> Path | None:
+    """The one file ``candidate`` names, or None if no file or several do.
+
+    Guessing between several would pick a companion by a rule no exporter
+    knows, so an ambiguous name resolves to nothing at all — visibly, as
+    ``ambiguous-ranges-file`` from validation, rather than by silent choice.
+    """
+    matches = _folded_matches(candidate, listings)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _ranges_candidates(lift_path: Path, ranges: Iterable[Range]) -> list[Path]:
+    """Where a companion may be found, in the order :meth:`Lexicon.load` tries.
+
+    Each path once: an href shared by several ranges, or agreeing with the
+    sibling, is one candidate however many times it is written.
+    """
+    base = lift_path.parent
+    # with_name and with_suffix agree on every name that has an extension, but
+    # with_suffix would raise on a name that has none — which parse_document
+    # accepts, since it never inspects the extension.
+    candidates = [lift_path.with_name(lift_path.name + "-ranges")]
+    for range_ in ranges:
+        if range_.href is None:
+            continue
+        relative = _normalize_href(range_.href)
+        if relative is not None:
+            candidates.append(base / relative)
+        basename = range_.href.replace("\\", "/").rpartition("/")[2]
+        if basename:
+            candidates.append(base / basename)
+    return list(dict.fromkeys(candidates))
 
 
 def _same_file(left: Path, right: Path) -> bool:
@@ -584,7 +616,9 @@ class Lexicon:
 
         A candidate matching no file exactly resolves across differences in
         case or Unicode normalization, so a folder authored on Windows loads
-        the same way everywhere; the ``.lift`` is never its own companion.
+        the same way everywhere. One that several files answer to that way is
+        ambiguous and resolves to none of them, which validation reports as
+        ``ambiguous-ranges-file``; the ``.lift`` is never its own companion.
 
         A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
         to a temporary directory (kept alive for the returned lexicon's
@@ -605,23 +639,8 @@ class Lexicon:
     def _resolve_ranges(self) -> None:
         if self.path is None:
             return
-        base = self.path.parent
-        candidates: list[Path] = []
-        # with_name and with_suffix agree on every name that has an extension,
-        # but with_suffix would raise on a name that has none — which
-        # parse_document accepts, since it never inspects the extension.
-        candidates.append(self.path.with_name(self.path.name + "-ranges"))
-        for range_ in self.header.ranges:
-            if range_.href is None:
-                continue
-            relative = _normalize_href(range_.href)
-            if relative is not None:
-                candidates.append(base / relative)
-            basename = range_.href.replace("\\", "/").rpartition("/")[2]
-            if basename:
-                candidates.append(base / basename)
-        listings: dict[Path, dict[str, Path]] = {}
-        for candidate in candidates:
+        listings: dict[Path, dict[str, list[Path]]] = {}
+        for candidate in _ranges_candidates(self.path, self.header.ranges):
             found = _existing_file(candidate, listings)
             if found is None:
                 continue
