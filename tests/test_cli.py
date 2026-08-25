@@ -16,12 +16,11 @@ CORPUS_DIR = Path(__file__).parent / "corpus"
 def _redirect(
     monkeypatch: pytest.MonkeyPatch, name: str, encoding: str, errors: str = "strict"
 ) -> io.BytesIO:
-    """Stand in for a redirected standard stream: a byte sink under a locale codec.
+    """Replace a standard stream with a stand-in for a redirected one.
 
-    ``newline="\r\n"`` is what a Windows stream does with no newline argument,
-    spelled explicitly so the CRLF-doubling regression is testable anywhere.
-    ``errors`` is the handler CPython hands that stream: strict for stdout
-    (surrogateescape on some platforms), backslashreplace for stderr.
+    A text stream over the returned byte sink, under the given codec and
+    translating newlines the way a stream given no newline argument does on
+    Windows.
     """
     raw = io.BytesIO()
     stream = io.TextIOWrapper(raw, encoding=encoding, errors=errors, newline="\r\n")
@@ -314,6 +313,7 @@ def test_validate_text_output_survives_a_cp1252_stdout(monkeypatch: pytest.Monke
 def test_export_to_a_locale_stdout_matches_the_output_flag(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """The stand-in translates newlines, so csv's doubled CR reproduces anywhere."""
     source = CORPUS_DIR / "spec-examples" / "0.13" / "multiple-forms.lift"
     to_file = tmp_path / "out.csv"
     assert main(["export", str(source), "-o", str(to_file)]) == 0
@@ -344,7 +344,11 @@ def test_a_stdout_that_is_not_a_text_wrapper_is_left_alone(
 
 
 def test_each_stream_keeps_its_own_error_handler(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Only the encoding is forced; reconfiguring resets the handler otherwise."""
+    """Only the encoding is forced; reconfiguring resets the handler otherwise.
+
+    The two handlers are the ones CPython hands the real streams:
+    surrogateescape on stdout (on some platforms), backslashreplace on stderr.
+    """
     _redirect(monkeypatch, "stdout", "cp1252", errors="surrogateescape")
     _redirect(monkeypatch, "stderr", "cp1252", errors="backslashreplace")
     assert main(["validate", str(CORPUS_DIR / "ranges" / "test20080407.lift")]) == 0

@@ -283,16 +283,16 @@ def _cmd_export(args: argparse.Namespace) -> int:
 def _force_utf8(stream: TextIO) -> None:
     """Make one of the standard streams write UTF-8, whatever the locale is.
 
-    A stream that is not a console gets the locale encoding — cp1252 on
-    Windows, ASCII under a C/POSIX locale — which cannot hold LIFT content, so
-    one unrepresentable character killed the command mid-output. ``-o`` has
-    always forced UTF-8; this makes a redirect agree with it.
+    Off a console, a stream takes the locale encoding — cp1252 on Windows,
+    ASCII under a C/POSIX locale — which cannot hold LIFT content, so one
+    unrepresentable character kills the command mid-output. ``-o`` has always
+    forced UTF-8; this makes a redirect agree with it.
 
-    Only the encoding changes. ``reconfigure`` resets the error handler to
-    ``strict`` unless it is passed one, and each stream's own is worth keeping:
-    stderr is ``backslashreplace`` so a message always arrives, and stdout is
-    ``surrogateescape`` on some platforms, which is what round-trips a filename
-    the filesystem encoding could not decode.
+    Only the encoding changes: ``reconfigure`` resets the error handler to
+    ``strict`` unless passed one, and the handler a stream arrives with is
+    deliberate — ``backslashreplace`` on stderr so a message always arrives,
+    ``surrogateescape`` on some platforms' stdout so an undecodable filename
+    round-trips.
     """
     if not isinstance(stream, io.TextIOWrapper):  # a replaced stream may be anything
         return
