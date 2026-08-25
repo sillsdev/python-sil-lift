@@ -257,7 +257,9 @@ def _cmd_export(args: argparse.Namespace) -> int:
         elif isinstance(sys.stdout, io.TextIOWrapper):
             sys.stdout.flush()  # nothing of its own may sit behind these bytes
             sink = _Utf8Sink(sys.stdout.buffer)
-        else:  # a replaced stdout need not have a byte layer to write to
+        else:
+            # A replaced stdout may have no byte layer to encode to at all, so
+            # its encoding and newline handling stay the caller's own choice.
             sink = sys.stdout
         try:
             writer = csv.writer(sink, delimiter="\t" if args.tsv else ",")
