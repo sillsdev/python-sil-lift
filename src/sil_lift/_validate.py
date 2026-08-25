@@ -517,18 +517,13 @@ def _semantic_problems(
     # here, not inside the file check below, which a lexicon with no path skips.
     header_ranges = {range_.id: range_named(range_.id) for range_ in lexicon.header.ranges}
 
-    # The two companion checks that need a folder to look in, sharing its
-    # listing: whether a candidate name picks out one file, and whether a
-    # header href reaches one at all.
     if lexicon.path is not None:
         base = lexicon.path.parent
         listings: dict[Path, dict[str, list[Path]]] = {}
 
-        # A candidate name that several files answer to once case and Unicode
-        # normalization are folded together. Load refuses to guess between
-        # them, so nothing is loaded for that name — including the sibling
-        # candidate, which no href reports on. One finding per colliding group,
-        # however many candidates fold onto it.
+        # Every candidate, not just the hrefs below: a collision on the sibling
+        # name has nothing else to report it. Keyed by colliding group, since
+        # several candidate names can fold onto the same one.
         reported: set[tuple[Path, tuple[str, ...]]] = set()
         for candidate in _ranges_candidates(lexicon.path, lexicon.header.ranges):
             matches = _folded_matches(candidate, listings)
@@ -539,9 +534,7 @@ def _semantic_problems(
             if key in reported:
                 continue
             reported.add(key)
-            # Two spellings can differ only in normalization and render
-            # identically, so name them by code point, as the mismatch
-            # findings above do.
+            # Spellings differing only in normalization render identically.
             spellings = ", ".join(f"{name!a}" for name in names)
             yield Problem(
                 "warning",
