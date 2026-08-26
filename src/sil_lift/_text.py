@@ -10,6 +10,7 @@ type of its own.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import TYPE_CHECKING
@@ -84,13 +85,19 @@ class Form:
 
 
 @dataclass(slots=True, repr=False)
-class Multitext:
+class Multitext(Mapping[str, Text]):
     """An insertion-ordered collection of forms, one per language.
 
-    Behaves like a ``Mapping[str, Text]`` keyed by language (``mt["en"]``),
-    with assignment coercing plain strings (``mt["en"] = "dog"``). The
-    underlying ``forms`` list is the full truth — forms with a ``None`` lang
-    (schema-invalid input) are reachable there but not via mapping keys.
+    A ``Mapping[str, Text]`` keyed by language — ``mt["en"]``, ``"en" in mt``,
+    ``mt.get(...)``, ``mt.keys()`` and the other views — plus the two mutators
+    LIFT editing needs: assignment coercing plain strings (``mt["en"] = "dog"``)
+    and deletion. The rest of ``MutableMapping`` is deliberately not inherited;
+    ``clear`` and ``popitem`` have no clear meaning for a form list that can
+    also hold forms no key reaches.
+
+    The ``forms`` list is the full truth: a form with a ``None`` lang
+    (schema-invalid input) is reachable there, but not by key, and not counted
+    by ``len()``.
     """
 
     forms: list[Form] = field(default_factory=list)
@@ -122,30 +129,18 @@ class Multitext:
             raise KeyError(lang)
         self.forms.remove(form)
 
-    def get(self, lang: str, default: Text | None = None) -> Text | None:
-        form = self._find(lang)
-        return default if form is None else form.text
-
-    def __contains__(self, lang: object) -> bool:
-        return isinstance(lang, str) and self._find(lang) is not None
-
+    # Both read forms directly rather than through keys(): the inherited views
+    # are built on these two, so consulting a view here would not terminate.
     def __iter__(self) -> Iterator[str]:
-        return iter(self.keys())
+        return (form.lang for form in self.forms if form.lang is not None)
 
     def __len__(self) -> int:
-        return len(self.forms)
+        return sum(1 for form in self.forms if form.lang is not None)
 
     def __bool__(self) -> bool:
+        # Not derived from len(): emptiness here means "nothing to serialize",
+        # which residue and a lang-less form each defeat on their own.
         return bool(self.forms) or bool(self.extra)
-
-    def keys(self) -> list[str]:
-        return [form.lang for form in self.forms if form.lang is not None]
-
-    def values(self) -> list[Text]:
-        return [form.text for form in self.forms if form.lang is not None]
-
-    def items(self) -> list[tuple[str, Text]]:
-        return [(form.lang, form.text) for form in self.forms if form.lang is not None]
 
     def __repr__(self) -> str:
         inner = ", ".join(f"{form.lang!r}: {str(form.text)!r}" for form in self.forms)
