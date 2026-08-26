@@ -187,7 +187,7 @@ def test_all_flex_fields_spot_check() -> None:
     assert span.class_ == "Hyperlink"
     (illustration,) = sense.illustrations
     assert illustration.href == "Desert.jpg"
-    assert illustration.label.keys() == ["th", "en", "fr"]
+    assert list(illustration.label.keys()) == ["th", "en", "fr"]
 
     other = lexicon.find(id="คาม ๒_dc4106ac-13fd-4ae0-a32b-b737f413d515")
     assert other is not None
