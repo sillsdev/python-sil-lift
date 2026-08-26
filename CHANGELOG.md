@@ -24,9 +24,14 @@ releases may contain breaking changes.
 
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
   test corpus with provenance, corpus-prep and large-file-generator tooling.
-- Full object model: all 35 LIFT 0.13 elements as typed dataclasses;
-  `sil_lift.load()` / `Lexicon.load()` full-document reader that keeps LIFT
-  residue per node in `Extras`; LIFT-version guard.
+- Full object model: all 35 LIFT 0.13 elements as typed dataclasses.
+  Multilingual fields are `Multitext`, a `Mapping` from language code to
+  `Text` that coerces plain strings on assignment; `len()` and the key views
+  count languages, while the `forms` list stays the full truth for the
+  lang-less forms schema-invalid input can carry. `Entry.all_senses()` walks
+  every subsense depth-first in document order, which `Entry.senses` (top
+  level only) does not. `sil_lift.load()` / `Lexicon.load()` full-document
+  reader that keeps LIFT residue per node in `Extras`; LIFT-version guard.
 - `Lexicon.save()` writer with byte-fidelity passthrough — unchanged
   documents and untouched entries are written byte-identically; touched entries
   re-serialize canonically with all out-of-schema content preserved. Fidelity
@@ -53,12 +58,12 @@ releases may contain breaking changes.
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`, matching companion filenames across case and
   Unicode normalization differences), `save()` writes companions together,
-  `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
-  build-from-scratch helpers `Lexicon.add_ranges_file()` /
-  `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
-  header-references a new companion beside the `.lift`); vendored
-  `schemas/lift-ranges-0.13.rng` — the first schema for standalone ranges
-  documents.
+  `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers
+  (every subsense, in document order), build-from-scratch helpers
+  `Lexicon.add_ranges_file()` / `RangesFile.add_range()` /
+  `Range.add_element()` (`save()` writes and header-references a new
+  companion beside the `.lift`); vendored `schemas/lift-ranges-0.13.rng` —
+  the first schema for standalone ranges documents.
 - Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
