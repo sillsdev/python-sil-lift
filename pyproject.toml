@@ -81,6 +81,14 @@ src = ["scripts", "src", "tests"]
 [tool.ruff.lint]
 select = ["B", "C4", "E", "F", "I", "RUF", "SIM", "UP", "W"]
 
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.per-file-ignores]
+# These do without it by their own convention, not by oversight.
+"scripts/**" = ["I002"]
+"tests/**" = ["I002"]
+
 [tool.mypy]
 strict = true
 python_version = "3.11"

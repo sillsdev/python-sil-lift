@@ -16,6 +16,8 @@ The public surface is deliberately tiny — equality, repr, emptiness, to_string
 — so the internal representation stays swappable and no lxml type ever leaks.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 __all__ = ["Extras"]
