@@ -58,7 +58,6 @@ if TYPE_CHECKING:
     from collections.abc import Collection, Iterator
 
     from ._header import Range
-    from ._model import Entry, Sense
 
 __all__ = ["Problem", "iter_problems", "validate_file"]
 
@@ -246,14 +245,6 @@ def _nearest_entry(
 # --- semantic layer ----------------------------------------------------------------
 
 
-def _iter_senses(entry: Entry) -> Iterator[Sense]:
-    stack = list(entry.senses)
-    while stack:
-        sense = stack.pop()
-        yield sense
-        stack.extend(sense.subsenses)
-
-
 def _iter_instances(obj: object, cls: type[_T], label: str = "") -> Iterator[tuple[str, _T]]:
     """Every instance of ``cls`` reachable from ``obj``, with the field name it
     was found under (dashed, as the XML spells it).
@@ -315,7 +306,7 @@ def _semantic_problems(
                     entry_id=entry.id,
                     line=at(index),
                 )
-            for sense in _iter_senses(entry):
+            for sense in entry.all_senses():
                 if sense.id is None:
                     yield Problem(
                         "error",
@@ -385,7 +376,7 @@ def _semantic_problems(
     targets: set[str] = set()
     for entry in lexicon.entries:
         targets.update(t for t in (entry.id, entry.guid) if t)
-        for sense in _iter_senses(entry):
+        for sense in entry.all_senses():
             if sense.id:
                 targets.add(sense.id)
     for index, entry in enumerate(lexicon.entries):
@@ -393,7 +384,7 @@ def _semantic_problems(
         refs.extend(v.ref for v in entry.variants if v.ref)
         for variant in entry.variants:
             refs.extend(r.ref for r in variant.relations)
-        for sense in _iter_senses(entry):
+        for sense in entry.all_senses():
             refs.extend(r.ref for r in sense.relations)
         for ref in refs:
             if ref and ref not in targets:
