@@ -37,7 +37,7 @@ from bisect import bisect_right
 from collections import Counter
 from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 from lxml import etree
 
@@ -61,6 +61,8 @@ if TYPE_CHECKING:
     from ._model import Entry, Sense
 
 __all__ = ["Problem", "iter_problems", "validate_file"]
+
+_T = TypeVar("_T")
 
 _SCHEMAS_DIR = Path(__file__).parent / "schemas"
 _PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
@@ -252,65 +254,41 @@ def _iter_senses(entry: Entry) -> Iterator[Sense]:
         stack.extend(sense.subsenses)
 
 
-def _iter_multitexts(obj: object) -> Iterator[tuple[str, Multitext]]:
-    """Every ``Multitext`` reachable from ``obj``, generic over the model shape.
+def _iter_instances(obj: object, cls: type[_T], label: str = "") -> Iterator[tuple[str, _T]]:
+    """Every instance of ``cls`` reachable from ``obj``, with the field name it
+    was found under (dashed, as the XML spells it).
 
-    Mirrors the RNG's Schematron ``multitext-content`` rule, which fires on
-    every ``<form>``-bearing element in the grammar — including forms nested
-    inside annotation content (``Annotation.content`` is itself a Multitext,
-    reachable from almost any node via ``.annotations``). Walking the
-    dataclass tree instead of hand-listing fields keeps this in sync as the
-    model grows.
+    Walking the dataclass tree rather than hand-listing fields is what keeps
+    these checks in sync as the model grows, and each of its three callers
+    needs a reach a hand-written traversal would not have:
+
+    - ``Multitext`` mirrors the RNG's Schematron ``multitext-content`` rule,
+      which fires on every ``<form>``-bearing element in the grammar —
+      including forms nested inside annotation content, since
+      ``Annotation.content`` is itself a Multitext and is reachable from almost
+      any node via ``.annotations``.
+    - ``Trait`` is not just entry/sense-direct: real FLEx exports nest traits
+      inside ``<relation>`` (``is-primary``, ``complex-form-type``),
+      ``<variant>`` (``morph-type``), ``<pronunciation>``, and other
+      extensible elements.
+    - ``GrammaticalInfo`` sits on senses, reversals, and reversal ``main``
+      chains alike.
+
+    A match is descended into as well as yielded, which is what finds a
+    Multitext inside a Multitext's own annotations. Nothing in the model nests
+    a Trait or a GrammaticalInfo inside another, so for those two the descent
+    finds nothing and costs only the walk.
     """
+    if isinstance(obj, cls):
+        yield label, obj
     if isinstance(obj, list):
         for item in obj:
-            yield from _iter_multitexts(item)
+            yield from _iter_instances(item, cls, label)
         return
     if not is_dataclass(obj) or isinstance(obj, type):
         return
     for f in fields(obj):
-        value = getattr(obj, f.name)
-        if isinstance(value, Multitext):
-            yield f.name.replace("_", "-"), value
-        yield from _iter_multitexts(value)
-
-
-def _iter_traits(obj: object) -> Iterator[Trait]:
-    """Every ``Trait`` reachable from ``obj``, generic over the model shape.
-
-    Traits are not just entry/sense-direct: real FLEx exports nest them inside
-    ``<relation>`` (``is-primary``, ``complex-form-type``), ``<variant>``
-    (``morph-type``), ``<pronunciation>``, and other extensible elements —
-    walking the dataclass tree (mirrors ``_iter_multitexts``) catches all of
-    them instead of only the two levels a hand-written traversal would name.
-    """
-    if isinstance(obj, Trait):
-        yield obj
-        return
-    if isinstance(obj, list):
-        for item in obj:
-            yield from _iter_traits(item)
-        return
-    if not is_dataclass(obj) or isinstance(obj, type):
-        return
-    for f in fields(obj):
-        yield from _iter_traits(getattr(obj, f.name))
-
-
-def _iter_grammatical_infos(obj: object) -> Iterator[GrammaticalInfo]:
-    """Every ``GrammaticalInfo`` reachable from ``obj`` (sense, reversal, and
-    reversal ``main`` chains all carry one)."""
-    if isinstance(obj, GrammaticalInfo):
-        yield obj
-        return
-    if isinstance(obj, list):
-        for item in obj:
-            yield from _iter_grammatical_infos(item)
-        return
-    if not is_dataclass(obj) or isinstance(obj, type):
-        return
-    for f in fields(obj):
-        yield from _iter_grammatical_infos(getattr(obj, f.name))
+        yield from _iter_instances(getattr(obj, f.name), cls, f.name.replace("_", "-"))
 
 
 def _semantic_problems(
@@ -432,7 +410,7 @@ def _semantic_problems(
     # Duplicate form languages (the RNG's Schematron rule; lxml ignores it) —
     # every Multitext under the entry, not just the top-level ones.
     for index, entry in enumerate(lexicon.entries):
-        for label, multitext in _iter_multitexts(entry):
+        for label, multitext in _iter_instances(entry, Multitext):
             langs = Counter(f.lang for f in multitext.forms if f.lang is not None)
             for lang in sorted(lang for lang, count in langs.items() if count > 1):
                 yield Problem(
@@ -587,10 +565,10 @@ def _semantic_problems(
     for index, entry in enumerate(lexicon.entries):
         checks: list[tuple[str, str, str]] = []  # (label, range id, value)
         if grammatical_range is not None:
-            for info in _iter_grammatical_infos(entry):
+            for _, info in _iter_instances(entry, GrammaticalInfo):
                 if info.value:
                     checks.append(("grammatical-info", grammatical_range, info.value))
-        for trait in _iter_traits(entry):
+        for _, trait in _iter_instances(entry, Trait):
             # Resolved before the value guard: a trait name that reaches its range only
             # by normalizing is worth reporting even without a value.
             range_id = range_named(trait.name)
