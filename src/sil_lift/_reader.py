@@ -87,6 +87,8 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
     from ._scan import scan
     from ._writer import _RangeRecord, _RangesSourceInfo, range_digest
 
+    # As in _attach_source: byte regions only mean anything in an
+    # ASCII-compatible encoding, and only this check rules the others out.
     encoding = root.getroottree().docinfo.encoding
     if encoding is not None and encoding.lower() not in ("utf-8", "us-ascii", "ascii"):
         return
@@ -119,9 +121,13 @@ def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
     from ._scan import scan
     from ._writer import _EntryRecord, _SourceInfo, entry_digest, header_digest
 
+    # The regions scan reports are offsets into these bytes, and the writer
+    # splices them into a document it declares UTF-8. expat parses UTF-16
+    # perfectly well and would report offsets into UTF-16 bytes, tags and all,
+    # so nothing downstream would notice; this is the only thing that says no.
     encoding = root.getroottree().docinfo.encoding
     if encoding is not None and encoding.lower() not in ("utf-8", "us-ascii", "ascii"):
-        return  # byte scanning assumes an ASCII-compatible encoding
+        return
     result = scan(data)
     if result is None:
         return
