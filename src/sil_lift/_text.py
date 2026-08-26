@@ -10,7 +10,6 @@ type of its own.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import TYPE_CHECKING
@@ -85,22 +84,13 @@ class Form:
 
 
 @dataclass(slots=True, repr=False)
-class Multitext(Mapping[str, Text]):
+class Multitext:
     """An insertion-ordered collection of forms, one per language.
 
-    A ``Mapping[str, Text]`` keyed by language — ``mt["en"]``, ``"en" in mt``,
-    ``mt.get(...)``, ``mt.keys()`` and the other views — plus the two mutators
-    LIFT editing needs: assignment coercing plain strings (``mt["en"] = "dog"``)
-    and deletion. The rest of ``MutableMapping`` is deliberately not inherited;
-    ``clear`` and ``popitem`` have no clear meaning for a form list that can
-    also hold forms no key reaches.
-
-    The ``forms`` list is the full truth, and holds what no mapping can
-    represent: a form with a ``None`` lang, and a second form for a language
-    already present. Both are schema-invalid input that real exporters produce
-    — a repeated language is what validation reports as
-    ``duplicate-form-lang``, off ``forms`` rather than off the mapping — and
-    neither is reachable by key or counted by ``len()``.
+    Behaves like a ``Mapping[str, Text]`` keyed by language (``mt["en"]``),
+    with assignment coercing plain strings (``mt["en"] = "dog"``). The
+    underlying ``forms`` list is the full truth — forms with a ``None`` lang
+    (schema-invalid input) are reachable there but not via mapping keys.
     """
 
     forms: list[Form] = field(default_factory=list)
@@ -132,26 +122,30 @@ class Multitext(Mapping[str, Text]):
             raise KeyError(lang)
         self.forms.remove(form)
 
-    # Both read forms directly rather than through keys(): the inherited views
-    # are built on these two, so consulting a view here would not terminate.
+    def get(self, lang: str, default: Text | None = None) -> Text | None:
+        form = self._find(lang)
+        return default if form is None else form.text
+
+    def __contains__(self, lang: object) -> bool:
+        return isinstance(lang, str) and self._find(lang) is not None
+
     def __iter__(self) -> Iterator[str]:
-        # A language repeated across forms is one key, the one __getitem__
-        # answers with. Yielding it twice would make the inherited views
-        # report the first form's text once per duplicate, and leave len()
-        # disagreeing with dict(self).
-        seen: set[str] = set()
-        for form in self.forms:
-            if form.lang is not None and form.lang not in seen:
-                seen.add(form.lang)
-                yield form.lang
+        return iter(self.keys())
 
     def __len__(self) -> int:
-        return sum(1 for _ in self)
+        return len(self.forms)
 
     def __bool__(self) -> bool:
-        # Not derived from len(): emptiness here means "nothing to serialize",
-        # which residue and a lang-less form each defeat on their own.
         return bool(self.forms) or bool(self.extra)
+
+    def keys(self) -> list[str]:
+        return [form.lang for form in self.forms if form.lang is not None]
+
+    def values(self) -> list[Text]:
+        return [form.text for form in self.forms if form.lang is not None]
+
+    def items(self) -> list[tuple[str, Text]]:
+        return [(form.lang, form.text) for form in self.forms if form.lang is not None]
 
     def __repr__(self) -> str:
         inner = ", ".join(f"{form.lang!r}: {str(form.text)!r}" for form in self.forms)
