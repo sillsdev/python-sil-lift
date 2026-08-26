@@ -33,6 +33,8 @@ above, all of which need the rendered bytes.
 from __future__ import annotations
 
 import unicodedata
+from bisect import bisect_right
+from collections import Counter
 from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -201,9 +203,12 @@ def _schema_problems(
             )
         el.set("href", "masked:uri")  # see module docstring: anyURI is ours to report
     if not schema.validate(root.getroottree()):
+        # Entries are recorded in document order, so this is already sorted by
+        # line — which is what lets _nearest_entry bisect it.
+        addressable = [(at, id_, guid) for at, id_, guid in entry_lines if at is not None]
         for error in schema.error_log:
             line = error.line if error.line and error.line > 0 else None
-            entry_id, guid = _nearest_entry(entry_lines, line)
+            entry_id, guid = _nearest_entry(addressable, line)
             problems.append(
                 Problem(
                     "error",
@@ -219,18 +224,21 @@ def _schema_problems(
 
 
 def _nearest_entry(
-    entry_lines: list[tuple[int | None, str | None, str | None]], line: int | None
+    entry_lines: list[tuple[int, str | None, str | None]], line: int | None
 ) -> tuple[str | None, str | None]:
+    """Which entry a schema error's line falls in: the last one starting at or
+    before it, if any.
+
+    Bisected rather than walked because it is called once per error: a document
+    that fails validation on every entry would otherwise cost entries x errors.
+    """
     if line is None:
         return None, None
-    best: tuple[str | None, str | None] = (None, None)
-    for entry_line, entry_id, guid in entry_lines:
-        if entry_line is None:
-            continue  # parsed entries always carry a sourceline; stay defensive
-        if entry_line > line:
-            break
-        best = (entry_id, guid)
-    return best
+    index = bisect_right(entry_lines, line, key=lambda entry: entry[0])
+    if index == 0:
+        return None, None  # the error precedes the first entry
+    _, entry_id, guid = entry_lines[index - 1]
+    return entry_id, guid
 
 
 # --- semantic layer ----------------------------------------------------------------
@@ -425,8 +433,8 @@ def _semantic_problems(
     # every Multitext under the entry, not just the top-level ones.
     for index, entry in enumerate(lexicon.entries):
         for label, multitext in _iter_multitexts(entry):
-            langs = [f.lang for f in multitext.forms if f.lang is not None]
-            for lang in sorted({lang for lang in langs if langs.count(lang) > 1}):
+            langs = Counter(f.lang for f in multitext.forms if f.lang is not None)
+            for lang in sorted(lang for lang, count in langs.items() if count > 1):
                 yield Problem(
                     "warning",
                     "duplicate-form-lang",
