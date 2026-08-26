@@ -95,9 +95,12 @@ class Multitext(Mapping[str, Text]):
     ``clear`` and ``popitem`` have no clear meaning for a form list that can
     also hold forms no key reaches.
 
-    The ``forms`` list is the full truth: a form with a ``None`` lang
-    (schema-invalid input) is reachable there, but not by key, and not counted
-    by ``len()``.
+    The ``forms`` list is the full truth, and holds what no mapping can
+    represent: a form with a ``None`` lang, and a second form for a language
+    already present. Both are schema-invalid input that real exporters produce
+    — a repeated language is what validation reports as
+    ``duplicate-form-lang``, off ``forms`` rather than off the mapping — and
+    neither is reachable by key or counted by ``len()``.
     """
 
     forms: list[Form] = field(default_factory=list)
@@ -132,10 +135,18 @@ class Multitext(Mapping[str, Text]):
     # Both read forms directly rather than through keys(): the inherited views
     # are built on these two, so consulting a view here would not terminate.
     def __iter__(self) -> Iterator[str]:
-        return (form.lang for form in self.forms if form.lang is not None)
+        # A language repeated across forms is one key, the one __getitem__
+        # answers with. Yielding it twice would make the inherited views
+        # report the first form's text once per duplicate, and leave len()
+        # disagreeing with dict(self).
+        seen: set[str] = set()
+        for form in self.forms:
+            if form.lang is not None and form.lang not in seen:
+                seen.add(form.lang)
+                yield form.lang
 
     def __len__(self) -> int:
-        return sum(1 for form in self.forms if form.lang is not None)
+        return sum(1 for _ in self)
 
     def __bool__(self) -> bool:
         # Not derived from len(): emptiness here means "nothing to serialize",

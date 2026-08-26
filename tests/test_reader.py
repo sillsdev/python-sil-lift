@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 import sil_lift
-from sil_lift import LiftParseError, Span
+from sil_lift import Form, LiftParseError, Multitext, Span, Text
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
@@ -99,6 +99,26 @@ def test_subsenses_spot_check() -> None:
     assert str(sense_1.subsenses[0].gloss("en") or "") == "grand kin"
     assert sense_2.subsenses == []
     assert str(sense_2.gloss("en") or "") == "master"
+
+
+def test_multitext_mapping_over_forms_no_mapping_can_represent() -> None:
+    # Both are schema-invalid input real exporters produce: a repeated
+    # language (what duplicate-form-lang reports) and a form with no lang.
+    multitext = Multitext(
+        forms=[
+            Form("en", Text(["first"])),
+            Form("en", Text(["second"])),
+            Form(None, Text(["orphan"])),
+            Form("fr", Text(["deux"])),
+        ]
+    )
+    assert list(multitext.keys()) == ["en", "fr"]
+    assert [str(text) for text in multitext.values()] == ["first", "deux"]
+    assert str(multitext["en"]) == "first"  # the first form wins the key
+    assert len(multitext) == len(dict(multitext)) == 2
+    # Nothing is lost: forms still holds all four, which is what validation reads.
+    assert len(multitext.forms) == 4
+    assert [str(form.text) for form in multitext.forms if form.lang is None] == ["orphan"]
 
 
 def test_reversal_main_chain() -> None:
