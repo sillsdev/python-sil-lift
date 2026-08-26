@@ -85,7 +85,6 @@ select = ["B", "C4", "E", "F", "I", "RUF", "SIM", "UP", "W"]
 required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.per-file-ignores]
-# These do without it by their own convention, not by oversight.
 "scripts/**" = ["I002"]
 "tests/**" = ["I002"]
 
