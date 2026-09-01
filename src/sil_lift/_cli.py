@@ -239,18 +239,17 @@ def _abandon_borrowed_stdout(buffer: BinaryIO) -> None:
     ``sys.stdout`` on the way out, whose failure no handler can catch and whose
     exit status (120) replaces the one ``main`` chose. Redirecting the
     descriptor gives that retry somewhere harmless to go, so ``export | head``
-    ends on the code the command picked. A stream whose bytes turned out to
-    drain, or which has no descriptor to redirect, is left alone.
+    ends on the code the command picked.
     """
     try:
         buffer.flush()
     except OSError:
         pass
     else:
-        return  # the write that failed was not this stream's; nothing is pending
+        return  # nothing is pending, so a stream that can still write is left alone
     try:
         fd = buffer.fileno()
-    except (OSError, ValueError):  # no descriptor under it, so no retry to divert
+    except OSError:  # no descriptor under it, so no retry to divert
         return
     with open(os.devnull, "wb") as null:
         os.dup2(null.fileno(), fd)

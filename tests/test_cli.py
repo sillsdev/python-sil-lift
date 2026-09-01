@@ -394,6 +394,8 @@ def test_export_to_a_closed_pipe_exits_on_its_own_code() -> None:
     byte layer at exit, and the flush on the way out reports a failure no
     handler can catch, replacing the exit code with 120.
     """
+    # More output than a pipe buffer holds: a smaller fixture would drain into
+    # the buffer and exit 0, never reaching the flush this test is about.
     lift = CORPUS_DIR / "large" / "sango" / "sango.lift"
     source = (
         f"import sys; from sil_lift._cli import main; sys.exit(main(['export', {str(lift)!r}]))"
@@ -403,7 +405,6 @@ def test_export_to_a_closed_pipe_exits_on_its_own_code() -> None:
     )
     assert proc.stdout is not None
     assert proc.stderr is not None
-    proc.stdout.readline()  # one header row, then hang up with the export still running
     proc.stdout.close()
     stderr = proc.stderr.read()
     proc.stderr.close()
