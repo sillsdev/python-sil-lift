@@ -12,8 +12,11 @@ Deliberately stdlib-only.
 from __future__ import annotations
 
 import argparse
+import codecs
 import csv
+import io
 import json
+import os
 import sys
 import tempfile
 from collections import Counter
@@ -28,7 +31,7 @@ from ._validate import iter_problems
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
-    from typing import TextIO
+    from typing import BinaryIO, TextIO
 
     from ._model import Entry, Sense
     from ._text import Text
@@ -210,6 +213,48 @@ def _text_or_empty(text: Text | None) -> str:
     return str(text) if text is not None else ""
 
 
+class _Utf8Sink:
+    """A csv sink writing UTF-8 to a byte stream it does not own.
+
+    csv writes CRLF row terminators, which a stdout that translates newlines
+    doubles into a blank row between every data row; the byte layer translates
+    nothing, so a redirected export is the file ``--output`` writes. Nothing
+    here closes or detaches the stream it borrowed — stdout has to stay usable
+    after a write fails partway.
+    """
+
+    def __init__(self, buffer: BinaryIO) -> None:
+        self._buffer = buffer
+
+    def write(self, text: str) -> int:
+        """Bytes written, not characters; csv discards the count either way."""
+        return self._buffer.write(text.encode("utf-8"))
+
+
+def _abandon_borrowed_stdout(buffer: BinaryIO) -> None:
+    """Send stdout's descriptor to the null device once its bytes cannot land.
+
+    A write that fails partway leaves those bytes in the byte layer, and every
+    flush after it retries them — including the one the interpreter runs on
+    ``sys.stdout`` on the way out, whose failure no handler can catch and whose
+    exit status (120) replaces the one ``main`` chose. Redirecting the
+    descriptor gives that retry somewhere harmless to go, so ``export | head``
+    ends on the code the command picked.
+    """
+    try:
+        buffer.flush()
+    except OSError:
+        pass
+    else:
+        return  # nothing is pending, so a stream that can still write is left alone
+    try:
+        fd = buffer.fileno()
+    except OSError:  # no descriptor under it, so no retry to divert
+        return
+    with open(os.devnull, "wb") as null:
+        os.dup2(null.fileno(), fd)
+
+
 def _cmd_export(args: argparse.Namespace) -> int:
     from ._zip import lift_source
 
@@ -229,13 +274,21 @@ def _cmd_export(args: argparse.Namespace) -> int:
         for lang in langs:
             header.extend([f"gloss_{lang}", f"definition_{lang}"])
 
-        out_file: TextIO
-        if args.output is None:
-            out_file = sys.stdout
+        out_file: TextIO | None = None
+        borrowed: BinaryIO | None = None
+        sink: TextIO | _Utf8Sink
+        if args.output is not None:
+            out_file = sink = args.output.open("w", encoding="utf-8", newline="")
+        elif isinstance(sys.stdout, io.TextIOWrapper):
+            sys.stdout.flush()  # nothing of its own may sit behind these bytes
+            borrowed = sys.stdout.buffer
+            sink = _Utf8Sink(borrowed)
         else:
-            out_file = args.output.open("w", encoding="utf-8", newline="")
+            # A replaced stdout may have no byte layer to encode to at all, so
+            # its encoding and newline handling stay the caller's own choice.
+            sink = sys.stdout
         try:
-            writer = csv.writer(out_file, delimiter="\t" if args.tsv else ",")
+            writer = csv.writer(sink, delimiter="\t" if args.tsv else ",")
             writer.writerow(header)
             with open_reader(lift_path) as reader:
                 for entry in reader:
@@ -248,13 +301,40 @@ def _cmd_export(args: argparse.Namespace) -> int:
                             row.append(_text_or_empty(sense.gloss(lang)))
                             row.append(_text_or_empty(sense.definition.get(lang)))
                         writer.writerow(row)
+        except OSError:
+            if borrowed is not None:
+                _abandon_borrowed_stdout(borrowed)
+            raise
         finally:
-            if args.output is not None:
+            if out_file is not None:
                 out_file.close()
     return 0
 
 
+def _force_utf8(stream: TextIO) -> None:
+    """Make one of the standard streams write UTF-8, whatever the locale is.
+
+    Off a console, a stream takes the locale encoding — cp1252 on Windows,
+    ASCII under a C/POSIX locale — which cannot hold LIFT content, so one
+    unrepresentable character kills the command mid-output. ``-o`` has always
+    forced UTF-8; this makes a redirect agree with it.
+
+    Only the encoding changes: ``reconfigure`` resets the error handler to
+    ``strict`` unless passed one, and the handler a stream arrives with is
+    deliberate — ``backslashreplace`` on stderr so a message always arrives,
+    ``surrogateescape`` on some platforms' stdout so an undecodable filename
+    round-trips.
+    """
+    if not isinstance(stream, io.TextIOWrapper):  # a replaced stream may be anything
+        return
+    if codecs.lookup(stream.encoding).name == "utf-8":
+        return
+    stream.reconfigure(encoding="utf-8", errors=stream.errors)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    _force_utf8(sys.stdout)
+    _force_utf8(sys.stderr)
     parser = argparse.ArgumentParser(
         prog="sil-lift",
         description="Utilities for LIFT 0.13 lexicon files.",
