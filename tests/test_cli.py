@@ -1,14 +1,16 @@
 import csv
 import io
 import json
+import os
 import shutil
+import subprocess
 import sys
 import unicodedata
 from pathlib import Path
 
 import pytest
 
-from sil_lift._cli import main
+from sil_lift._cli import _abandon_borrowed_stdout, main
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
@@ -367,3 +369,43 @@ def test_export_to_a_broken_pipe_leaves_stdout_usable(monkeypatch: pytest.Monkey
     assert main(["export", str(CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift")]) == 2
     assert not raw.closed
     assert not sys.stdout.closed
+
+
+def test_a_borrowed_stdout_that_cannot_drain_is_pointed_at_the_null_device() -> None:
+    """Bytes a dead pipe rejected stay buffered, and every flush after it retries them.
+
+    Redirecting the descriptor is what stops the interpreter's own flush at exit
+    from failing all over again, so the exit code survives.
+    """
+    read_fd, write_fd = os.pipe()
+    os.close(read_fd)  # the reader hangs up before a single byte is written
+    with open(write_fd, "wb") as buffer:
+        buffer.write(b"bytes that can never land")  # buffered, so the flush is what fails
+        with pytest.raises(OSError):
+            buffer.flush()
+        _abandon_borrowed_stdout(buffer)
+        buffer.flush()  # the same bytes, now going somewhere harmless
+
+
+def test_export_to_a_closed_pipe_exits_on_its_own_code() -> None:
+    """The interpreter flushes stdout after ``main`` returns, and that can fail too.
+
+    Only a real process shows it: the bytes the pipe rejected are still in the
+    byte layer at exit, and the flush on the way out reports a failure no
+    handler can catch, replacing the exit code with 120.
+    """
+    lift = CORPUS_DIR / "large" / "sango" / "sango.lift"
+    source = (
+        f"import sys; from sil_lift._cli import main; sys.exit(main(['export', {str(lift)!r}]))"
+    )
+    proc = subprocess.Popen(
+        [sys.executable, "-c", source], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    assert proc.stdout is not None
+    assert proc.stderr is not None
+    proc.stdout.readline()  # one header row, then hang up with the export still running
+    proc.stdout.close()
+    stderr = proc.stderr.read()
+    proc.stderr.close()
+    assert proc.wait() == 2
+    assert b"Exception ignored" not in stderr

@@ -16,6 +16,7 @@ import codecs
 import csv
 import io
 import json
+import os
 import sys
 import tempfile
 from collections import Counter
@@ -230,6 +231,31 @@ class _Utf8Sink:
         return self._buffer.write(text.encode("utf-8"))
 
 
+def _abandon_borrowed_stdout(buffer: BinaryIO) -> None:
+    """Send stdout's descriptor to the null device once its bytes cannot land.
+
+    A write that fails partway leaves those bytes in the byte layer, and every
+    flush after it retries them — including the one the interpreter runs on
+    ``sys.stdout`` on the way out, whose failure no handler can catch and whose
+    exit status (120) replaces the one ``main`` chose. Redirecting the
+    descriptor gives that retry somewhere harmless to go, so ``export | head``
+    ends on the code the command picked. A stream whose bytes turned out to
+    drain, or which has no descriptor to redirect, is left alone.
+    """
+    try:
+        buffer.flush()
+    except OSError:
+        pass
+    else:
+        return  # the write that failed was not this stream's; nothing is pending
+    try:
+        fd = buffer.fileno()
+    except (OSError, ValueError):  # no descriptor under it, so no retry to divert
+        return
+    with open(os.devnull, "wb") as null:
+        os.dup2(null.fileno(), fd)
+
+
 def _cmd_export(args: argparse.Namespace) -> int:
     from ._zip import lift_source
 
@@ -250,12 +276,14 @@ def _cmd_export(args: argparse.Namespace) -> int:
             header.extend([f"gloss_{lang}", f"definition_{lang}"])
 
         out_file: TextIO | None = None
+        borrowed: BinaryIO | None = None
         sink: TextIO | _Utf8Sink
         if args.output is not None:
             out_file = sink = args.output.open("w", encoding="utf-8", newline="")
         elif isinstance(sys.stdout, io.TextIOWrapper):
             sys.stdout.flush()  # nothing of its own may sit behind these bytes
-            sink = _Utf8Sink(sys.stdout.buffer)
+            borrowed = sys.stdout.buffer
+            sink = _Utf8Sink(borrowed)
         else:
             # A replaced stdout may have no byte layer to encode to at all, so
             # its encoding and newline handling stay the caller's own choice.
@@ -274,6 +302,10 @@ def _cmd_export(args: argparse.Namespace) -> int:
                             row.append(_text_or_empty(sense.gloss(lang)))
                             row.append(_text_or_empty(sense.definition.get(lang)))
                         writer.writerow(row)
+        except OSError:
+            if borrowed is not None:
+                _abandon_borrowed_stdout(borrowed)
+            raise
         finally:
             if out_file is not None:
                 out_file.close()
