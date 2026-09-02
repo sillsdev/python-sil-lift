@@ -615,12 +615,11 @@ class Lexicon:
         supplies the moment in place of the clock, normalized to UTC at seconds
         precision, which is what makes stamped output byte-reproducible; it must
         be timezone-aware, since a naive moment could as easily mean UTC as
-        local time. Two stamps of one moment are one moment: a second edit saved
-        inside the same second as the first carries the same date.
+        local time. Seconds are the resolution, so an edit saved within a second
+        of the previous one carries the same date.
 
-        Stamping commits with the write. A refused or failed write puts the
-        dates back, so the model never claims a modification that never
-        reached disk.
+        Stamping commits with the write: a refused or failed one puts the dates
+        back, so the model never carries a date for output that does not exist.
 
         Raises :class:`ValueError` if no target path is available (none was
         passed and the lexicon was not loaded from a file) or if ``when`` is
@@ -640,8 +639,8 @@ class Lexicon:
             target.write_bytes(render_document(self))
             written = True
         finally:
-            # The companions below are written after this point; a failure there
-            # leaves the .lift on disk carrying these stamps, so they stand.
+            # A companion failing further down leaves the .lift on disk carrying
+            # these stamps, so from here on they stand.
             if not written and undo is not None:
                 undo.restore()
         self.path = target

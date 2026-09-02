@@ -180,12 +180,10 @@ def default_now() -> datetime:
     offsets, or fractional seconds. :func:`_fmt_date` renders an aware UTC
     value that way.
 
-    Two saves inside the same second therefore write the same value: an edit
-    saved within a second of the previous one leaves ``dateModified`` where it
-    already stood, which a consumer comparing dates reads as no change. The
-    stamping baseline still tracks it, so nothing is lost on this side, and
-    sub-second precision would buy the distinction at the cost of the one form
-    every consumer expects. Pass ``when`` to force a distinct moment.
+    One second holds one date, so an edit saved within a second of the previous
+    one carries the same stamp and reads as no change to anything comparing
+    dates. Sub-second precision would buy that distinction at the cost of the
+    one form every consumer expects; ``when`` forces a distinct moment.
     """
     return datetime.now(UTC).replace(microsecond=0)
 
@@ -231,10 +229,10 @@ def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> 
 
 @dataclass(slots=True)
 class _StampUndo:
-    """How to put a stamping pass back, for a write that then never happened.
+    """How to put a stamping pass back if the write it ran for never happens.
 
-    Stamping runs before serialization, so a refused or failed write would
-    otherwise leave the model dated for output that does not exist.
+    Stamping precedes serialization, so without this a refused or failed write
+    would leave the model dated for output that does not exist.
     """
 
     lexicon: Lexicon
@@ -260,22 +258,22 @@ def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
     its content differs from the loaded content all right, but so does its date
     — this library's own stamp from the first save — which reads exactly like
     a date the caller set deliberately. An entry still matching its parse-time
-    record needs no such override and is recorded nowhere, so a save of a
-    handful of edited entries remembers only those, and an entry that has since
-    left the lexicon is not carried along by a dict that is rebuilt each pass.
+    record needs no such override and is recorded nowhere, so a save of a few
+    edited entries remembers only those; rebuilding the dict each pass also
+    drops entries that have since left the lexicon, which would otherwise stay
+    alive here for a baseline nothing will consult again.
 
-    Deciding comes first and mutating second, because digesting is the only
-    step that can fail (see :func:`_guarded`): a document holding content XML
-    cannot represent is refused with nothing stamped, rather than half-stamped
-    at whatever entry the refusal came from.
+    Deciding comes before mutating because digesting is the only step that can
+    fail (see :func:`_guarded`): content XML cannot represent is refused with
+    nothing stamped rather than half-stamped at the entry it was found on.
     """
     source = lexicon._source
     at_parse = (
         {id(record.entry): record for record in source.entry_records} if source is not None else {}
     )
     previous = lexicon._stamps
-    # Keyed by identity: an entry aliased into the list twice is one entry, with
-    # one pair of dates, so it is decided and stamped once.
+    # One object holds one pair of dates, so an entry aliased into the list
+    # twice is decided and stamped once.
     entries = list({id(entry): entry for entry in lexicon.entries}.values())
 
     planned: list[tuple[Entry, bytes, bool]] = []

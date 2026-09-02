@@ -114,14 +114,13 @@ def _attach_stamp_baseline(lexicon: Lexicon) -> None:
     """Record what a stamping save measures against, for a document with no snapshot.
 
     Byte reuse needs the source bytes; stamping needs only the digests, which
-    are available whether or not the scan was declined. Without this the
-    save-time pass would find no baseline at all for a document that was read
-    rather than built, and read every undated entry as new — stamping entries
-    nobody touched, on a save that changed nothing.
+    are available whether or not the scan was declined. Without this a document
+    that was read rather than built would reach a save with no baseline at all,
+    and every undated entry in it would look new — stamping entries nobody
+    touched, on a save that changed nothing.
 
-    A lone surrogate is the one thing digesting refuses, and it cannot arrive
-    from a file (the parser rejects both spellings), so this cannot raise for a
-    document that just parsed.
+    Digesting refuses only a lone surrogate, which cannot arrive from a file, so
+    this cannot raise for a document that has just parsed.
     """
     from ._writer import _EntryRecord, entry_digest
 
