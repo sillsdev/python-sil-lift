@@ -67,4 +67,6 @@ sentidos:    4541
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Códigos de saída: `0` sucesso (são permitidos avisos, a menos que se utilize a opção `--strict`), `1` resultados (erros de validação / ficheiros multimédia em falta / avisos quando se utiliza a opção `--strict`), `2` entrada ilegível.
+Toda a saída é em UTF-8, em todas as plataformas e independentemente de ser direcionada para um console, um pipe ou um redirecionamento `>` — nunca na codificação da localização (cp1252 no Windows, ASCII numa localização C/POSIX), que não consegue representar conteúdo LIFT. O comando `sil-lift export dictionary.lift > dictionary.csv` grava, portanto, exatamente os bytes que o comando `-o dictionary.csv` grava, incluindo os terminadores de linha CRLF.
+
+Códigos de saída: `0` sucesso (são permitidos avisos, a menos que se utilize a opção `--strict`), `1` resultados (erros de validação / suportes em falta / avisos com a opção `--strict`), `2` uma falha de E/S em qualquer uma das extremidades — entrada que não pode ser lida ou saída que não pode ser gravada (um leitor como o `head` a fechar o canal, um disco cheio).
