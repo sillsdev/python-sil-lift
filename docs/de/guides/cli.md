@@ -67,4 +67,6 @@ Bedeutungen:    4541
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Exit-Codes: `0` erfolgreich (Warnungen zulässig, sofern nicht `--strict` angegeben), `1` Fehlermeldungen (Validierungsfehler / fehlende Medien / Warnungen bei Angabe von `--strict`), `2` unlesbare Eingabe.
+Die gesamte Ausgabe erfolgt in UTF-8 – auf jeder Plattform und unabhängig davon, ob sie an eine Konsole, eine Pipe oder eine `>`-Umleitung gesendet wird. Es wird niemals die Locale-Kodierung (cp1252 unter Windows, ASCII unter einer C/POSIX-Locale) verwendet, da diese LIFT-Inhalte nicht darstellen kann. `sil-lift export dictionary.lift > dictionary.csv` schreibt daher genau dieselben Bytes wie `-o dictionary.csv`, einschließlich der CRLF-Zeilenenden.
+
+Exit-Codes: `0` Erfolg (Warnungen zulässig, sofern nicht `--strict` angegeben), `1` Beanstandungen (Validierungsfehler / fehlende Medien / Warnungen bei Verwendung von `--strict`), `2` ein E/A-Fehler an einer der beiden Seiten – Eingabe, die nicht gelesen werden kann, oder Ausgabe, die nicht geschrieben werden kann (z. B. weil ein Leser wie `head` die Pipe schließt oder die Festplatte voll ist).
