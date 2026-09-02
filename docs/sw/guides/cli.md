@@ -66,4 +66,6 @@ senses:    4541
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Misimbo ya kutoka: `0` mafanikio (maonyo yanaruhusiwa, isipokuwa `--strict`), `1` matokeo (makosa ya uthibitishaji / vyombo vya habari vilivyokosekana / maonyo chini ya `--strict`), `2` ingizo lisilosomeka.
+Matokeo yote ni UTF-8, kwenye kila jukwaa na iwe yanapelekwa kwenye konsole, kwenye bomba, au kwenye kuelekeza `>` — kamwe sio usimbaji wa eneo (cp1252 kwenye Windows, ASCII chini ya eneo la C/POSIX), ambao hauwezi kuwakilisha maudhui ya LIFT. `sil-lift export dictionary.lift > dictionary.csv` kwa hivyo huandika baiti hasa ambazo `-o dictionary.csv` huandika, ikiwa ni pamoja na vionjo vya safu vya CRLF.
+
+Msimbo wa kutoka: `0` mafanikio (maonyo yanaruhusiwa, isipokuwa `--strict`), `1` matokeo (makosa ya uthibitishaji / vyombo vya habari vilivyokosekana / maonyo chini ya `--strict`), `2` hitilafu ya I/O mwishoni mwa upande wowote — ingizo lisiloweza kusomwa, au pato lisiloweza kuandikwa (msomaji kama `head` akifunga bomba, diski imejaa).
