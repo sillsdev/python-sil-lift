@@ -14,6 +14,7 @@ LIFT is usually moved around as a single `.zip` — FieldWorks and The Combine b
     - Extraction is capped at 10 GiB and 100,000 members; a package over either limit is refused with a `LiftParseError`, as is one whose member paths escape the extraction directory.
 - **Write:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip.
     - `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
+    - Entries whose content changed since the load are stamped with a fresh `dateModified` on the way out, exactly as on `save()` — a package is what an importing tool reconciles from, so a stale date there is what makes an updated lexicon look untouched. `stamp=False` writes the dates the model holds; `when=` pins the moment.
 
 The `.lift` and `.lift-ranges` keep their byte-fidelity inside the package; the zip container itself is not byte-reproducible.
 
