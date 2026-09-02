@@ -85,6 +85,8 @@ select = ["B", "C4", "E", "F", "I", "RUF", "SIM", "UP", "W"]
 required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.per-file-ignores]
+# Only the package needs it: its public signatures annotate TYPE_CHECKING-only
+# imports, which resolve at runtime solely because annotations are strings.
 "scripts/**" = ["I002"]
 "tests/**" = ["I002"]
 
