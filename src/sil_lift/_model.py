@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from ._validate import Problem
-    from ._writer import _EntryRecord, _RangesSourceInfo, _SourceInfo
+    from ._writer import _EntryRecord, _RangesSourceInfo, _SourceInfo, _StampUndo
 
 __all__ = [
     "Changes",
@@ -571,13 +571,17 @@ class Lexicon:
             if exists and resolved not in self.ranges_files:
                 self.ranges_files[resolved] = RangesFile.load(candidate)
 
-    def _apply_stamps(self, stamp: bool, when: datetime | None) -> None:
-        """The stamping step shared by :meth:`save` and :meth:`save_zip`."""
-        if not stamp:
-            return
-        from ._writer import default_now, stamp_entries
+    def _apply_stamps(self, stamp: bool, when: datetime | None) -> _StampUndo | None:
+        """The stamping step shared by :meth:`save` and :meth:`save_zip`.
 
-        stamp_entries(self, when if when is not None else default_now())
+        Returns what undoes the pass, so a write that does not go through can
+        leave the model as it found it.
+        """
+        if not stamp:
+            return None
+        from ._writer import resolve_when, stamp_entries
+
+        return stamp_entries(self, resolve_when(when))
 
     def save(
         self,
@@ -608,14 +612,21 @@ class Lexicon:
         one canonical serialization pass over the entries.
 
         ``stamp=False`` writes the model exactly as it stands. ``when``
-        supplies the moment in place of the clock (UTC at seconds precision),
-        which is what makes stamped output byte-reproducible.
+        supplies the moment in place of the clock, normalized to UTC at seconds
+        precision, which is what makes stamped output byte-reproducible; it must
+        be timezone-aware, since a naive moment could as easily mean UTC as
+        local time. Two stamps of one moment are one moment: a second edit saved
+        inside the same second as the first carries the same date.
+
+        Stamping commits with the write. A refused or failed write puts the
+        dates back, so the model never claims a modification that never
+        reached disk.
 
         Raises :class:`ValueError` if no target path is available (none was
-        passed and the lexicon was not loaded from a file), and
-        :class:`~sil_lift.LiftWriteError` if the model holds content XML cannot
-        represent (a lone surrogate) — nothing is written in that case, though
-        stamps already applied stay on the model.
+        passed and the lexicon was not loaded from a file) or if ``when`` is
+        naive, and :class:`~sil_lift.LiftWriteError` if the model holds content
+        XML cannot represent (a lone surrogate) — nothing is written in that
+        case, and nothing is stamped.
         """
         from ._writer import render_document
 
@@ -623,8 +634,16 @@ class Lexicon:
         if target is None:
             raise ValueError("no target path: pass save(path) or load the lexicon from a file")
         original_dir = self.path.parent if self.path is not None else None
-        self._apply_stamps(stamp, when)
-        target.write_bytes(render_document(self))
+        undo = self._apply_stamps(stamp, when)
+        written = False
+        try:
+            target.write_bytes(render_document(self))
+            written = True
+        finally:
+            # The companions below are written after this point; a failure there
+            # leaves the .lift on disk carrying these stamps, so they stand.
+            if not written and undo is not None:
+                undo.restore()
         self.path = target
         relocating = not _same_dir(target.parent, original_dir)
         for key, ranges_file in self.ranges_files.items():
@@ -667,8 +686,14 @@ class Lexicon:
         """
         from ._zip import save_zip
 
-        self._apply_stamps(stamp, when)
-        save_zip(self, Path(path), wrap_folder=wrap_folder)
+        undo = self._apply_stamps(stamp, when)
+        written = False
+        try:
+            save_zip(self, Path(path), wrap_folder=wrap_folder)
+            written = True
+        finally:
+            if not written and undo is not None:
+                undo.restore()
 
     def sort(self) -> None:
         """Sort into canonical order, in place: entries by (guid, id), header

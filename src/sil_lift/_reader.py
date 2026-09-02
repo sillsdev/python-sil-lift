@@ -59,6 +59,8 @@ def parse_document(path: Path) -> Lexicon:
         raise LiftParseError(f"{path}: not well-formed XML: {exc}") from exc
     lexicon = parse_root(root, path=path)
     _attach_source(lexicon, data, root)
+    if lexicon._source is None:
+        _attach_stamp_baseline(lexicon)
     return lexicon
 
 
@@ -106,6 +108,27 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
         root_extra_attrs=dict(ranges_file.extra._attrs),
         root_extra_snapshot=copy.deepcopy(ranges_file.extra),
     )
+
+
+def _attach_stamp_baseline(lexicon: Lexicon) -> None:
+    """Record what a stamping save measures against, for a document with no snapshot.
+
+    Byte reuse needs the source bytes; stamping needs only the digests, which
+    are available whether or not the scan was declined. Without this the
+    save-time pass would find no baseline at all for a document that was read
+    rather than built, and read every undated entry as new — stamping entries
+    nobody touched, on a save that changed nothing.
+
+    A lone surrogate is the one thing digesting refuses, and it cannot arrive
+    from a file (the parser rejects both spellings), so this cannot raise for a
+    document that just parsed.
+    """
+    from ._writer import _EntryRecord, entry_digest
+
+    lexicon._stamps = {
+        id(entry): _EntryRecord(entry, entry_digest(entry), entry.date_modified)
+        for entry in lexicon.entries
+    }
 
 
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:

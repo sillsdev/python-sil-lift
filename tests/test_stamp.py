@@ -7,8 +7,10 @@ its whole subtree, so an edit at any depth belongs to the entry containing it.
 """
 
 import zipfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
+
+import pytest
 
 import sil_lift
 
@@ -33,6 +35,15 @@ BY_HAND = datetime(1999, 12, 31, 23, 59, 59, tzinfo=UTC)
 def _dates(lexicon: sil_lift.Lexicon) -> dict[str | None, tuple[object, object]]:
     """Every entry's stamps, keyed by id so a sort() does not disturb the comparison."""
     return {entry.id: (entry.date_created, entry.date_modified) for entry in lexicon.entries}
+
+
+def _in_its_own_folder(fixture: Path, tmp_path: Path) -> Path:
+    """A copy of a fixture on its own: save_zip packages its whole folder."""
+    folder = tmp_path / "src"
+    folder.mkdir()
+    dest = folder / fixture.name
+    dest.write_bytes(fixture.read_bytes())
+    return dest
 
 
 def test_an_untouched_save_stamps_nothing_and_stays_byte_identical(tmp_path: Path) -> None:
@@ -228,6 +239,158 @@ def test_stamping_does_not_reach_below_the_entry(tmp_path: Path) -> None:
     assert sense.subsenses[0].date_modified is None
 
 
+def test_an_unscannable_document_stamps_only_what_changed(tmp_path: Path) -> None:
+    """No byte snapshot, but the digests still date the edit and nothing else.
+
+    The scanner declines a source it cannot read, and stamping needs only the
+    digests, so the reader records a baseline anyway. Without one every undated
+    entry would look new and a save that changed nothing would stamp them all.
+
+    Note what `changed_entries()` says here by contrast: every entry, because
+    `save()` does re-serialize the whole file. Stamping asks the narrower
+    question — what the caller modified — and answers it exactly.
+    """
+    text = UNDATED.read_text(encoding="utf-8").replace('encoding="UTF-8"', 'encoding="UTF-16"')
+    source = tmp_path / "utf16.lift"
+    source.write_bytes(text.encode("utf-16"))
+    lexicon = sil_lift.load(source)
+    assert lexicon._source is None  # no byte baseline, only a stamping one
+    entry = lexicon.entries[0]
+    out = tmp_path / "out.lift"
+
+    lexicon.save(out, when=WHEN)
+    assert (entry.date_created, entry.date_modified) == (None, None)
+    assert len(lexicon.changed_entries()) == len(lexicon.entries)
+
+    entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
+    lexicon.save(out, when=WHEN)
+    assert (entry.date_created, entry.date_modified) == (WHEN, WHEN)
+
+
+def test_when_is_normalized_to_utc_at_seconds_precision(tmp_path: Path) -> None:
+    """Whatever shape the caller's moment is in, the output keeps the one form."""
+    lexicon = sil_lift.load(UNDATED)
+    entry = lexicon.entries[0]
+    entry.lexical_unit["en"] = "edited"
+    out = tmp_path / "out.lift"
+    lexicon.save(out, when=datetime(2026, 3, 4, 5, 6, 7, 500000, tzinfo=UTC))
+
+    assert entry.date_modified == WHEN  # the fraction is dropped, not rounded
+    assert b'dateModified="2026-03-04T05:06:07Z"' in out.read_bytes()
+
+    entry.lexical_unit["en"] = "edited again"
+    offset = timezone(timedelta(hours=5, minutes=30))
+    lexicon.save(out, when=datetime(2026, 3, 4, 10, 36, 8, tzinfo=offset))
+
+    assert entry.date_modified == LATER  # the same moment, said in UTC
+    assert b'dateModified="2026-03-04T05:06:08Z"' in out.read_bytes()
+
+
+def test_a_naive_when_is_refused_and_nothing_is_written(tmp_path: Path) -> None:
+    """UTC or local would put the stamp hours apart, so neither is assumed."""
+    lexicon = sil_lift.load(UNDATED)
+    entry = lexicon.entries[0]
+    entry.lexical_unit["en"] = "edited"
+    out = tmp_path / "out.lift"
+
+    with pytest.raises(ValueError, match="timezone-aware"):
+        lexicon.save(out, when=datetime(2026, 3, 4, 5, 6, 7))
+
+    assert entry.date_modified is None
+    assert not out.exists()
+
+
+def test_a_refused_write_leaves_nothing_stamped(tmp_path: Path) -> None:
+    """Stamping commits with the write: no file, no modification date.
+
+    The refusal comes from the last entry, so this also pins that the entries
+    ahead of it are not left half-stamped — deciding happens before mutating.
+    """
+    lexicon = sil_lift.load(DATED)
+    edited, offending = lexicon.entries[0], lexicon.entries[-1]
+    before = _dates(lexicon)
+    baseline = dict(lexicon._stamps)
+    edited.lexical_unit["en"] = "edited"
+    offending.senses[0].glosses.append(sil_lift.Form(lang="en", text=sil_lift.Text(["\ud800"])))
+    out = tmp_path / "out.lift"
+
+    with pytest.raises(sil_lift.LiftWriteError):
+        lexicon.save(out, when=WHEN)
+
+    assert _dates(lexicon) == before
+    assert lexicon._stamps == baseline
+    assert not out.exists()
+
+
+def test_a_refused_zip_write_leaves_nothing_stamped(tmp_path: Path) -> None:
+    lexicon = sil_lift.load(_in_its_own_folder(UNDATED, tmp_path))
+    entry = lexicon.entries[0]
+    entry.lexical_unit["en"] = "edited"
+    entry.senses[0].glosses.append(sil_lift.Form(lang="en", text=sil_lift.Text(["\ud800"])))
+
+    with pytest.raises(sil_lift.LiftWriteError):
+        lexicon.save_zip(tmp_path / "pkg.zip", when=WHEN)
+
+    assert entry.date_modified is None
+
+
+def test_a_removed_entry_drops_out_of_the_stamping_baseline(tmp_path: Path) -> None:
+    """The baseline dict is rebuilt each save, so it holds no entry the lexicon lost.
+
+    An entry the document was loaded with is retained by its parse-time record
+    either way (that is what makes `removed_entries()` work); one appended and
+    then dropped would otherwise be kept alive here, subtree and all, by a
+    baseline nothing will ever consult again.
+    """
+    lexicon = sil_lift.load(UNDATED)
+    appended = sil_lift.Entry(id="temporary")
+    lexicon.entries.append(appended)
+    out = tmp_path / "out.lift"
+    lexicon.save(out, when=WHEN)
+    assert [record.entry.id for record in lexicon._stamps.values()] == ["temporary"]
+
+    lexicon.entries.remove(appended)
+    lexicon.save(out, when=LATER)
+
+    assert lexicon._stamps == {}
+
+
+def test_an_aliased_entry_is_stamped_once(tmp_path: Path) -> None:
+    """One entry object, one pair of dates — however many list slots point at it."""
+    lexicon = sil_lift.load(UNDATED)
+    entry = lexicon.entries[0]
+    lexicon.entries.append(entry)  # the same object, written out twice
+    entry.lexical_unit["en"] = "edited"
+    out = tmp_path / "out.lift"
+    lexicon.save(out, when=WHEN)
+
+    assert entry.date_modified == WHEN
+    assert len(lexicon._stamps) == 1
+    assert out.read_bytes().count(b'dateModified="2026-03-04T05:06:07Z"') == 2
+
+
+def test_two_saves_of_one_moment_share_a_stamp(tmp_path: Path) -> None:
+    """The documented limit of seconds precision, said with an explicit moment.
+
+    The same second cannot hold two distinct dates, so a second edit saved
+    within one reads as no change to anything comparing dates. The stamping
+    baseline still tracks it, so the next distinct moment stamps normally.
+    """
+    lexicon = sil_lift.load(DATED)
+    entry = lexicon.entries[0]
+    out = tmp_path / "out.lift"
+
+    entry.lexical_unit["en"] = "one"
+    lexicon.save(out, when=WHEN)
+    entry.lexical_unit["en"] = "two"
+    lexicon.save(out, when=WHEN)
+    assert entry.date_modified == WHEN
+
+    entry.lexical_unit["en"] = "three"
+    lexicon.save(out, when=LATER)
+    assert entry.date_modified == LATER
+
+
 def test_the_default_clock_is_utc_at_seconds_precision(tmp_path: Path) -> None:
     """No `when`: the wall clock, in the 20-character form real exports use."""
     lexicon = sil_lift.load(UNDATED)
@@ -283,15 +446,6 @@ def test_changed_entries_still_reports_a_stamped_entry(tmp_path: Path) -> None:
 
     assert [id(reported) for reported in lexicon.changed_entries()] == [id(entry)]
     assert lexicon.changes()
-
-
-def _in_its_own_folder(fixture: Path, tmp_path: Path) -> Path:
-    """A copy of a fixture on its own: save_zip packages its whole folder."""
-    folder = tmp_path / "src"
-    folder.mkdir()
-    dest = folder / fixture.name
-    dest.write_bytes(fixture.read_bytes())
-    return dest
 
 
 def test_stamping_replaces_a_date_the_model_could_not_hold(tmp_path: Path) -> None:
