@@ -14,7 +14,9 @@ Two paths out of a :class:`~sil_lift._model.Lexicon`:
   are re-serialized canonically. A fully-unchanged document therefore
   reassembles byte-identically.
 
-Snapshots are sha256 digests of canonical bytes, taken at parse time.
+Snapshots are sha256 digests of canonical bytes, taken at parse time. The same
+digests decide, in :func:`stamp_entries`, which entries an edit has left with a
+stale ``dateModified``.
 
 Both paths refuse content XML cannot represent: see :func:`_guarded`.
 """
@@ -24,6 +26,7 @@ from __future__ import annotations
 import hashlib
 from collections import Counter
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
 from lxml import etree
@@ -53,7 +56,6 @@ from ._text import Annotation, Form, Multitext, Span, Text, Trait
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
-    from datetime import date, datetime
 
     from ._extras import _ExtraNode
     from ._scan import ChildRegion
@@ -61,12 +63,14 @@ if TYPE_CHECKING:
 __all__ = [
     "canonical_document",
     "canonical_ranges_document",
+    "default_now",
     "entry_digest",
     "header_digest",
     "node_diff",
     "range_digest",
     "render_document",
     "render_ranges_document",
+    "stamp_entries",
 ]
 
 _FRAGMENT_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
@@ -105,8 +109,17 @@ def _entry_label(entry: Entry) -> str:
 
 @dataclass(slots=True)
 class _EntryRecord:
+    """An entry's canonical digest and ``dateModified`` as of one baseline moment.
+
+    The reader builds one per entry at parse time, and those drive byte reuse
+    and change detection. :func:`stamp_entries` builds a second set as it
+    saves, so the baseline the stamping policy measures against moves forward
+    with each save while the parse-time one stays where it is.
+    """
+
     entry: Entry  # strong ref: keeps id() stable for the identity check
     digest: bytes
+    date_modified: datetime | date | None
 
 
 @dataclass(slots=True)
@@ -151,6 +164,78 @@ def header_digest(header: Header) -> bytes:
 
 def range_digest(range_: Range) -> bytes:
     return hashlib.sha256(canonical_range_bytes(range_)).digest()
+
+
+# --- generated timestamps -------------------------------------------------------
+
+
+def default_now() -> datetime:
+    """The clock for generated timestamps: UTC at seconds precision.
+
+    Seconds precision is the shape real exports use. Across the seven
+    FieldWorks 8.3-9.0 exports in The Combine's ``Backend.Tests/Assets``, all
+    70,636 ``dateCreated``/``dateModified`` literals are exactly the
+    20-character ``YYYY-MM-DDTHH:MM:SSZ`` form — no bare dates, numeric
+    offsets, or fractional seconds. :func:`_fmt_date` renders an aware UTC
+    value that way.
+    """
+    return datetime.now(UTC).replace(microsecond=0)
+
+
+def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> bool:
+    """Whether the content moved since ``baseline`` while the date stayed put.
+
+    Both halves matter. The digest covers the entry's whole subtree, so it
+    catches an edit at any depth; the date comparison is what leaves an entry
+    the caller dated by hand alone, since a deliberate value is not one to
+    overwrite.
+
+    Without a baseline there is nothing to compare — an entry added since the
+    load, or a lexicon built from scratch. A date already on such an entry is
+    taken as deliberate too (a migration carrying dates in from another format
+    is the case that matters), so only a blank one is filled.
+    """
+    if baseline is None:
+        return entry.date_modified is None
+    return digest != baseline.digest and entry.date_modified == baseline.date_modified
+
+
+def stamp_entries(lexicon: Lexicon, when: datetime) -> None:
+    """Stamp every entry whose content changed without its ``dateModified`` changing.
+
+    Costs one canonical serialization pass over the entries.
+
+    Each save leaves behind the state it wrote, in ``lexicon._stamps``, and the
+    next save measures against that rather than against the load. Without it a
+    second round of edits on the same in-memory lexicon would ship unstamped:
+    its content differs from the loaded content all right, but so does its date
+    — this library's own stamp from the first save — which reads exactly like
+    a date the caller set deliberately. An entry still matching its parse-time
+    record needs no such override and keeps none, so the common save of a
+    handful of edited entries remembers only those.
+    """
+    source = lexicon._source
+    at_parse = (
+        {id(record.entry): record for record in source.entry_records} if source is not None else {}
+    )
+    for entry in lexicon.entries:
+        key = id(entry)
+        record = at_parse.get(key)
+        baseline = lexicon._stamps.get(key)
+        if baseline is None:
+            baseline = record
+        digest = entry_digest(entry)
+        if _needs_stamp(entry, baseline, digest):
+            entry._stamp(when)
+            digest = entry_digest(entry)  # the dates are part of an entry's bytes
+        if (
+            record is not None
+            and record.digest == digest
+            and record.date_modified == entry.date_modified
+        ):
+            lexicon._stamps.pop(key, None)
+        else:
+            lexicon._stamps[key] = _EntryRecord(entry, digest, entry.date_modified)
 
 
 # --- canonical building blocks ---------------------------------------------------

@@ -41,6 +41,8 @@ lex.save("elsewhere.lift")
 
 Entries you didn't modify are written back **byte-identical**; a document you didn't modify at all is byte-identical from the first byte to the last. See [Fidelity guarantees](../fidelity.md) for the precise contract.
 
+The entries you did modify go out with a fresh `dateModified` (and a `dateCreated` if they had none), so an edit doesn't ship under the date it was loaded with — the tools that merge LIFT decide what changed from that attribute. `lex.save(stamp=False)` writes the dates the model holds and nothing more; `lex.save(when=...)` pins the moment instead of reading the clock.
+
 ## Building from scratch
 
 ```python

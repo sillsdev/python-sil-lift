@@ -135,7 +135,10 @@ def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
         root_open_end=result.root_open_end,
         root_self_closing=result.root_self_closing,
         children=result.children,
-        entry_records=[_EntryRecord(entry, entry_digest(entry)) for entry in lexicon.entries],
+        entry_records=[
+            _EntryRecord(entry, entry_digest(entry), entry.date_modified)
+            for entry in lexicon.entries
+        ],
         header_digest=header_digest(lexicon.header) if header_regions else None,
         producer=lexicon.producer,
         root_extra_attrs=dict(lexicon.extra._attrs),

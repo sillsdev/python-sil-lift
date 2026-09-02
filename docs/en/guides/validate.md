@@ -44,7 +44,7 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `undefined-range-value`  | warning | a grammatical-info or range-keyed trait value the range does not list      |
 | `uri-not-rfc`            | warning | an href that is not a valid URI — FLEx's `file://C:/...`                   |
 
-All three layers work from what `save()` would write, so a document that cannot be serialized at all is reported as a single `lone-surrogate` error instead — see [Fidelity guarantees](../fidelity.md#content-xml-cannot-represent).
+All three layers work from the document serialized as it stands, so one that cannot be serialized at all is reported as a single `lone-surrogate` error instead — see [Fidelity guarantees](../fidelity.md#content-xml-cannot-represent). Validating is read-only, which is the one way those bytes differ from the bytes `save()` writes: it reports the document before the `dateModified` stamping a save does. Nothing generated is ever a finding, so validate-then-save is sound.
 
 ## Real-world FieldWorks (FLEx) output
 

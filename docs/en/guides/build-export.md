@@ -52,7 +52,7 @@ ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Validate what save() would write, before touching the disk.
+# Validate the document as it stands, before touching the disk.
 problems = list(lex.iter_problems())
 print(f"validation: {len(problems)} problem(s)")
 
@@ -79,7 +79,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
     <range id="semantic-domain-ddp4" href="birds.lift-ranges"/>
   </ranges>
 </header>
-<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d">
+<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d" dateCreated="2026-09-02T19:19:17Z" dateModified="2026-09-02T19:19:17Z">
   <lexical-unit>
     <form lang="seh">
       <text>nkhuku</text>
@@ -161,7 +161,8 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 - A `URLRef` is an href plus an optional caption/label multitext — used for both `<media>` (audio) and `<illustration>` (photos). The pronunciation here follows The Combine's convention of an `en` form reading `Speaker: <name>`.
 - App-specific data with no native LIFT home rides as a `<field>` (or `<trait>`): FieldWorks reads these as custom fields and The Combine preserves them.
 - Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports) — a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` enforces this.
-- `lex.iter_problems()` validates the in-memory document (what `save()` would write) before anything hits disk; here it is clean. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped — run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
+- The `dateCreated`/`dateModified` in the output above are not in the script: `save()` stamped them with the moment it ran, because an entry it is writing for the first time carries no date of its own and the tools that import LIFT decide what to update from `dateModified`. Two knobs, both on `save()`: `when=` supplies the moment instead of reading the clock — that is what makes a generated export byte-reproducible, so a CI job can diff it — and `stamp=False` writes no dates at all. A date you set yourself is left alone either way, so an exporter carrying real timestamps over from its own data model keeps them. Nothing below `<entry>` is ever stamped.
+- `lex.iter_problems()` validates the in-memory document before anything hits disk; here it is clean. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped — run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
 
 ## Packaging
 
