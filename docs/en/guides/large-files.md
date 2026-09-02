@@ -24,5 +24,5 @@ Notes:
 
 - The writer's output is exactly what the full-document canonical serializer would produce for the same content — the two modes never drift apart.
 - Streaming mode reuses no source bytes: output is always canonical. Root-level LIFT residue — comments between entries and out-of-schema attributes on `<lift>` — is not carried; entries and the header are complete, residue included.
-- Nor does it generate timestamps. An entry is written with the dates it carries, since a streaming writer has no loaded document to compare it against — the stamping [`Lexicon.save()`](../fidelity.md#saving-an-edited-document) does needs that baseline. Set `entry.date_modified` yourself on the entries this pass rewrites.
+- Nor does it generate timestamps, as [`Lexicon.save()`](../fidelity.md#saving-an-edited-document) does. An entry is written with the dates it carries: a streaming pass never sees the document as it was, so it cannot tell which entries you changed. Set `entry.date_modified` yourself on the ones this pass rewrites.
 - If the body of an `open_writer` block raises, the file is left visibly unterminated (no closing `</lift>`) — a half-written lexicon must not look complete.

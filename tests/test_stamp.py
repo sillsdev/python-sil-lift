@@ -242,10 +242,6 @@ def test_stamping_does_not_reach_below_the_entry(tmp_path: Path) -> None:
 def test_an_unscannable_document_stamps_only_what_changed(tmp_path: Path) -> None:
     """No byte snapshot, but the digests still date the edit and nothing else.
 
-    The scanner declines a source it cannot read, and stamping needs only the
-    digests, so the reader records a baseline anyway. Without one every undated
-    entry would look new and a save that changed nothing would stamp them all.
-
     Note what `changed_entries()` says here by contrast: every entry, because
     `save()` does re-serialize the whole file. Stamping asks the narrower
     question — what the caller modified — and answers it exactly.
@@ -338,9 +334,8 @@ def test_a_removed_entry_drops_out_of_the_stamping_baseline(tmp_path: Path) -> N
     """The baseline dict is rebuilt each save, so it holds no entry the lexicon lost.
 
     An entry the document was loaded with is retained by its parse-time record
-    either way (that is what makes `removed_entries()` work); one appended and
-    then dropped would otherwise be kept alive here, subtree and all, by a
-    baseline nothing will ever consult again.
+    either way — that is what makes `removed_entries()` work — but one appended
+    and then dropped would otherwise be kept alive here, subtree and all.
     """
     lexicon = sil_lift.load(UNDATED)
     appended = sil_lift.Entry(id="temporary")
