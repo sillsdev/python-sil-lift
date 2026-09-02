@@ -183,6 +183,73 @@ def test_a_hand_set_date_becomes_the_baseline_for_the_next_edit(tmp_path: Path) 
     assert entry.date_modified == LATER
 
 
+def test_an_unstamped_save_notes_a_date_the_caller_set(tmp_path: Path) -> None:
+    """Which kind of save ran in between must not decide whether a later edit is stamped.
+
+    An unstamped save writes the caller's date to disk, so it becomes the date
+    the next stamping save measures against — as it would have if that save had
+    stamped. Otherwise the entry reads as deliberately dated for good and is
+    never stamped again.
+    """
+    lexicon = sil_lift.load(DATED)
+    entry = lexicon.entries[0]
+    out = tmp_path / "out.lift"
+
+    entry.lexical_unit["en"] = "one"
+    entry.date_modified = BY_HAND
+    lexicon.save(out, stamp=False)
+    assert entry.date_modified == BY_HAND  # written as it stands, as asked
+
+    entry.lexical_unit["en"] = "two"
+    lexicon.save(out, when=WHEN)
+    assert entry.date_modified == WHEN
+
+
+def test_an_unstamped_save_leaves_an_untouched_date_to_the_next_stamp(
+    tmp_path: Path,
+) -> None:
+    """The other half: content on disk under a date that no longer describes it.
+
+    Nothing is noted for an entry written unstamped under the date it was
+    loaded with, so the next stamping save still has the edit to report.
+    """
+    lexicon = sil_lift.load(DATED)
+    entry = lexicon.entries[0]
+    loaded = entry.date_modified
+    out = tmp_path / "out.lift"
+
+    entry.lexical_unit["en"] = "edited"
+    lexicon.save(out, stamp=False)
+    assert entry.date_modified == loaded
+
+    lexicon.save(out, when=WHEN)  # no further edit needed: the first one still stands
+    assert entry.date_modified == WHEN
+
+
+def test_the_same_instant_in_another_offset_is_the_caller_touching_the_date(
+    tmp_path: Path,
+) -> None:
+    """Dates are compared as the document will carry them, not as moments.
+
+    Rewriting `2008-12-12T09:42:48+10:00` as the same instant at `-05:00` is an
+    edit — the file changes — and it is an edit to the date itself, so it is the
+    one thing a stamp must not overwrite. Comparing the two as moments would
+    call them equal and take the entry for content edited without its date.
+    """
+    lexicon = sil_lift.load(DATED)
+    entry = lexicon.entries[0]
+    loaded = entry.date_modified
+    assert isinstance(loaded, datetime)
+    restated = loaded.astimezone(timezone(timedelta(hours=-5)))
+    assert restated == loaded  # the same moment to ==, a different attribute value
+    entry.date_modified = restated
+
+    lexicon.save(tmp_path / "out.lift", when=WHEN)
+
+    assert entry.date_modified == restated
+    assert entry.date_modified.utcoffset() == timedelta(hours=-5)
+
+
 def test_an_entry_added_after_load_is_stamped_only_when_its_date_is_blank(
     tmp_path: Path,
 ) -> None:
