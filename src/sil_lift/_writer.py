@@ -70,6 +70,7 @@ __all__ = [
     "range_digest",
     "render_document",
     "render_ranges_document",
+    "resolve_when",
     "stamp_entries",
 ]
 
@@ -178,8 +179,36 @@ def default_now() -> datetime:
     20-character ``YYYY-MM-DDTHH:MM:SSZ`` form — no bare dates, numeric
     offsets, or fractional seconds. :func:`_fmt_date` renders an aware UTC
     value that way.
+
+    Two saves inside the same second therefore write the same value: an edit
+    saved within a second of the previous one leaves ``dateModified`` where it
+    already stood, which a consumer comparing dates reads as no change. The
+    stamping baseline still tracks it, so nothing is lost on this side, and
+    sub-second precision would buy the distinction at the cost of the one form
+    every consumer expects. Pass ``when`` to force a distinct moment.
     """
     return datetime.now(UTC).replace(microsecond=0)
+
+
+def resolve_when(when: datetime | None) -> datetime:
+    """The moment a stamping save writes: ``when`` normalized, or the clock.
+
+    An explicit value is converted to UTC and truncated to the second, so it
+    lands in the same form :func:`default_now` produces instead of carrying an
+    offset or fractional seconds into the output.
+
+    A naive value is refused rather than guessed at: reading it as UTC and
+    reading it as local time give moments hours apart, and picking one silently
+    writes a date the caller did not mean.
+    """
+    if when is None:
+        return default_now()
+    if when.tzinfo is None or when.tzinfo.utcoffset(when) is None:
+        raise ValueError(
+            f"when must be timezone-aware, got {when!r}: pass a UTC moment, "
+            "e.g. datetime.now(timezone.utc)"
+        )
+    return when.astimezone(UTC).replace(microsecond=0)
 
 
 def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> bool:
@@ -200,10 +229,30 @@ def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> 
     return digest != baseline.digest and entry.date_modified == baseline.date_modified
 
 
-def stamp_entries(lexicon: Lexicon, when: datetime) -> None:
+@dataclass(slots=True)
+class _StampUndo:
+    """How to put a stamping pass back, for a write that then never happened.
+
+    Stamping runs before serialization, so a refused or failed write would
+    otherwise leave the model dated for output that does not exist.
+    """
+
+    lexicon: Lexicon
+    stamps: dict[int, _EntryRecord]  # the baseline dict the pass replaced
+    dates: list[tuple[Entry, datetime | date | None, datetime | date | None]]
+
+    def restore(self) -> None:
+        for entry, created, modified in self.dates:
+            entry.date_created = created
+            entry.date_modified = modified
+        self.lexicon._stamps = self.stamps
+
+
+def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
     """Stamp every entry whose content changed without its ``dateModified`` changing.
 
-    Costs one canonical serialization pass over the entries.
+    Costs one canonical serialization pass over the entries. Returns what undoes
+    it, for a caller whose write does not go through.
 
     Each save leaves behind the state it wrote, in ``lexicon._stamps``, and the
     next save measures against that rather than against the load. Without it a
@@ -211,31 +260,44 @@ def stamp_entries(lexicon: Lexicon, when: datetime) -> None:
     its content differs from the loaded content all right, but so does its date
     — this library's own stamp from the first save — which reads exactly like
     a date the caller set deliberately. An entry still matching its parse-time
-    record needs no such override and keeps none, so the common save of a
-    handful of edited entries remembers only those.
+    record needs no such override and is recorded nowhere, so a save of a
+    handful of edited entries remembers only those, and an entry that has since
+    left the lexicon is not carried along by a dict that is rebuilt each pass.
+
+    Deciding comes first and mutating second, because digesting is the only
+    step that can fail (see :func:`_guarded`): a document holding content XML
+    cannot represent is refused with nothing stamped, rather than half-stamped
+    at whatever entry the refusal came from.
     """
     source = lexicon._source
     at_parse = (
         {id(record.entry): record for record in source.entry_records} if source is not None else {}
     )
-    for entry in lexicon.entries:
-        key = id(entry)
-        record = at_parse.get(key)
-        baseline = lexicon._stamps.get(key)
+    previous = lexicon._stamps
+    # Keyed by identity: an entry aliased into the list twice is one entry, with
+    # one pair of dates, so it is decided and stamped once.
+    entries = list({id(entry): entry for entry in lexicon.entries}.values())
+
+    planned: list[tuple[Entry, bytes, bool]] = []
+    for entry in entries:
+        baseline = previous.get(id(entry))
         if baseline is None:
-            baseline = record
+            baseline = at_parse.get(id(entry))
         digest = entry_digest(entry)
-        if _needs_stamp(entry, baseline, digest):
+        planned.append((entry, digest, _needs_stamp(entry, baseline, digest)))
+
+    dates: list[tuple[Entry, datetime | date | None, datetime | date | None]] = []
+    stamps: dict[int, _EntryRecord] = {}
+    for entry, digest, needs_stamp in planned:
+        if needs_stamp:
+            dates.append((entry, entry.date_created, entry.date_modified))
             entry._stamp(when)
             digest = entry_digest(entry)  # the dates are part of an entry's bytes
-        if (
-            record is not None
-            and record.digest == digest
-            and record.date_modified == entry.date_modified
-        ):
-            lexicon._stamps.pop(key, None)
-        else:
-            lexicon._stamps[key] = _EntryRecord(entry, digest, entry.date_modified)
+        record = at_parse.get(id(entry))
+        if record is None or record.digest != digest or record.date_modified != entry.date_modified:
+            stamps[id(entry)] = _EntryRecord(entry, digest, entry.date_modified)
+    lexicon._stamps = stamps
+    return _StampUndo(lexicon, previous, dates)
 
 
 # --- canonical building blocks ---------------------------------------------------
