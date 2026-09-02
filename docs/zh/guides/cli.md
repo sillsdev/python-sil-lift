@@ -67,4 +67,6 @@ $ sil-lift stats sango.lift
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-退出代码：`0` 成功（允许出现警告，除非启用了 `--strict` 选项），`1` 发现问题（验证错误/媒体文件缺失/在启用 `--strict` 选项时出现的警告），`2` 输入不可读。
+所有输出均为 UTF-8，无论在何种平台上，也无论输出到控制台、管道还是 `>` 重定向——绝不会使用区域设置编码（Windows 上的 cp1252、C/POSIX 区域设置下的 ASCII），因为这些编码无法表示 LIFT 内容。 因此，`sil-lift export dictionary.lift > dictionary.csv` 写入的字节内容与 `-o dictionary.csv` 写入的完全一致，包括 CRLF 行结束符。
+
+退出代码：`0` 成功（允许出现警告，除非使用 `--strict`）， `1` 发现问题（验证错误 / 缺少媒体 / 在启用 `--strict` 时出现的警告），`2` 任一端发生 I/O 故障——无法读取输入，或无法写入输出（例如 `head` 等读取程序关闭了管道，或磁盘已满）。
