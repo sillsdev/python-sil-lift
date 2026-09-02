@@ -67,6 +67,7 @@ __all__ = [
     "entry_digest",
     "header_digest",
     "node_diff",
+    "note_caller_dates",
     "range_digest",
     "render_document",
     "render_ranges_document",
@@ -209,6 +210,19 @@ def resolve_when(when: datetime | None) -> datetime:
     return when.astimezone(UTC).replace(microsecond=0)
 
 
+def _dates_differ(left: datetime | date | None, right: datetime | date | None) -> bool:
+    """Whether two dates would reach the document as different attribute values.
+
+    Rendered rather than compared as moments, because the question is always
+    whether the caller changed the date the file will carry. Two aware values an
+    hour and an offset apart are the same instant and equal to ``==``, so
+    re-expressing a date in another offset would otherwise register as leaving
+    it alone — and being overwritten, though it is the one thing the caller
+    touched.
+    """
+    return _fmt_opt_date(left) != _fmt_opt_date(right)
+
+
 def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> bool:
     """Whether the content moved since ``baseline`` while the date stayed put.
 
@@ -224,7 +238,9 @@ def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> 
     """
     if baseline is None:
         return entry.date_modified is None
-    return digest != baseline.digest and entry.date_modified == baseline.date_modified
+    return digest != baseline.digest and not _dates_differ(
+        entry.date_modified, baseline.date_modified
+    )
 
 
 @dataclass(slots=True)
@@ -244,6 +260,51 @@ class _StampUndo:
             entry.date_created = created
             entry.date_modified = modified
         self.lexicon._stamps = self.stamps
+
+
+def note_caller_dates(lexicon: Lexicon) -> _StampUndo:
+    """Move the stamping baseline onto a date the caller set, for a save that stamps nothing.
+
+    A ``stamp=False`` save writes what the model holds, so a date the caller
+    put there is the date now on disk, and the next stamping save has to measure
+    a further edit against it. Without this the entry would keep failing the
+    stale test for good — its date differs from the load, which is exactly what
+    a deliberate date looks like — and never be stamped again. A stamping save
+    makes the same adoption for the stamps it writes.
+
+    Only a date that moved off its baseline is noted, and only that entry is
+    digested. An entry written unstamped under the date it was loaded with is
+    left out on purpose: its content is on disk under a date that no longer
+    describes it, and the next stamping save should still say so.
+    """
+    at_parse = _parse_time_records(lexicon)
+    previous = lexicon._stamps
+    stamps = dict(previous)
+    for entry in _by_identity(lexicon):
+        key = id(entry)
+        baseline = previous.get(key)
+        if baseline is None:
+            baseline = at_parse.get(key)
+        if baseline is None:
+            if entry.date_modified is None:
+                continue  # an undated new entry is still new
+        elif not _dates_differ(entry.date_modified, baseline.date_modified):
+            continue
+        stamps[key] = _EntryRecord(entry, entry_digest(entry), entry.date_modified)
+    lexicon._stamps = stamps
+    return _StampUndo(lexicon, previous, [])
+
+
+def _parse_time_records(lexicon: Lexicon) -> dict[int, _EntryRecord]:
+    source = lexicon._source
+    if source is None:
+        return {}
+    return {id(record.entry): record for record in source.entry_records}
+
+
+def _by_identity(lexicon: Lexicon) -> list[Entry]:
+    """The entries, each once: one object holds one pair of dates."""
+    return list({id(entry): entry for entry in lexicon.entries}.values())
 
 
 def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
@@ -267,17 +328,11 @@ def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
     fail (see :func:`_guarded`): content XML cannot represent is refused with
     nothing stamped rather than half-stamped at the entry it was found on.
     """
-    source = lexicon._source
-    at_parse = (
-        {id(record.entry): record for record in source.entry_records} if source is not None else {}
-    )
+    at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps
-    # One object holds one pair of dates, so an entry aliased into the list
-    # twice is decided and stamped once.
-    entries = list({id(entry): entry for entry in lexicon.entries}.values())
 
     planned: list[tuple[Entry, bytes, bool]] = []
-    for entry in entries:
+    for entry in _by_identity(lexicon):
         baseline = previous.get(id(entry))
         if baseline is None:
             baseline = at_parse.get(id(entry))
@@ -292,7 +347,11 @@ def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
             entry._stamp(when)
             digest = entry_digest(entry)  # the dates are part of an entry's bytes
         record = at_parse.get(id(entry))
-        if record is None or record.digest != digest or record.date_modified != entry.date_modified:
+        if (
+            record is None
+            or record.digest != digest
+            or _dates_differ(record.date_modified, entry.date_modified)
+        ):
             stamps[id(entry)] = _EntryRecord(entry, digest, entry.date_modified)
     lexicon._stamps = stamps
     return _StampUndo(lexicon, previous, dates)

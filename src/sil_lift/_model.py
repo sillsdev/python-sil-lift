@@ -690,16 +690,17 @@ class Lexicon:
                 continue
             self.ranges_files[resolved] = RangesFile.load(found)
 
-    def _apply_stamps(self, stamp: bool, when: datetime | None) -> _StampUndo | None:
+    def _apply_stamps(self, stamp: bool, when: datetime | None) -> _StampUndo:
         """The stamping step shared by :meth:`save` and :meth:`save_zip`.
 
         Returns what undoes the pass, so a write that does not go through can
-        leave the model as it found it.
+        leave the model as it found it. A save that stamps nothing still notes
+        the dates it writes, so the next stamping save measures against them.
         """
-        if not stamp:
-            return None
-        from ._writer import resolve_when, stamp_entries
+        from ._writer import note_caller_dates, resolve_when, stamp_entries
 
+        if not stamp:
+            return note_caller_dates(self)
         return stamp_entries(self, resolve_when(when))
 
     def save(
@@ -730,7 +731,9 @@ class Lexicon:
         model — here, and in a ``save(path)`` used to export a copy — and costs
         one canonical serialization pass over the entries.
 
-        ``stamp=False`` writes the model exactly as it stands. ``when``
+        ``stamp=False`` writes the model exactly as it stands — though a date
+        you set yourself is noted even then, so that a later edit to that entry
+        is stamped rather than left on a date it has outgrown. ``when``
         supplies the moment in place of the clock, normalized to UTC at seconds
         precision, which is what makes stamped output byte-reproducible; it must
         be timezone-aware, since a naive moment could as easily mean UTC as
@@ -760,7 +763,7 @@ class Lexicon:
         finally:
             # A companion failing further down leaves the .lift on disk carrying
             # these stamps, so from here on they stand.
-            if not written and undo is not None:
+            if not written:
                 undo.restore()
         self.path = target
         relocating = not _same_dir(target.parent, original_dir)
@@ -810,7 +813,7 @@ class Lexicon:
             save_zip(self, Path(path), wrap_folder=wrap_folder)
             written = True
         finally:
-            if not written and undo is not None:
+            if not written:
                 undo.restore()
 
     def sort(self) -> None:
