@@ -24,27 +24,30 @@ Cada `Problema` contém um `nível` (`"erro"`/`"aviso"`), um `código` fixo, uma
 
 1. **RELAX NG** em relação à gramática LIFT 0.13 (fornecida pelo lift-standard — uma cópia byte a byte incorporada neste pacote).
 2. **Esquema de intervalos** — o ficheiro `lift-ranges-0.13.rng` deste projeto — para cada companheiro `.lift-ranges` monitorizado, dirigido ao companheiro em vez de ao `.lift`.
-3. **Verificações semânticas** que a gramática não consegue expressar — nove no total, uma por código.
+3. **Verificações semânticas** que a gramática não consegue expressar — dez no total, uma por código.
 
 ## Códigos de problema
 
-Cada resultado inclui um destes, independentemente da camada que o tenha gerado — `schema` e `uri-not-rfc` provêm das camadas de esquema, enquanto os outros nove são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
+Cada resultado contém um destes, independentemente da camada que o tenha gerado — `schema` e `uri-not-rfc` provêm das camadas de esquema, enquanto os outros dez são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
 
-| código                              | nível | o que assinala                                                                                      |
-| ----------------------------------- | ----- | --------------------------------------------------------------------------------------------------- |
-| `dangling-ranges-href`              | aviso | um cabeçalho `range/@href` que não remete para nenhum ficheiro associado                            |
-| `dangling-ref`                      | erro  | um `relation/@ref` ou `variant/@ref` que não corresponde a nenhuma entrada ou significado           |
-| `duplicate-form-lang`               | aviso | duas formas num único multitexto que partilham uma língua                                           |
-| `duplicate-guid`                    | erro  | um GUID reutilizado entre entradas ou entre intervalos/elementos de intervalo de um mesmo documento |
-| `missing-id`                        | erro  | adesão através de `require_ids`: uma entrada sem um GUID, um sentido sem um ID      |
-| `failas-de-meios`                   | aviso | um ficheiro de áudio ou de imagem referenciado que não se encontra no disco                         |
-| `incompatibilidade de normalização` | aviso | um nome que acede ao ID a que se refere apenas através da tecnologia NFC                            |
-| `range-parent`                      | erro  | um `range-element/@parent` sem identificação de elemento irmão definida                             |
-| `esquema`                           | erro  | uma violação da gramática RELAX NG, no ficheiro `.lift` ou num ficheiro complementar                |
-| `valor-fora-do-intervalo`           | aviso | um valor de característica com chave gramatical ou de intervalo que não conste do intervalo         |
-| `uri-não-rfc`                       | aviso | um atributo `href` que não é um URI válido — `file://C:/...` do FLEx                                |
+| código                              | nível | o que assinala                                                                                                                      |
+| ----------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `ficheiro-de-intervalos-ambíguos`   | aviso | vários ficheiros que correspondem a um mesmo nome de companheiro, tanto no modo de conversão de maiúsculas e minúsculas como no NFC |
+| `dangling-ranges-href`              | aviso | um cabeçalho `range/@href` que não remete para nenhum ficheiro associado                                                            |
+| `dangling-ref`                      | erro  | um `relation/@ref` ou `variant/@ref` que não corresponde a nenhuma entrada ou significado                                           |
+| `duplicate-form-lang`               | aviso | duas formas num único multitexto que partilham uma língua                                                                           |
+| `duplicate-guid`                    | erro  | um GUID reutilizado entre entradas ou entre intervalos/elementos de intervalo de um mesmo documento                                 |
+| `missing-id`                        | erro  | adesão através de `require_ids`: uma entrada sem um GUID, um sentido sem um ID                                      |
+| `failas-de-meios`                   | aviso | um ficheiro de áudio ou de imagem referenciado que não se encontra no disco                                                         |
+| `incompatibilidade de normalização` | aviso | um nome que acede ao ID a que se refere apenas através da tecnologia NFC                                                            |
+| `range-parent`                      | erro  | um `range-element/@parent` sem identificação de elemento irmão definida                                                             |
+| `esquema`                           | erro  | uma violação da gramática RELAX NG, no ficheiro `.lift` ou num ficheiro complementar                                                |
+| `valor-fora-do-intervalo`           | aviso | um valor de característica com chave gramatical ou de intervalo que não conste do intervalo                                         |
+| `uri-não-rfc`                       | aviso | um atributo `href` que não é um URI válido — `file://C:/...` do FLEx                                                                |
 
 As três camadas baseiam-se no que a função `save()` escreveria; por isso, um documento que não possa ser serializado de todo é sinalizado como um único erro `lone-surrogate` — ver [Garantias de fidelidade](../fidelity.md#content-xml-cannot-represent).
+
+Um nome de acompanhante que corresponde a vários ficheiros não carrega nenhum deles: os intervalos que definem ficam ausentes até que todos, exceto um, sejam renomeados ou removidos.
 
 ## Resultados do FieldWorks (FLEx) em condições reais
 
