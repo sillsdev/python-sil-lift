@@ -101,6 +101,15 @@ def test_subsenses_spot_check() -> None:
     assert str(sense_2.gloss("en") or "") == "master"
 
 
+def test_all_senses_is_depth_first_document_order() -> None:
+    lexicon = sil_lift.load(CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift")
+    entry = lexicon.find(id="opon")
+    assert entry is not None
+    # A subsense follows its parent, not the parent's siblings.
+    assert [s.id for s in entry.all_senses()] == ["opon_1", "opon_1a", "opon_1b", "opon_2"]
+    assert [s.id for s in entry.senses] == ["opon_1", "opon_2"]
+
+
 def test_reversal_main_chain() -> None:
     lexicon = sil_lift.load(CORPUS_DIR / "spec-examples" / "0.13" / "reversals-hierarchy.lift")
     (entry,) = lexicon.entries

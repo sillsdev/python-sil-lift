@@ -224,15 +224,29 @@ class Entry(_Extensible):
     relations: list[Relation] = field(default_factory=list)
     etymologies: list[Etymology] = field(default_factory=list)
 
+    def all_senses(self) -> list[Sense]:
+        """Every sense and subsense, depth-first in document order.
+
+        LIFT nests senses arbitrarily deep, so anything asking a question of
+        "the entry's senses" — how many there are, what languages they gloss,
+        what media they reference — means this list rather than
+        :attr:`senses`, which holds only the top level.
+        """
+        return list(_walk_senses(self.senses))
+
     def gloss_langs(self) -> set[str]:
         """Every language that has a gloss in any sense or subsense."""
         langs: set[str] = set()
-        stack = list(self.senses)
-        while stack:
-            sense = stack.pop()
+        for sense in self.all_senses():
             langs.update(g.lang for g in sense.glosses if g.lang is not None)
-            stack.extend(sense.subsenses)
         return langs
+
+
+def _walk_senses(senses: list[Sense]) -> Iterator[Sense]:
+    """Depth-first pre-order over a sense list and every subsense under it."""
+    for sense in senses:
+        yield sense
+        yield from _walk_senses(sense.subsenses)
 
 
 @dataclass(slots=True)
@@ -946,14 +960,11 @@ class Lexicon:
             for pronunciation in pronunciations:
                 for media in pronunciation.media:
                     yield MediaRef(media.href, "media", entry.id, entry.guid)
-            stack = list(entry.senses)
-            while stack:
-                sense = stack.pop()
+            for sense in entry.all_senses():
                 for illustration in sense.illustrations:
                     yield MediaRef(
                         illustration.href, "illustration", entry.id, entry.guid, sense.id
                     )
-                stack.extend(sense.subsenses)
 
     def missing_media(self) -> list[MediaRef]:
         """Media references whose files don't exist in the LIFT folder layout.

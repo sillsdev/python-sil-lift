@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """Yield every sense, including subsenses (recursive)."""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -47,7 +39,8 @@ print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
 
 A few things worth noting:
 
-- `Sense.subsenses` is itself a `list[Sense]`, so `iter_senses` recurses into it — a bulk edit that only walked `entry.senses` would silently skip any gloss nested under a subsense.
+- `entry.all_senses()` yields every sense _and subsense_, depth-first in document order.
+    - `entry.senses` holds only the top level, so a bulk edit that walked it would silently skip any gloss nested under a subsense.
 - `gloss.text` is a `Text`, not a plain string: `str(gloss.text)` flattens it for matching, and the replacement is written back with `sil_lift.Text([new])` rather than mutating the string in place.
 - `lex.changed_entries()` reports which entries differ from the file as loaded. Since an entry's digest covers its whole subtree, an edit to a nested subsense reports the entry that contains it.
     - It compares serialized content, so assigning a field the value it already had isn't reported.

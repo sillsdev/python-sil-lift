@@ -24,13 +24,16 @@ entry.lexical_unit["en"] = "grove"      # plain strings are coerced
 
 `Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
 
-Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus a helper:
+Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus helpers:
 
 ```python
-sense = entry.senses[0]
+sense = entry.senses[0]                 # top level only
 sense.gloss("en")                       # Text | None
-entry.gloss_langs()                     # {"en", "id"}
+entry.all_senses()                      # every sense and subsense, document order
+entry.gloss_langs()                     # {"en", "id"}, subsenses included
 ```
+
+Reach for `all_senses()` whenever a question concerns the whole entry: counting senses, collecting languages, finding media. `entry.senses` gives the top level, which is what you want only when the nesting itself matters.
 
 ## Saving
 

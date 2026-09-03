@@ -1,13 +1,46 @@
 import unicodedata
+from dataclasses import is_dataclass
 from pathlib import Path
+from typing import get_args, get_type_hints
 
 import pytest
 
 import sil_lift
-from sil_lift import LiftValidationError, Problem
+from sil_lift import GrammaticalInfo, LiftValidationError, Problem, Trait
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 NEGATIVE_DIR = CORPUS_DIR / "negative"
+
+
+def _reachable_dataclasses(root: type) -> set[type]:
+    """Every dataclass type reachable from ``root``'s annotations, transitively."""
+
+    def unwrap(hint: object) -> list[object]:
+        args = get_args(hint)
+        return [inner for arg in args for inner in unwrap(arg)] if args else [hint]
+
+    seen: set[type] = set()
+    stack = [root]
+    while stack:
+        for hint in get_type_hints(stack.pop()).values():
+            for arg in unwrap(hint):
+                if isinstance(arg, type) and is_dataclass(arg) and arg not in seen:
+                    seen.add(arg)
+                    stack.append(arg)
+    return seen
+
+
+@pytest.mark.parametrize("cls", [Trait, GrammaticalInfo])
+def test_model_nests_no_walked_class_inside_itself(cls: type) -> None:
+    """What lets ``_iter_instances`` descend into a match instead of stopping.
+
+    Descending is what finds a Multitext inside a Multitext's own annotations,
+    and is harmless for these two only while the model keeps neither reachable
+    from itself. Should that change, the walk would start yielding instances
+    its callers have never seen, so this fails rather than the count quietly
+    shifting.
+    """
+    assert cls not in _reachable_dataclasses(cls)
 
 
 def problems_for(path: Path) -> list[Problem]:
