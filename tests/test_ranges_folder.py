@@ -385,8 +385,8 @@ def test_lift_without_an_extension_loads(tmp_path: Path) -> None:
 
 
 def test_href_folding_onto_the_lift_itself_is_not_a_companion(tmp_path: Path) -> None:
-    # Dict.lift beside a Dict.LIFT is the lexicon, not its ranges: loading it
-    # as one would raise on the root and take the whole load down.
+    # Dict.lift beside a Dict.LIFT is the document being loaded, which is not
+    # its own ranges whatever it holds — identity settles it, not the root.
     lift = _write_lift_with_href(tmp_path / "pkg", "Dict.LIFT", "Dict.lift")
     lexicon = sil_lift.load(lift)
     assert lexicon.ranges_files == {}

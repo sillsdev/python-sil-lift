@@ -648,10 +648,10 @@ class Lexicon:
                 resolved = found.resolve()
             except OSError:
                 continue
-            # A header href naming the .lift in another case folds onto it, and
-            # RangesFile.load rejects that root, failing the whole load; two
+            # Identity, not content, settles the .lift: it is the document being
+            # loaded, so a header href folding onto it names no companion. Two
             # spellings of one companion, which resolve() leaves distinct on
-            # macOS, would load and write it twice.
+            # macOS, would otherwise load and write it twice.
             if resolved in self.ranges_files or any(
                 _same_file(resolved, other) for other in (self.path, *self.ranges_files)
             ):
