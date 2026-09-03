@@ -59,6 +59,8 @@ def parse_document(path: Path) -> Lexicon:
         raise LiftParseError(f"{path}: not well-formed XML: {exc}") from exc
     lexicon = parse_root(root, path=path)
     _attach_source(lexicon, data, root)
+    if lexicon._source is None:
+        _attach_stamp_baseline(lexicon)
     return lexicon
 
 
@@ -108,6 +110,26 @@ def _attach_ranges_source(ranges_file: RangesFile, data: bytes, root: etree._Ele
     )
 
 
+def _attach_stamp_baseline(lexicon: Lexicon) -> None:
+    """Record what a stamping save measures against, for a document with no snapshot.
+
+    Byte reuse needs the source bytes; stamping needs only the digests, which
+    are available whether or not the scan was declined. Without this a document
+    that was read rather than built would reach a save with no baseline at all,
+    and every undated entry in it would look new — stamping entries nobody
+    touched, on a save that changed nothing.
+
+    Digesting refuses only a lone surrogate, which cannot arrive from a file, so
+    this cannot raise for a document that has just parsed.
+    """
+    from ._writer import _EntryRecord, entry_digest
+
+    lexicon._stamps = {
+        id(entry): _EntryRecord(entry, entry_digest(entry), entry.date_modified)
+        for entry in lexicon.entries
+    }
+
+
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
     """Capture the original bytes needed for byte reuse; on any doubt, capture nothing.
 
@@ -135,7 +157,10 @@ def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
         root_open_end=result.root_open_end,
         root_self_closing=result.root_self_closing,
         children=result.children,
-        entry_records=[_EntryRecord(entry, entry_digest(entry)) for entry in lexicon.entries],
+        entry_records=[
+            _EntryRecord(entry, entry_digest(entry), entry.date_modified)
+            for entry in lexicon.entries
+        ],
         header_digest=header_digest(lexicon.header) if header_regions else None,
         producer=lexicon.producer,
         root_extra_attrs=dict(lexicon.extra._attrs),

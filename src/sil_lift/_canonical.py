@@ -72,6 +72,10 @@ def canonicalize(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> No
     diff cleanly. Text content is never whitespace-normalized. The whole
     document is held in memory (sorting requires it; the C# oracle buffers too).
 
+    No timestamp is generated either: sorting and reformatting change no entry's
+    content, so nothing here is a modification to stamp. The output is a pure
+    function of the input.
+
     Only the ``.lift`` file is written: companion ``.lift-ranges`` files are
     neither read nor rewritten (the source is loaded with
     ``resolve_ranges=False``). Sort a ranges file separately via

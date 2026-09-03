@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from ._validate import Problem
-    from ._writer import _RangesSourceInfo, _SourceInfo
+    from ._writer import _EntryRecord, _RangesSourceInfo, _SourceInfo, _StampUndo
 
 __all__ = [
     "Changes",
@@ -62,6 +62,22 @@ class _ExtensibleNoFields:
     annotations: list[Annotation] = field(default_factory=list)
     traits: list[Trait] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
+
+    def _stamp(self, when: datetime) -> None:
+        """Record ``when`` as this node's modification moment.
+
+        A blank ``dateCreated`` is filled with the same moment: a node whose
+        creation went unrecorded was created no later than the change being
+        stamped, and leaving it blank while ``dateModified`` fills in reads as
+        a node that was modified before it existed.
+
+        The one place either date is generated, so that the nine date-bearing
+        types share one policy — though only :class:`Entry` is stamped today
+        (see :meth:`Lexicon.save`).
+        """
+        self.date_modified = when
+        if self.date_created is None:
+            self.date_created = when
 
 
 @dataclass(slots=True, kw_only=True)
@@ -574,6 +590,7 @@ class Lexicon:
 
     __slots__ = (
         "_source",
+        "_stamps",
         "_tempdir",
         "entries",
         "extra",
@@ -599,6 +616,7 @@ class Lexicon:
         self.extra = extra if extra is not None else Extras()
         self.ranges_files: dict[Path, RangesFile] = {}
         self._source: _SourceInfo | None = None  # set by the reader
+        self._stamps: dict[int, _EntryRecord] = {}  # stamping baselines (see stamp_entries)
         self._tempdir: tempfile.TemporaryDirectory[str] | None = None  # zip extraction, if any
 
     @classmethod
@@ -658,7 +676,26 @@ class Lexicon:
                 continue
             self.ranges_files[resolved] = RangesFile.load(found)
 
-    def save(self, path: str | os.PathLike[str] | None = None) -> None:
+    def _apply_stamps(self, stamp: bool, when: datetime | None) -> _StampUndo:
+        """The stamping step shared by :meth:`save` and :meth:`save_zip`.
+
+        Returns what undoes the pass, so a write that does not go through can
+        leave the model as it found it. A save that stamps nothing still notes
+        the dates it writes, so the next stamping save measures against them.
+        """
+        from ._writer import note_caller_dates, resolve_when, stamp_entries
+
+        if not stamp:
+            return note_caller_dates(self)
+        return stamp_entries(self, resolve_when(when))
+
+    def save(
+        self,
+        path: str | os.PathLike[str] | None = None,
+        *,
+        stamp: bool = True,
+        when: datetime | None = None,
+    ) -> None:
         """Write the ``.lift`` file and every tracked ``.lift-ranges`` companion.
 
         Untouched entries are emitted byte-identical to the source; modified
@@ -669,10 +706,34 @@ class Lexicon:
         name in the *same* directory leaves companions at their original
         paths (they are shared with the original document, not copied).
 
+        Every entry whose content changed since the load goes out with a fresh
+        ``dateModified``, and with a ``dateCreated`` if it had none — an edit
+        shipped under its loaded date looks unmodified to everything downstream
+        that reconciles on that attribute. Three cases are left as they stand:
+        an entry whose date the caller set deliberately, an entry created since
+        the load that already carries one, and an untouched entry, reordering
+        included (see :meth:`sort`). Depth does not matter: an edit to a gloss
+        on a nested subsense stamps the entry containing it. This mutates the
+        model — here, and in a ``save(path)`` used to export a copy — and costs
+        one canonical serialization pass over the entries.
+
+        ``stamp=False`` writes the model exactly as it stands — though a date
+        you set yourself is noted even then, so that a later edit to that entry
+        is stamped rather than left on a date it has outgrown. ``when``
+        supplies the moment in place of the clock, normalized to UTC at seconds
+        precision, which is what makes stamped output byte-reproducible; it must
+        be timezone-aware, since a naive moment could as easily mean UTC as
+        local time. Seconds are the resolution, so an edit saved within a second
+        of the previous one carries the same date.
+
+        Stamping commits with the write: a refused or failed one puts the dates
+        back, so the model never carries a date for output that does not exist.
+
         Raises :class:`ValueError` if no target path is available (none was
-        passed and the lexicon was not loaded from a file), and
-        :class:`~sil_lift.LiftWriteError` if the model holds content XML cannot
-        represent (a lone surrogate) — nothing is written in that case.
+        passed and the lexicon was not loaded from a file) or if ``when`` is
+        naive, and :class:`~sil_lift.LiftWriteError` if the model holds content
+        XML cannot represent (a lone surrogate) — nothing is written in that
+        case, and nothing is stamped.
         """
         from ._writer import render_document
 
@@ -680,7 +741,16 @@ class Lexicon:
         if target is None:
             raise ValueError("no target path: pass save(path) or load the lexicon from a file")
         original_dir = self.path.parent if self.path is not None else None
-        target.write_bytes(render_document(self))
+        undo = self._apply_stamps(stamp, when)
+        written = False
+        try:
+            target.write_bytes(render_document(self))
+            written = True
+        finally:
+            # A companion failing further down leaves the .lift on disk carrying
+            # these stamps, so from here on they stand.
+            if not written:
+                undo.restore()
         self.path = target
         relocating = not _same_dir(target.parent, original_dir)
         for key, ranges_file in self.ranges_files.items():
@@ -699,7 +769,14 @@ class Lexicon:
             if ranges_file.path is not None
         }
 
-    def save_zip(self, path: str | os.PathLike[str], *, wrap_folder: str | bool = True) -> None:
+    def save_zip(
+        self,
+        path: str | os.PathLike[str],
+        *,
+        wrap_folder: str | bool = True,
+        stamp: bool = True,
+        when: datetime | None = None,
+    ) -> None:
         """Write the lexicon and its folder companions as a zip package.
 
         The ``.lift`` and ``.lift-ranges`` are (re-)serialized with the usual
@@ -710,10 +787,20 @@ class Lexicon:
         convention FieldWorks and The Combine expect on import — ``False``
         writes the files at the archive root, and a string uses that folder
         name. The archive container itself is not byte-reproducible.
+
+        ``stamp`` and ``when`` work exactly as on :meth:`save`, and matter more
+        here: a package is the hand-off to the tools that read ``dateModified``.
         """
         from ._zip import save_zip
 
-        save_zip(self, Path(path), wrap_folder=wrap_folder)
+        undo = self._apply_stamps(stamp, when)
+        written = False
+        try:
+            save_zip(self, Path(path), wrap_folder=wrap_folder)
+            written = True
+        finally:
+            if not written:
+                undo.restore()
 
     def sort(self) -> None:
         """Sort into canonical order, in place: entries by (guid, id), header
@@ -884,11 +971,17 @@ class Lexicon:
     def iter_problems(self, *, require_ids: bool = False) -> Iterator[Problem]:
         """Validate the in-memory state (schema layers + semantic checks).
 
-        The schema layers need serialized bytes: what :meth:`save` would
-        write is validated, so in-memory edits are always visible. For an
-        untouched loaded document those are the source bytes (line numbers
-        match the file on disk); otherwise serialization is a documented
-        cost on large lexicons.
+        The schema layers need serialized bytes, so the document is serialized
+        as it stands and those bytes are validated: in-memory edits are always
+        visible. For an untouched loaded document they are the source bytes
+        (line numbers match the file on disk); otherwise serialization is a
+        documented cost on large lexicons.
+
+        Read-only, which is the one way the bytes validated here can differ
+        from the bytes written: :meth:`save` stamps ``dateModified`` on edited
+        entries, and this reports the document as it stands, before any of
+        that. Nothing generated is ever a finding — a stamp is a well-formed
+        date in a valid place — so validating first and saving after is sound.
 
         With ``require_ids``, entries missing a ``guid`` and senses missing an
         ``id`` are reported as ``missing-id`` errors — stricter than LIFT (both

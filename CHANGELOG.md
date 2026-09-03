@@ -35,6 +35,18 @@ releases may contain breaking changes.
   represent — a lone surrogate, which only an API assignment can introduce — is
   refused with `LiftWriteError` naming the node, and reported by validation as
   `lone-surrogate`.
+- Generated timestamps on save: `Lexicon.save()` and `Lexicon.save_zip()` stamp
+  `dateModified` on every entry whose content changed since it was loaded, and
+  fill a blank `dateCreated` with the same moment — an edit shipped under its
+  loaded date looks unmodified to everything that reconciles on that attribute.
+  `<entry>` only, however deep the edit (the parse-time digests are what drive
+  it, so an edit to a nested subsense stamps the entry containing it); an entry
+  whose date the caller set deliberately is left alone, as is an entry created
+  since the load that already carries one, and reordering stamps nothing.
+  `stamp=False` writes the model exactly as it stands, and `when=` supplies the
+  moment in place of the wall clock — a timezone-aware value, normalized to UTC
+  whole seconds — which is what keeps stamped output byte-reproducible. The
+  stamps commit with the write: a refused or failed one puts the dates back.
 - Change detection against the loaded document, reading the same parse-time
   digests. `Lexicon.changed_entries()` reports entries whose content differs
   (an entry's digest covers its whole subtree, so an edit at any depth reports
