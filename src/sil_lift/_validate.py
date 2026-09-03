@@ -204,12 +204,10 @@ def _schema_problems(
             )
         el.set("href", "masked:uri")  # see module docstring: anyURI is ours to report
     if not schema.validate(root.getroottree()):
-        # bisect needs this ordered by line. Document order already is, but
-        # sorting keeps that requirement here rather than borrowed from how
-        # entry_lines was built. Stable, so entries sharing a line stay in
-        # document order and the last of them still wins; keyed on the line
-        # alone, since comparing whole tuples would trip over a None id.
         addressable = [(at, id_, guid) for at, id_, guid in entry_lines if at is not None]
+        # sort to enforce the requirement for bisect (even though it's already
+        # sorted by construction of entry_lines). Key the sort on the line,
+        # since comparing whole tuples would trip over a None id.
         addressable.sort(key=lambda entry: entry[0])
         for error in schema.error_log:
             line = error.line if error.line and error.line > 0 else None
