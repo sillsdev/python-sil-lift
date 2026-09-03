@@ -268,6 +268,21 @@ def test_companion_resolves_when_companion_suffix_is_uppercase(tmp_path: Path) -
     assert lexicon.all_ranges()["grammatical-info"].elements
 
 
+@pytest.mark.parametrize("companion", ["Dict.lift-ranges", "Dict.LIFT-RANGES"])
+def test_a_companion_that_is_not_a_ranges_document_fails_the_load(
+    tmp_path: Path, companion: str
+) -> None:
+    # A sibling match leaves no href to dangle and no collision to report, so
+    # skipping a broken companion would be silent — hence loud, however spelled.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    lift = (PAIR_DIR / "test20080407.lift").read_bytes()
+    (folder / "Dict.lift").write_bytes(lift)
+    (folder / companion).write_bytes(lift)
+    with pytest.raises(LiftParseError, match="expected <lift-ranges>"):
+        sil_lift.load(folder / "Dict.lift")
+
+
 def test_case_folded_companions_resolve_to_neither(tmp_path: Path) -> None:
     if not _case_sensitive(tmp_path):
         pytest.skip("needs a case-sensitive filesystem to hold both spellings at once")
