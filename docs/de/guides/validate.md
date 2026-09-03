@@ -24,14 +24,15 @@ Jedes `Problem` enthält einen `Level` (`„error“`/`„warning“`), einen st
 
 1. **RELAX NG** gemäß der LIFT 0.13-Grammatik (aus „lift-standard“ übernommen – eine byteweise identische Kopie, die in dieses Paket integriert wurde).
 2. **Ranges-Schema** – in diesem Projekt `lift-ranges-0.13.rng` – für jeden erfassten `.lift-ranges`-Companion, wobei die Adressierung an den Companion statt an `.lift` erfolgt.
-3. **Semantische Prüfungen**, die die Grammatik nicht ausdrücken kann – neun an der Zahl, jeweils ein Code.
+3. **Semantische Prüfungen**, die die Grammatik nicht ausdrücken kann – zehn an der Zahl, jeweils ein Code.
 
 ## Fehlercodes
 
-Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Ebene er entstanden ist – `schema` und `uri-not-rfc` stammen aus den Schema-Ebenen, die anderen neun sind semantische Prüfungen. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler.
+Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Ebene er entstanden ist – `schema` und `uri-not-rfc` stammen aus den Schema-Ebenen, die anderen zehn sind semantische Prüfungen. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler.
 
 | Code                                     | Ebene   | Was es markiert                                                                                                             |
 | ---------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ambiguous-ranges-file`                  | Warnung | mehrere Dateien, die unter „Case Folding“ und „NFC“ denselben Begleitnamen haben                                            |
 | `dangling-ranges-href`                   | Warnung | Ein Header `range/@href`, der auf keine zugehörige Datei verweist                                                           |
 | `dangling-ref`                           | Fehler  | ein `relation/@ref` oder `variant/@ref`, für das kein Eintrag oder keine Bedeutung gefunden wurde                           |
 | `duplicate-form-lang`                    | Warnung | Zwei Formen in einem Multitext, die dieselbe Sprache verwenden                                                              |
@@ -45,6 +46,8 @@ Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Eben
 | `uri-not-rfc`                            | Warnung | Ein href, der keine gültige URI ist – FLExs `file://C:/...`                                                                 |
 
 Alle drei Ebenen stützen sich auf das, was `save()` schreiben würde; daher wird ein Dokument, das überhaupt nicht serialisiert werden kann, stattdessen als einzelner `lone-surrogate`-Fehler gemeldet – siehe [Genauigkeitsgarantien](../fidelity.md#content-xml-cannot-represent).
+
+Ein Begleitname, der mehreren Dateien entspricht, lädt keine davon: Die von ihnen definierten Bereiche sind nicht vorhanden, bis alle bis auf eine umbenannt oder entfernt wurden.
 
 ## Praktische FieldWorks (FLEx)-Ergebnisse
 
