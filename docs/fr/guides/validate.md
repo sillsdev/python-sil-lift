@@ -24,27 +24,30 @@ Chaque `Problème` comporte un `niveau` (`"erreur"`/`"avertissement"`), un `code
 
 1. **RELAX NG** par rapport à la grammaire LIFT 0.13 (fournie par lift-standard — une copie identique au niveau des octets intégrée à ce paquet).
 2. **Schéma des plages** — le fichier `lift-ranges-0.13.rng` de ce projet — s’applique à chaque compagnon `.lift-ranges` suivi ; il s’adresse au compagnon plutôt qu’au fichier `.lift`.
-3. **Vérifications sémantiques** que la grammaire ne permet pas d'exprimer — neuf au total, à raison d'un code par vérification.
+3. **Contrôles sémantiques** que la grammaire ne permet pas d'exprimer — dix au total, un code par contrôle.
 
 ## Codes d'erreur
 
-Chaque résultat comporte l'un de ces éléments, quelle que soit la couche qui l'a généré : « `schema` » et « `uri-not-rfc` » proviennent des couches de schéma, tandis que les neuf autres correspondent à des vérifications sémantiques. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur.
+Chaque résultat comporte l'un de ces éléments, quelle que soit la couche qui l'a généré : « `schema` » et « `uri-not-rfc` » proviennent des couches de schéma, tandis que les dix autres correspondent à des vérifications sémantiques. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur.
 
-| code                        | niveau        | ce qu'il signale                                                                                                  |
-| --------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `dangling-ranges-href`      | avertissement | un en-tête `range/@href` qui ne renvoie vers aucun fichier associé                                                |
-| `référence pendante`        | erreur        | une `relation/@ref` ou une `variant/@ref` ne correspondant à aucune entrée ni à aucun sens                        |
-| `duplicate-form-lang`       | avertissement | deux formes dans un même multitexte partageant une même langue                                                    |
-| `duplicate-guid`            | erreur        | un identifiant réutilisé entre plusieurs entrées, ou entre les plages et les éléments de plage d'un même document |
-| `identifiant manquant`      | erreur        | inscription via `require_ids` : une entrée sans GUID, une entrée sans identifiant                 |
-| `fichiers-manquants`        | avertissement | un fichier audio ou image référencé qui ne se trouve pas sur le disque                                            |
-| `décalage de normalisation` | avertissement | un nom qui n'accède à l'identifiant auquel il fait référence que via NFC                                          |
-| `range-parent`              | erreur        | un élément `range-element/@parent` sans identifiant de frère n'est pas défini                                     |
-| `schéma`                    | erreur        | une violation de la grammaire RELAX NG, dans le fichier `.lift` ou dans un fichier compagnon                      |
-| `valeur hors plage`         | avertissement | une valeur de caractère liée à une information grammaticale ou à une plage que cette plage ne mentionne pas       |
-| `uri-not-rfc`               | avertissement | un lien `href` qui n'est pas un URI valide — `file://C:/...` dans FLEx                                            |
+| code                          | niveau        | ce qu'il signale                                                                                                  |
+| ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `fichier-des-plages-ambiguës` | avertissement | plusieurs fichiers correspondant à un même nom de compagnon en mode « case folding » et NFC                       |
+| `dangling-ranges-href`        | avertissement | un en-tête `range/@href` qui ne renvoie vers aucun fichier associé                                                |
+| `référence pendante`          | erreur        | une `relation/@ref` ou une `variant/@ref` ne correspondant à aucune entrée ni à aucun sens                        |
+| `duplicate-form-lang`         | avertissement | deux formes dans un même multitexte partageant une même langue                                                    |
+| `duplicate-guid`              | erreur        | un identifiant réutilisé entre plusieurs entrées, ou entre les plages et les éléments de plage d'un même document |
+| `identifiant manquant`        | erreur        | inscription via `require_ids` : une entrée sans GUID, une entrée sans identifiant                 |
+| `fichiers-manquants`          | avertissement | un fichier audio ou image référencé qui ne se trouve pas sur le disque                                            |
+| `décalage de normalisation`   | avertissement | un nom qui n'accède à l'identifiant auquel il fait référence que via NFC                                          |
+| `range-parent`                | erreur        | un élément `range-element/@parent` sans identifiant de frère n'est pas défini                                     |
+| `schéma`                      | erreur        | une violation de la grammaire RELAX NG, dans le fichier `.lift` ou dans un fichier compagnon                      |
+| `valeur hors plage`           | avertissement | une valeur de caractère liée à une information grammaticale ou à une plage que cette plage ne mentionne pas       |
+| `uri-not-rfc`                 | avertissement | un lien `href` qui n'est pas un URI valide — `file://C:/...` dans FLEx                                            |
 
 Ces trois couches s'appuient sur ce que la fonction `save()` écrirait ; ainsi, un document qui ne peut absolument pas être sérialisé est signalé par une seule erreur de type `lone-surrogate` — voir [Garanties de fidélité](../fidelity.md#content-xml-cannot-represent).
+
+Un nom de compagnon correspondant à plusieurs fichiers n'en charge aucun : les plages qu'ils définissent disparaissent jusqu'à ce que tous, sauf un, soient renommés ou supprimés.
 
 ## Résultats concrets de FieldWorks (FLEx)
 
