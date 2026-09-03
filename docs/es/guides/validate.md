@@ -24,27 +24,30 @@ Cada `Problema` incluye un `nivel` (`«error»`/`«advertencia»`), un `código`
 
 1. **RELAX NG** con respecto a la gramática LIFT 0.13 (incluida en lift-standard —una copia idéntica al byte, incorporada a este paquete).
 2. **Esquema de rangos** —el archivo `lift-ranges-0.13.rng` de este proyecto— sobre cada compañero `.lift-ranges` al que se realiza un seguimiento, dirigido al compañero en lugar de a `.lift`.
-3. **Comprobaciones semánticas** que la gramática no puede expresar: nueve en total, una por cada código.
+3. **Comprobaciones semánticas** que la gramática no puede expresar: diez en total, una por cada código.
 
 ## Códigos de error
 
-Cada resultado incluye uno de estos elementos, independientemente de la capa en la que se haya generado: «schema» y «uri-not-rfc» proceden de las capas de esquema, mientras que los otros nueve son comprobaciones semánticas. Las cadenas son una interfaz compatible; la opción `--strict` convierte todas las advertencias en errores.
+Cada resultado incluye uno de estos elementos, independientemente de la capa en la que se haya generado: `schema` y `uri-not-rfc` proceden de las capas de esquema, mientras que los otros diez son comprobaciones semánticas. Las cadenas son una interfaz compatible; la opción `--strict` convierte todas las advertencias en errores.
 
-| código                       | nivel       | lo que señala                                                                                              |
-| ---------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
-| `dangling-ranges-href`       | advertencia | un encabezado `range/@href` que no remite a ningún archivo asociado                                        |
-| `dangling-ref`               | error       | una `relation/@ref` o `variant/@ref` que no coincide con ninguna entrada ni acepción                       |
-| `duplicate-form-lang`        | advertencia | dos formas en un multitexto que comparten un idioma                                                        |
-| `duplicate-guid`             | error       | un identificador reutilizado entre entradas, o entre los rangos o elementos de rango de un mismo documento |
-| `id-faltante`                | error       | Inclusión mediante `require_ids`: una entrada sin GUID, un sentido sin ID                  |
-| `archivos-que-faltan`        | advertencia | un archivo de audio o imagen al que se hace referencia y que no se encuentra en el disco                   |
-| `desajuste de normalización` | advertencia | un nombre que solo permite acceder al identificador al que hace referencia mediante NFC                    |
-| `range-parent`               | error       | un `range-element/@parent` sin ID de elemento hermano definido                                             |
-| `esquema`                    | error       | una infracción de la gramática RELAX NG, en el archivo `.lift` o en un archivo complementario              |
-| `valor-de-rango-indefinido`  | advertencia | un valor de rasgo con clave gramatical o de rango que no figura en la lista del rango                      |
-| `uri-not-rfc`                | advertencia | un enlace `href` que no es un URI válido — `file://C:/...` de FLEx                                         |
+| código                           | nivel       | lo que señala                                                                                                                    |
+| -------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `archivo-de-intervalos-ambiguos` | advertencia | varios archivos que responden a un mismo nombre de compañero, tanto en modo de conversión de mayúsculas y minúsculas como en NFC |
+| `dangling-ranges-href`           | advertencia | un encabezado `range/@href` que no remite a ningún archivo asociado                                                              |
+| `dangling-ref`                   | error       | una `relation/@ref` o `variant/@ref` que no coincide con ninguna entrada ni acepción                                             |
+| `duplicate-form-lang`            | advertencia | dos formas en un multitexto que comparten un idioma                                                                              |
+| `duplicate-guid`                 | error       | un identificador reutilizado entre entradas, o entre los rangos o elementos de rango de un mismo documento                       |
+| `id-faltante`                    | error       | Inclusión mediante `require_ids`: una entrada sin GUID, un sentido sin ID                                        |
+| `archivos-que-faltan`            | advertencia | un archivo de audio o imagen al que se hace referencia y que no se encuentra en el disco                                         |
+| `desajuste de normalización`     | advertencia | un nombre que solo permite acceder al identificador al que hace referencia mediante NFC                                          |
+| `range-parent`                   | error       | un `range-element/@parent` sin ID de elemento hermano definido                                                                   |
+| `esquema`                        | error       | una infracción de la gramática RELAX NG, en el archivo `.lift` o en un archivo complementario                                    |
+| `valor-de-rango-indefinido`      | advertencia | un valor de rasgo con clave gramatical o de rango que no figura en la lista del rango                                            |
+| `uri-not-rfc`                    | advertencia | un enlace `href` que no es un URI válido — `file://C:/...` de FLEx                                                               |
 
 Las tres capas se basan en lo que escribiría `save()`, por lo que un documento que no se pueda serializar en absoluto se notifica como un único error `lone-surrogate`; véanse las [Garantías de fidelidad](../fidelity.md#content-xml-cannot-represent).
+
+Un nombre de acompañante que coincide con varios archivos no carga ninguno de ellos: los rangos que definen desaparecen hasta que todos, excepto uno, se renombren o se eliminen.
 
 ## Resultados de FieldWorks (FLEx) en el mundo real
 
