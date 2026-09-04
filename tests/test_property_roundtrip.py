@@ -36,7 +36,8 @@ _TEXT = st.text(alphabet=st.one_of(_CHARS_INCL_NON_BMP, st.sampled_from("\t\n"))
 # Attribute values: XML parsers normalize \t\n in attributes to spaces, so keep
 # tokens to characters that round-trip verbatim.
 _TOKEN = st.text(alphabet=_CHARS_INCL_NON_BMP, min_size=1, max_size=15)
-_LANG = st.sampled_from(["en", "fr", "th", "sg", "es", "qaa-x-test"])
+_LANGS = ["en", "fr", "th", "sg", "es", "qaa-x-test"]
+_LANG = st.sampled_from(_LANGS)
 
 _WHEN = st.one_of(
     st.none(),
@@ -66,7 +67,10 @@ def _texts(draw: st.DrawFn) -> Text:
 
 @st.composite
 def _multitexts(draw: st.DrawFn) -> Multitext:
-    langs = draw(st.lists(_LANG, unique=True, max_size=3))
+    # Langs are neither unique nor always present: a repeated language and a
+    # lang-less form are both schema-invalid shapes the reader accepts, so the
+    # round-trip has to hold for form lists the mapping cannot represent.
+    langs = draw(st.lists(st.sampled_from([*_LANGS, None]), max_size=3))
     return Multitext([Form(lang, draw(_texts())) for lang in langs])
 
 
