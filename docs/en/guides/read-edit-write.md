@@ -12,7 +12,7 @@ lex = sil_lift.load("dictionary.lift")
 
 ## The model
 
-Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on. Multilingual text is a `Multitext`, which behaves like a mapping from language code to `Text`:
+Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on. Multilingual text is a `Multitext`, which is a `Mapping` from language code to `Text`:
 
 ```python
 entry = lex.find(id="abat")
@@ -20,7 +20,10 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # plain strings are coerced
 "en" in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`, `values()` and `items()` are views, one key per language. A schema-valid document has nothing more, but real files sometimes carry a second form for a language already present, or a form with no `lang` at all — neither is reachable by key. `forms` holds every form in file order, and [`validate`](validate.md) reports the duplicate as `duplicate-form-lang`. Deletion works on the language rather than the form, so `del entry.lexical_unit["en"]` removes every English form.
 
 `Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
 
