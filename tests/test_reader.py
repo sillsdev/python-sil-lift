@@ -4,9 +4,10 @@ from pathlib import Path
 import pytest
 
 import sil_lift
-from sil_lift import Form, LiftParseError, Multitext, Span, Text
+from sil_lift import LiftParseError, Span
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
+NEGATIVE_DIR = CORPUS_DIR / "negative"
 
 LOADABLE = sorted(
     p
@@ -101,24 +102,27 @@ def test_subsenses_spot_check() -> None:
     assert str(sense_2.gloss("en") or "") == "master"
 
 
-def test_multitext_mapping_over_forms_no_mapping_can_represent() -> None:
-    # Both are schema-invalid input real exporters produce: a repeated
-    # language (what duplicate-form-lang reports) and a form with no lang.
-    multitext = Multitext(
-        forms=[
-            Form("en", Text(["first"])),
-            Form("en", Text(["second"])),
-            Form(None, Text(["orphan"])),
-            Form("fr", Text(["deux"])),
-        ]
-    )
-    assert list(multitext.keys()) == ["en", "fr"]
-    assert [str(text) for text in multitext.values()] == ["first", "deux"]
-    assert str(multitext["en"]) == "first"  # the first form wins the key
-    assert len(multitext) == len(dict(multitext)) == 2
-    # Nothing is lost: forms still holds all four, which is what validation reads.
-    assert len(multitext.forms) == 4
-    assert [str(form.text) for form in multitext.forms if form.lang is None] == ["orphan"]
+def test_repeated_form_lang_reads_as_one_key_over_both_forms() -> None:
+    lexicon = sil_lift.load(NEGATIVE_DIR / "duplicate-form-lang.lift")
+    (entry,) = lexicon.entries
+    lexical_unit = entry.lexical_unit
+    assert [(form.lang, str(form.text)) for form in lexical_unit.forms] == [
+        ("en", "colour"),
+        ("en", "color"),
+    ]
+    assert list(lexical_unit.keys()) == ["en"]
+    assert str(lexical_unit["en"]) == "colour"  # the first form for a language
+    assert len(lexical_unit) == len(dict(lexical_unit)) == 1
+
+
+def test_lang_less_form_reads_as_no_key_at_all() -> None:
+    lexicon = sil_lift.load(NEGATIVE_DIR / "schema-invalid.lift")
+    (entry,) = lexicon.entries
+    lexical_unit = entry.lexical_unit
+    assert [(form.lang, str(form.text)) for form in lexical_unit.forms] == [(None, "x")]
+    assert list(lexical_unit.keys()) == []
+    assert len(lexical_unit) == 0
+    assert lexical_unit  # truthy: there is still a form to serialize
 
 
 def test_reversal_main_chain() -> None:
