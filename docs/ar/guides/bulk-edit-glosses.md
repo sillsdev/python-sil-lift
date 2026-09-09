@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """تسليم كل معنى، بما في ذلك المعاني الفرعية (بشكل متكرر)."""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -47,7 +39,8 @@ print(f"تم تحرير {edited_glosses} التعريفات في {len(changed)} 
 
 بعض النقاط الجديرة بالملاحظة:
 
-- تعد `Sense.subsenses` بحد ذاتها `list[Sense]`، لذا فإن `iter_senses` تتكرر بداخلها — أما عملية التحرير الجماعي التي تقتصر على `entry.senses` فستتجاهل بصمت أي تفسير متداخل تحت معنى فرعي.
+- تُرجع الدالة `entry.all_senses()` كل معنى _ومعنى فرعي_، وفقًا لترتيب الوثيقة مع البحث بعمق أولاً.
+  - يحتوي `entry.senses` على المستوى الأعلى فقط، لذا فإن أي عملية تحرير جماعي تتبع هذا التسلسل ستتخطى بصمت أي تعريف فرعي متداخل تحت معنى فرعي.
 - `gloss.text` هو كائن من نوع `Text`، وليس سلسلة نصية عادية: تعمل الدالة `str(gloss.text)` على تحويله إلى سلسلة نصية عادية لأغراض المطابقة، ويتم كتابة النص البديل باستخدام `sil_lift.Text([new])` بدلاً من تعديل السلسلة في مكانها.
 - تُظهر الدالة `lex.changed_entries()` المدخلات التي تختلف عن الملف كما تم تحميله. نظرًا لأن ملخص المدخل يغطي شجرته الفرعية بأكملها، فإن أي تعديل يُجرى على معنى فرعي متداخل يُبلغ المدخل الذي يحتوي عليه.
   - إنها تقارن المحتوى المُسلسل، لذا فإن تعيين قيمة كان الحقل يحملها بالفعل لا يتم الإبلاغ عنه.
