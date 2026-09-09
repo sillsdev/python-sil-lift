@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """प्रत्येक अर्थ, उप-अर्थों सहित (पुनरावर्ती) उत्पन्न करें।"""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -47,7 +39,8 @@ print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
 
 ध्यान देने योग्य कुछ बातें:
 
-- `Sense.subsenses` स्वयं एक `list[Sense]` है, इसलिए `iter_senses` इसमें पुनरावृत्ति करता है — एक सामूहिक संपादन जो केवल `entry.senses` को ही चलाता है, वह किसी उपसंज्ञा के अंतर्गत निहित किसी भी परिभाषा को चुपचाप छोड़ देगा।
+- `entry.all_senses()` प्रत्येक सेंस और सबसेंस को दस्तावेज़ क्रम में गहराई-पहले क्रम में लौटाता है।
+  - `entry.senses` में केवल शीर्ष स्तर ही होता है, इसलिए यदि कोई थोक संपादन इसे क्रमिक रूप से संपादित करे, तो यह उप-अर्थ के अंतर्गत आने वाले किसी भी ग्लॉस को चुपचाप छोड़ देगा।
 - `gloss.text` एक `Text` है, न कि एक साधारण स्ट्रिंग: `str(gloss.text)` इसे मिलान के लिए फ्लैटन करता है, और प्रतिस्थापन को स्ट्रिंग को वहीं पर बदलने के बजाय `sil_lift.Text([new])` के साथ वापस लिखा जाता है।
 - `lex.changed_entries()` रिपोर्ट करता है कि लोड की गई फ़ाइल से कौन-सी प्रविष्टियाँ भिन्न हैं। चूंकि एक प्रविष्टि का डाइजेस्ट उसके पूरे सबट्री को कवर करता है, एक नेस्टेड सबसेंस में संपादन उस प्रविष्टि की रिपोर्ट करता है जिसमें वह शामिल है।
   - यह सीरियलाइज़्ड सामग्री की तुलना करता है, इसलिए किसी फ़ील्ड को उसका पूर्व मान वापस असाइन करने पर यह रिपोर्ट नहीं होता।
