@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """すべての意味（サブ意味を含む）を再帰的にイテレートする。"""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -47,7 +39,8 @@ print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
 
 いくつか注目すべき点があります：
 
-- `Sense.subsenses` 自体は `list[Sense]` であるため、`iter_senses` はこのリストを再帰的に処理します。もし `entry.senses` のみを走査する一括編集を行った場合、サブセンスの下にネストされた語義は、何の警告もなくスキップされてしまいます。
+- `entry.all_senses()` は、すべての意味 _および下位の意味_ を、ドキュメント順に深さ優先で返します。
+  - `entry.senses` には最上位レベルのみが格納されているため、これを順に処理する一括編集では、サブセンスの下にネストされた語義は何も表示されずにスキップされてしまいます。
 - `gloss.text` は単なる文字列ではなく `Text` です。`str(gloss.text)` は照合のためにこれを平坦化し、置換結果は文字列そのものを変更するのではなく、`sil_lift.Text([new])` を使って書き戻されます。
 - `lex.changed_entries()` は、読み込まれたファイルと異なるエントリを報告します。 エントリのダイジェストはそのサブツリー全体を網羅しているため、ネストされたサブセンスを編集すると、そのサブセンスを含むエントリが報告されます。
   - シリアライズされたコンテンツを比較するため、フィールドに以前と同じ値を割り当てても、そのことは報告されません。
