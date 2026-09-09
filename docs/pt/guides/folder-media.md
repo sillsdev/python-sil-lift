@@ -12,8 +12,6 @@ lex.all_ranges()                            # vista {id: Range} combinada
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-A descoberta de ficheiros associados lida com o mundo real: é utilizado um `range/@href` que aponta para um ficheiro existente; Os hrefs absolutos «file://C:/...» do FieldWorks que não têm referência recuam para o nome base do href junto ao «.lift»; e o irmão convencional «<name>.lift-ranges» é selecionado mesmo quando nada o referencia.
-
 A função `lex.save()` grava o ficheiro `.lift` e todas as funções complementares monitorizadas em conjunto. As alterações feitas num `RangesFile` são guardadas no _seu_ ficheiro; os intervalos que não foram alterados mantêm os seus bytes exatos. Utilização autónoma:
 
 ```python
@@ -22,6 +20,16 @@ ranges.find("grammatical-info")
 ranges.sort()
 ranges.save()
 ```
+
+### Descoberta de planetas companheiros
+
+São testados vários candidatos e cada ficheiro distinto entre eles é carregado.
+
+- Um cabeçalho `range/@href` que aponta para um ficheiro existente é utilizado tal como indicado.
+- Um atributo `href` que não remete para nada recorre ao seu nome base, seguido de `.lift` — o FieldWorks grava caminhos absolutos incompletos do tipo `file://C:/...` a partir do computador de exportação, e é esse recurso de recurso que faz com que funcionem localmente.
+- O elemento irmão convencional `<name>.lift-ranges` é selecionado mesmo quando nada faz referência a ele.
+
+Os nomes que diferem apenas em maiúsculas e minúsculas ou na normalização Unicode continuam a corresponder — `Dict.LIFT` encontra `Dict.lift-ranges` —, a menos que vários ficheiros correspondam a um mesmo nome, caso em que nenhum deles é carregado e a situação é indicada como [`ambiguous-ranges-file`](validate.md#problem-codes).
 
 Passe `resolve_ranges=False` à função `load()` para ignorar a deteção de componentes associados.
 
