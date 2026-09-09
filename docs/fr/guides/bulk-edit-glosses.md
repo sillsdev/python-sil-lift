@@ -12,42 +12,35 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """Renvoie chaque sens, y compris les sous-sens (récursif)."""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
-        for gloss in sense.glosses:
-            if gloss.lang != "en":
+    for sense in entry.all_senses():
+        for gloss in sense.glosses :
+            if gloss.lang != "en" :
                 continue
             old = str(gloss.text)
             new = old.replace("colour", "color")
-            if new != old :
+            si new != old :
                 gloss.text = sil_lift.Text([new])
                 edited_glosses += 1
 
 changed = lex.changed_entries()
 
-errors = [p for p in lex.iter_problems() if p.level == "error"]
-if errors :
+errors = [p pour p dans lex.iter_problems() si p.level == "error"]
+si errors :
     for problem in errors:
         print(problem)
     sys.exit(f"interruption : {len(errors)} erreur(s) de validation, rien n'a été enregistré")
 
 lex.save()
-print(f" {edited_glosses} glossaire(s) modifié(s) sur {len(changed)} entrée(s)")
+print(f" {edited_glosses} glossaire(s) modifié(s) dans {len(changed)} entrée(s)")
 ```
 
 Quelques points à retenir :
 
-- `Sense.subsenses` est lui-même une `list[Sense]` ; ainsi, `iter_senses` effectue une itération récursive sur cet élément — une modification groupée qui ne parcourrait que `entry.senses` omettrait sans avertissement tout glossaire imbriqué sous un sens secondaire.
+- La fonction `entry.all_senses()` renvoie tous les sens _et sous-sens_, en suivant l'ordre des documents selon une exploration en profondeur.
+  - `entry.senses` ne contient que le niveau supérieur ; par conséquent, une modification en masse parcourant cet élément ignorerait sans avertissement tout glossaire imbriqué sous un sens secondaire.
 - `gloss.text` est un objet `Text`, et non une simple chaîne de caractères : `str(gloss.text)` l'aplatit pour permettre la correspondance, et le remplacement est réécrit à l'aide de `sil_lift.Text([new])` plutôt que de modifier la chaîne en place.
 - La fonction `lex.changed_entries()` indique quelles entrées diffèrent du fichier tel qu'il a été chargé. Étant donné que le résumé d'une entrée couvre l'ensemble de sa sous-arborescence, toute modification apportée à une sous-signification imbriquée se répercute sur l'entrée qui la contient.
   - Comme il compare du contenu sérialisé, le fait d'attribuer à un champ la valeur qu'il avait déjà n'est pas signalé.
