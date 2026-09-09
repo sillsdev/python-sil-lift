@@ -30,7 +30,7 @@ from ._stream import open_reader
 from ._validate import iter_problems
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Sequence
     from typing import BinaryIO, TextIO
 
     from ._model import Entry, Sense
@@ -95,16 +95,6 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
-def _iter_senses(entry: Entry) -> list[Sense]:
-    senses: list[Sense] = []
-    stack = list(entry.senses)
-    while stack:
-        sense = stack.pop()
-        senses.append(sense)
-        stack.extend(sense.subsenses)
-    return senses
-
-
 def _cmd_stats(args: argparse.Namespace) -> int:
     from ._zip import lift_source
 
@@ -121,7 +111,7 @@ def _cmd_stats(args: argparse.Namespace) -> int:
                 pronunciations.extend(variant.pronunciations)
             for pronunciation in pronunciations:
                 media += len(pronunciation.media)
-            for sense in _iter_senses(entry):
+            for sense in entry.all_senses():
                 senses += 1
                 examples += len(sense.examples)
                 media += len(sense.illustrations)
@@ -195,18 +185,14 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
     return 1 if missing else 0
 
 
-def _iter_leaf_senses(senses: Sequence[Sense]) -> Iterator[Sense]:
-    """Depth-first leaf senses, document order.
+def _leaf_senses(entry: Entry) -> list[Sense]:
+    """The entry's senses that carry content, document order.
 
     A sense with subsenses is a LIFT grouping node (e.g. numbered "1a"/"1b"
     under a bare "1") whose own gloss/definition are conventionally empty —
     its subsenses carry the content and get the rows instead.
     """
-    for sense in senses:
-        if sense.subsenses:
-            yield from _iter_leaf_senses(sense.subsenses)
-        else:
-            yield sense
+    return [sense for sense in entry.all_senses() if not sense.subsenses]
 
 
 def _text_or_empty(text: Text | None) -> str:
@@ -265,7 +251,7 @@ def _cmd_export(args: argparse.Namespace) -> int:
             detected: set[str] = set()
             with open_reader(lift_path) as reader:
                 for entry in reader:
-                    for sense in _iter_leaf_senses(entry.senses):
+                    for sense in _leaf_senses(entry):
                         detected.update(g.lang for g in sense.glosses if g.lang is not None)
                         detected.update(sense.definition.keys())
             langs = sorted(detected)
@@ -294,7 +280,7 @@ def _cmd_export(args: argparse.Namespace) -> int:
                 for entry in reader:
                     forms = entry.lexical_unit.forms
                     lexeme = str(forms[0].text) if forms else ""
-                    for sense in _iter_leaf_senses(entry.senses):
+                    for sense in _leaf_senses(entry):
                         pos = sense.grammatical_info.value if sense.grammatical_info else ""
                         row = [entry.id or "", entry.guid or "", sense.id or "", lexeme, pos]
                         for lang in langs:
