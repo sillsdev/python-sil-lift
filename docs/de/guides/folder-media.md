@@ -12,8 +12,6 @@ lex.all_ranges()                            # zusammengeführte {id: Range}-Ansi
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-Die Companion-Erkennung berücksichtigt die reale Welt: Es wird ein `range/@href` verwendet, das auf eine vorhandene Datei verweist; Die losen absoluten `file://C:/...`-href-Angaben von FieldWorks greifen auf den Basisnamen des href neben der `.lift`-Datei zurück; und das herkömmliche Geschwisterelement `<name>.lift-ranges` wird auch dann erkannt, wenn nichts darauf verweist.
-
 `lex.save()` schreibt die `.lift`-Datei und alle nachverfolgten Companion-Dateien gemeinsam. Änderungen an einer `RangesFile` werden wieder in _diese_ Datei gespeichert; unveränderte Bereiche behalten ihre genauen Byte-Werte bei. Einzelbetrieb:
 
 ```python
@@ -22,6 +20,16 @@ ranges.find("grammatical-info")
 ranges.sort()
 ranges.save()
 ```
+
+### Entdeckung von Begleitsternen
+
+Es werden mehrere Kandidaten getestet, und jede einzelne Datei unter ihnen wird geladen.
+
+- Ein Header `range/@href`, der auf eine vorhandene Datei verweist, wird wie angegeben verwendet.
+- Ein href, der zu nichts führt, greift auf den Basisnamen neben dem `.lift` zurück – FieldWorks schreibt absolute `file://C:/...`-Pfade vom exportierenden Rechner, und genau dieser Fallback sorgt dafür, dass sie lokal funktionieren.
+- Das herkömmliche Geschwisterelement `<name>.lift-ranges` wird auch dann erkannt, wenn es von keiner anderen Stelle referenziert wird.
+
+Namen, die sich lediglich in der Groß-/Kleinschreibung oder der Unicode-Normalisierung unterscheiden, werden weiterhin als übereinstimmend erkannt – `Dict.LIFT` findet `Dict.lift-ranges` –, es sei denn, mehrere Dateien entsprechen einem Namen; in diesem Fall wird keine davon geladen und dies wird als [`ambiguous-ranges-file`](validate.md#problem-codes) gemeldet.
 
 Übergeben Sie `resolve_ranges=False` an `load()`, um die Erkennung von Begleitkomponenten zu überspringen.
 
