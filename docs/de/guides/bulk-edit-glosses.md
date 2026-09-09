@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """Gibt jede Bedeutung zurück, einschließlich Unterbedeutungen (rekursiv)."""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -47,7 +39,8 @@ print(f"Bearbeitete {edited_glosses} Glossare in {len(changed)} Einträgen")
 
 Ein paar Dinge, die es zu beachten gilt:
 
-- `Sense.subsenses` ist selbst eine `list[Sense]`, daher wird sie von `iter_senses` rekursiv durchlaufen – eine Massenbearbeitung, die nur `entry.senses` durchläuft, würde alle unter einer Unterbedeutung verschachtelten Erläuterungen stillschweigend überspringen.
+- `entry.all_senses()` gibt jede Bedeutung _und Unterbedeutung_ zurück, und zwar in der Reihenfolge des Dokuments und nach der Tiefe.
+  - `entry.senses` enthält nur die oberste Ebene; daher würde eine Massenbearbeitung, die diese Struktur durchläuft, alle unter einer Unterbedeutung verschachtelten Erläuterungen stillschweigend überspringen.
 - `gloss.text` ist ein `Text` und keine einfache Zeichenkette: `str(gloss.text)` wandelt ihn für den Abgleich in eine Zeichenkette um, und die Ersetzung wird mit `sil_lift.Text([new])` zurückgeschrieben, anstatt die Zeichenkette direkt zu ändern.
 - `lex.changed_entries()` gibt an, welche Einträge sich von der geladenen Datei unterscheiden. Da die Zusammenfassung eines Eintrags dessen gesamten Teilbaum abdeckt, wird bei einer Bearbeitung einer verschachtelten Teilbedeutung der Eintrag gemeldet, in dem diese enthalten ist.
   - Da serialisierte Inhalte verglichen werden, wird die Zuweisung eines Werts zu einem Feld, den dieses bereits hatte, nicht gemeldet.
