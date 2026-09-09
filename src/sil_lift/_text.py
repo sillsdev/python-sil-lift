@@ -86,35 +86,22 @@ class Form:
 
 @dataclass(slots=True, repr=False)
 class Multitext(Mapping[str, Text]):
-    """An insertion-ordered collection of forms, one per language.
+    """An insertion-ordered collection of forms, keyed by language.
 
-    A ``Mapping[str, Text]`` keyed by language — ``mt["en"]``, ``"en" in mt``,
-    ``mt.get(...)``, ``mt.keys()`` and the other views — plus the two mutators
-    LIFT editing needs: assignment coercing plain strings (``mt["en"] = "dog"``)
-    and deletion. The rest of ``MutableMapping`` is deliberately not inherited;
-    ``clear`` and ``popitem`` have no clear meaning for a form list that can
-    also hold forms no key reaches.
+    A ``Mapping[str, Text]`` — ``mt["en"]``, ``"en" in mt``, ``mt.get(...)``,
+    ``mt.keys()`` and the other views — plus assignment, which coerces plain
+    strings (``mt["en"] = "dog"``), and deletion, which takes every form for
+    the language, so ``del mt["en"]`` leaves ``"en" not in mt``.
 
-    The ``forms`` list is the full truth, and holds what no mapping can
-    represent: a form with a ``None`` lang, and a second form for a language
-    already present. Both are schema-invalid — the LIFT 0.13 spec's own example
-    documents carry a lang-less form, and a repeated language is what validation
-    reports as ``duplicate-form-lang``, read off ``forms`` rather than off the
-    mapping. Neither is reachable by key, yielded by a view, or counted by
-    ``len()``.
+    ``forms`` is the full truth and holds what no mapping can represent: a
+    form with a ``None`` lang, and a second form for a language already
+    present. Neither is reachable by key, yielded by a view, or counted by
+    ``len()``; where a language repeats, the mapping reads and updates its
+    first form only.
 
-    Where a language is repeated, the mapping is its first form: that is the one
-    ``mt["en"]`` reads and the one assignment updates, leaving any later form for
-    the language alone, since a ``Form`` carries annotations and residue the
-    mapping cannot show a caller. Deletion takes every form for the language, so
-    ``del mt["en"]`` leaves ``"en" not in mt``.
-
-    Two further deviations from ``Mapping``, both serving the fidelity contract.
-    ``bool(mt)`` asks "is there anything to serialize" rather than
-    ``len(mt) != 0``, so a multitext holding only residue or only a lang-less
-    form is truthy while empty. Equality is the dataclass's: form lists must
-    match exactly, which is stricter than ``Mapping`` equality, where a form no
-    key reaches would not count.
+    ``bool(mt)`` asks "is there anything to serialize", so a multitext holding
+    only residue or only a lang-less form is truthy while ``len()`` is 0.
+    Equality compares ``forms``, stricter than ``Mapping`` equality.
     """
 
     forms: list[Form] = field(default_factory=list)
@@ -149,13 +136,10 @@ class Multitext(Mapping[str, Text]):
         # place because callers hold `forms` directly.
         self.forms[:] = [form for form in self.forms if form.lang != lang]
 
-    # Both read forms directly rather than through keys(): the inherited views
-    # are built on these two, so consulting a view here would not terminate.
     def __iter__(self) -> Iterator[str]:
-        # One key per language — the form __getitem__ answers with — so the
-        # views, len() and dict(self) agree whatever forms holds. The snapshot
-        # lets a caller delete through the mapping while iterating it; walking
-        # forms live would skip the language after each removal.
+        # Snapshot so a caller can delete through the mapping while iterating
+        # it; walking forms live would skip the language after each removal.
+        # Reads forms rather than a view: the views are built on this method.
         seen: set[str] = set()
         for form in tuple(self.forms):
             if form.lang is not None and form.lang not in seen:
@@ -166,8 +150,6 @@ class Multitext(Mapping[str, Text]):
         return sum(1 for _ in self)
 
     def __bool__(self) -> bool:
-        # Not derived from len(): emptiness here means "nothing to serialize",
-        # which residue and a lang-less form each defeat on their own.
         return bool(self.forms) or bool(self.extra)
 
     def __repr__(self) -> str:
@@ -175,9 +157,7 @@ class Multitext(Mapping[str, Text]):
         langs = [lang for lang, _ in pairs]
         # Dict-shaped only while the forms are one per language: a repeated or
         # lang-less form would render as a dict literal that cannot exist and
-        # whose keys contradict keys(). Falling back to pairs keeps every form
-        # visible, and the shape is the signal that forms holds more than the
-        # mapping reaches.
+        # whose keys contradict keys().
         if None not in langs and len(set(langs)) == len(langs):
             inner = ", ".join(f"{lang!r}: {text!r}" for lang, text in pairs)
             return f"Multitext({{{inner}}})"
