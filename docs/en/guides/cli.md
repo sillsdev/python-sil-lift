@@ -67,4 +67,6 @@ senses:    4541
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`), `2` unreadable input.
+All output is UTF-8, on every platform and whether it goes to a console, a pipe, or a `>` redirect — never the locale encoding (cp1252 on Windows, ASCII under a C/POSIX locale), which cannot represent LIFT content. `sil-lift export dictionary.lift > dictionary.csv` therefore writes exactly the bytes `-o dictionary.csv` writes, CRLF row terminators included.
+
+Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`), `2` an I/O failure at either end — input that cannot be read, or output that cannot be written (a reader like `head` closing the pipe, a full disk).

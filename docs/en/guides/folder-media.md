@@ -12,8 +12,6 @@ lex.all_ranges()                            # merged {id: Range} view
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-Companion discovery handles the real world: a `range/@href` that points at an existing file is used; FieldWorks' dangling absolute `file://C:/...` hrefs fall back to the href's basename next to the `.lift`; and the conventional `<name>.lift-ranges` sibling is picked up even when nothing references it.
-
 `lex.save()` writes the `.lift` and every tracked companion together. Edits to a `RangesFile` save back to _its_ file; untouched ranges keep their exact bytes. Standalone use:
 
 ```python
@@ -22,6 +20,16 @@ ranges.find("grammatical-info")
 ranges.sort()
 ranges.save()
 ```
+
+### Companion discovery
+
+Several candidates are tried, and every distinct file among them is loaded.
+
+- A header `range/@href` that points at an existing file is used as given.
+- An href that resolves to nothing falls back to its basename next to the `.lift` — FieldWorks writes dangling absolute `file://C:/...` paths from the exporting machine, and that fallback is what makes them work locally.
+- The conventional `<name>.lift-ranges` sibling is picked up even when nothing references it.
+
+Names that differ only in case or Unicode normalization still match — `Dict.LIFT` finds `Dict.lift-ranges` — unless several files match one name, which loads none of them and is reported as [`ambiguous-ranges-file`](validate.md#problem-codes).
 
 Pass `resolve_ranges=False` to `load()` to skip companion discovery.
 

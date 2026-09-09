@@ -30,9 +30,10 @@ releases may contain breaking changes.
   count languages, deletion takes every form for a language, and the `forms`
   list stays the full truth for what no mapping can represent — a form with
   no lang, and a second form for a language already present (which validation
-  reports as `duplicate-form-lang`). `sil_lift.load()` / `Lexicon.load()`
-  full-document reader that keeps LIFT residue per node in `Extras`;
-  LIFT-version guard.
+  reports as `duplicate-form-lang`). `Entry.all_senses()` walks every subsense
+  depth-first in document order, which `Entry.senses` (top level only) does
+  not. `sil_lift.load()` / `Lexicon.load()` full-document reader that keeps
+  LIFT residue per node in `Extras`; LIFT-version guard.
 - `Lexicon.save()` writer with byte-fidelity passthrough — unchanged
   documents and untouched entries are written byte-identically; touched entries
   re-serialize canonically with all out-of-schema content preserved. Fidelity
@@ -62,8 +63,7 @@ releases may contain breaking changes.
   build-from-scratch helpers `Lexicon.add_ranges_file()` /
   `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
   header-references a new companion beside the `.lift`); vendored
-  `schemas/lift-ranges-0.13.rng` — the first schema for standalone
-  ranges documents.
+  `schemas/lift-ranges-0.13.rng` for standalone ranges documents.
 - Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
   folder-wrapped layouts, junk entries like `__MACOSX` ignored),
   `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
@@ -78,7 +78,7 @@ releases may contain breaking changes.
   file, entry, and line it concerns. RELAX NG layer with two documented
   departures from strict validation (invalid `file://` hrefs downgraded to
   `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and nine semantic checks the grammar cannot
+  ranges schema over companions; and ten semantic checks the grammar cannot
   express, one `Problem` code each (with missing-id opt-in via `require_ids`).
   Names resolve against range and range-element ids under NFC; a match that
   needed normalizing is reported as normalization-mismatch, once per id.

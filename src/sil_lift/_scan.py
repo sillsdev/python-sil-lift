@@ -2,9 +2,10 @@
 
 The writer emits untouched entries verbatim from their original bytes, which
 requires knowing each top-level ``<entry>``'s (and ``<header>``'s) exact byte
-region in the source. lxml exposes no byte offsets, so this module walks the
-raw bytes with a small state machine that understands tags, quoted attribute
-values, comments, CDATA sections, and processing instructions.
+region in the source. lxml exposes no byte offsets, but the stdlib's expat
+binding does: ``CurrentByteIndex`` reports where the current event's markup
+begins, which is a region's start at the element's start event and — bar the
+empty-element wrinkle noted below — its end at the matching end event.
 
 "Region" rather than "span" throughout: LIFT has a ``<span>`` element for
 inline markup, modelled as :class:`~sil_lift.Span`, and the two would
@@ -13,18 +14,19 @@ otherwise collide in the reader and writer — which handle both.
 What it exists for is byte identity, not diagnostics — ``docs/en/fidelity.md``
 states the guarantee it underpins. Problem reporting needs only the line an
 element starts on and takes that from lxml's ``sourceline`` (see
-``_validate._line``); a region needs the end offset too, which no parser API
+``_validate._line``); a region needs the end offset too, which no tree API
 exposes.
 
 It is deliberately conservative: anything unexpected (DOCTYPE, malformed
-nesting, non-ASCII-compatible encoding — checked by the caller) returns
-``None`` and the writer falls back to canonical serialization, which keeps
-the semantic guarantee and waives only byte identity.
+markup, non-ASCII-compatible encoding — checked by the caller) returns ``None``
+and the writer falls back to canonical serialization, which keeps the semantic
+guarantee and waives only byte identity.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from xml.parsers import expat
 
 __all__ = ["ChildRegion", "ScanResult", "scan"]
 
@@ -44,146 +46,95 @@ class ScanResult:
     children: list[ChildRegion]  # document order; empty for a self-closing root
 
 
-def _skip_comment(data: bytes, i: int) -> int | None:
-    end = data.find(b"-->", i + 4)
-    return None if end < 0 else end + 3
+class _Unscannable(Exception):
+    """Raised inside a handler to abandon the scan; ``scan`` returns None."""
 
 
-def _skip_pi(data: bytes, i: int) -> int | None:
-    end = data.find(b"?>", i + 2)
-    return None if end < 0 else end + 2
+def _tag_end(data: bytes, start: int) -> int:
+    """Just past the ``>`` of the start tag beginning at ``start``.
 
-
-def _skip_cdata(data: bytes, i: int) -> int | None:
-    end = data.find(b"]]>", i + 9)
-    return None if end < 0 else end + 3
-
-
-def _skip_tag(data: bytes, i: int) -> tuple[int, bool] | None:
-    """From ``<`` of a start/end tag to just past ``>``; reports self-closing."""
-    n = len(data)
-    j = i + 1
+    An attribute value may hold a ``>``, so this tracks quoting rather than
+    searching for the delimiter. End tags take no attributes and so need no
+    such care.
+    """
     quote: int | None = None
-    while j < n:
-        c = data[j]
+    for index in range(start + 1, len(data)):
+        char = data[index]
         if quote is not None:
-            if c == quote:
+            if char == quote:
                 quote = None
-        elif c in (0x22, 0x27):  # " or '
-            quote = c
-        elif c == 0x3E:  # >
-            return j + 1, data[j - 1] == 0x2F  # preceded by /
-        j += 1
-    return None
-
-
-def _tag_name(data: bytes, i: int) -> str:
-    j = i + 1
-    n = len(data)
-    while j < n and data[j] not in b" \t\r\n/>":
-        j += 1
-    return data[i + 1 : j].decode("utf-8", errors="replace")
-
-
-def _skip_element(data: bytes, i: int) -> int | None:
-    """From ``<`` of a start tag to just past the matching end tag."""
-    step = _skip_tag(data, i)
-    if step is None:
-        return None
-    pos, self_closing = step
-    if self_closing:
-        return pos
-    depth = 1
-    n = len(data)
-    while depth > 0:
-        lt = data.find(b"<", pos)
-        if lt < 0:
-            return None
-        if data.startswith(b"<!--", lt):
-            nxt = _skip_comment(data, lt)
-        elif data.startswith(b"<![CDATA[", lt):
-            nxt = _skip_cdata(data, lt)
-        elif data.startswith(b"<?", lt):
-            nxt = _skip_pi(data, lt)
-        elif data.startswith(b"</", lt):
-            step = _skip_tag(data, lt)
-            if step is None:
-                return None
-            nxt = step[0]
-            depth -= 1
-        elif data.startswith(b"<!", lt):
-            return None  # DOCTYPE or other markup decl mid-document: bail out
-        else:
-            step = _skip_tag(data, lt)
-            if step is None:
-                return None
-            nxt, self_closing = step
-            if not self_closing:
-                depth += 1
-        if nxt is None:
-            return None
-        pos = nxt
-        if pos > n:
-            return None
-    return pos
+        elif char in (0x22, 0x27):  # " or '
+            quote = char
+        elif char == 0x3E:  # >
+            return index + 1
+    raise _Unscannable  # unterminated start tag: expat would have refused it too
 
 
 def scan(data: bytes) -> ScanResult | None:
     """Locate the root open tag and every root child's byte region, or None."""
-    n = len(data)
-    pos = 0
-    # Prolog: byte-order mark, XML declaration, comments, processing
-    # instructions — until the root start tag.
-    while True:
-        lt = data.find(b"<", pos)
-        if lt < 0:
-            return None
-        if data.startswith(b"<!--", lt):
-            nxt = _skip_comment(data, lt)
-        elif data.startswith(b"<?", lt):
-            nxt = _skip_pi(data, lt)
-        elif data.startswith(b"<!", lt):
-            return None  # DOCTYPE: no passthrough
-        else:
-            break
-        if nxt is None:
-            return None
-        pos = nxt
-    root_open_start = lt
-    step = _skip_tag(data, lt)
-    if step is None:
+    parser = expat.ParserCreate()
+    # A DTD is refused outright below, so its parameter entities are never
+    # fetched or expanded either.
+    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+
+    depth = 0
+    # Only the root and its children have regions to report; deeper elements
+    # just move the depth counter, which is what keeps a nested <entry> from
+    # being mistaken for a root child.
+    open_tags: dict[int, tuple[str, int, int]] = {}
+    children: list[ChildRegion] = []
+    root: tuple[int, int] | None = None
+    root_self_closing = False
+
+    def refuse(*_args: object) -> None:
+        raise _Unscannable
+
+    def start_element(name: str, _attrs: dict[str, str]) -> None:
+        nonlocal depth, root
+        depth += 1
+        if depth > 2:
+            return
+        start = parser.CurrentByteIndex
+        open_tags[depth] = (name, start, _tag_end(data, start))
+        if depth == 1:
+            root = (start, open_tags[1][2])
+
+    def end_element(_name: str) -> None:
+        nonlocal depth, root_self_closing
+        if depth <= 2:
+            tag, start, open_end = open_tags[depth]
+            # An empty element's end event reports the offset just past the
+            # whole element; every other element's reports the "<" of its end
+            # tag. Which of the two this is was settled by the start tag, in
+            # the "/" before its ">" — not by the end event, whose two cases
+            # are not distinguishable from the offset alone.
+            self_closing = data[open_end - 2] == 0x2F  # /
+            if self_closing:
+                end = open_end
+            else:
+                end = data.find(b">", parser.CurrentByteIndex) + 1
+                if end <= 0:
+                    raise _Unscannable
+            if depth == 1:
+                root_self_closing = self_closing
+            else:
+                children.append(ChildRegion(tag=tag, start=start, end=end))
+        depth -= 1
+
+    # A DTD may define entities whose expansion the offsets above would not
+    # describe, so a document carrying one is not scanned at all.
+    parser.StartDoctypeDeclHandler = refuse
+    parser.StartElementHandler = start_element
+    parser.EndElementHandler = end_element
+    try:
+        parser.Parse(data, True)
+    except (_Unscannable, expat.ExpatError):
         return None
-    root_open_end, self_closing = step
-    result = ScanResult(
-        root_open_start=root_open_start,
-        root_open_end=root_open_end,
-        root_self_closing=self_closing,
-        children=[],
+    if root is None:
+        return None  # no root element: nothing to reuse bytes from
+    return ScanResult(
+        root_open_start=root[0],
+        root_open_end=root[1],
+        root_self_closing=root_self_closing,
+        children=children,
     )
-    if self_closing:
-        return result
-    pos = root_open_end
-    while True:
-        lt = data.find(b"<", pos)
-        if lt < 0:
-            return None  # never saw the root close tag
-        if data.startswith(b"<!--", lt):
-            nxt = _skip_comment(data, lt)
-        elif data.startswith(b"<![CDATA[", lt):
-            nxt = _skip_cdata(data, lt)
-        elif data.startswith(b"<?", lt):
-            nxt = _skip_pi(data, lt)
-        elif data.startswith(b"</", lt):
-            return result  # root close tag; the trailing bytes are copied as they are
-        elif data.startswith(b"<!", lt):
-            return None
-        else:
-            tag = _tag_name(data, lt)
-            end = _skip_element(data, lt)
-            if end is None or end > n:
-                return None
-            result.children.append(ChildRegion(tag=tag, start=lt, end=end))
-            nxt = end
-        if nxt is None:
-            return None
-        pos = nxt

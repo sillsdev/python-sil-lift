@@ -1,14 +1,33 @@
 import csv
 import io
 import json
+import os
 import shutil
+import subprocess
+import sys
+import unicodedata
 from pathlib import Path
 
 import pytest
 
-from sil_lift._cli import main
+from sil_lift._cli import _abandon_borrowed_stdout, main
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
+
+
+def _redirect(
+    monkeypatch: pytest.MonkeyPatch, name: str, encoding: str, errors: str = "strict"
+) -> io.BytesIO:
+    """Replace a standard stream with a stand-in for a redirected one.
+
+    A text stream over the returned byte sink, under the given codec and
+    translating newlines the way a stream given no newline argument does on
+    Windows.
+    """
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding=encoding, errors=errors, newline="\r\n")
+    monkeypatch.setattr(sys, name, stream)
+    return raw
 
 
 def test_validate_clean_file(capsys: pytest.CaptureFixture[str]) -> None:
@@ -282,3 +301,112 @@ def test_export_filename_with_space(tmp_path: Path) -> None:
     out = tmp_path / "out.csv"
     assert main(["export", str(path), "-o", str(out)]) == 0
     assert out.is_file()
+
+
+def test_validate_text_output_survives_a_cp1252_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
+    raw = _redirect(monkeypatch, "stdout", "cp1252")
+    assert main(["validate", str(CORPUS_DIR / "negative" / "nfd-range-ids.lift")]) == 1
+    sys.stdout.flush()
+    out = raw.getvalue().decode("utf-8")
+    assert unicodedata.normalize("NFD", "Órfão") in out  # the id cp1252 cannot hold
+    assert out.splitlines()[-1].endswith("warning(s)")  # ran to the summary, not truncated
+
+
+def test_export_to_a_locale_stdout_matches_the_output_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The stand-in translates newlines, so csv's doubled CR reproduces anywhere."""
+    source = CORPUS_DIR / "spec-examples" / "0.13" / "multiple-forms.lift"
+    to_file = tmp_path / "out.csv"
+    assert main(["export", str(source), "-o", str(to_file)]) == 0
+
+    raw = _redirect(monkeypatch, "stdout", "ascii")
+    assert main(["export", str(source)]) == 0
+    assert raw.getvalue() == to_file.read_bytes()
+    assert "เอว" in raw.getvalue().decode("utf-8")  # a gloss ascii cannot hold
+
+
+def test_error_message_survives_an_ascii_stderr(monkeypatch: pytest.MonkeyPatch) -> None:
+    raw = _redirect(monkeypatch, "stderr", "ascii", errors="backslashreplace")
+    assert main(["validate", str(CORPUS_DIR / "Órfão.lift")]) == 2
+    sys.stderr.flush()
+    assert "Órfão.lift" in raw.getvalue().decode("utf-8")
+
+
+def test_a_stdout_that_is_not_a_text_wrapper_is_left_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A replaced stdout has no encoding to fix and no byte layer to wrap."""
+    sink = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", sink)
+    assert main(["export", str(CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift")]) == 0
+    assert main(["validate", str(CORPUS_DIR / "ranges" / "test20080407.lift")]) == 0
+    assert "entry_id" in sink.getvalue()
+    assert "0 error(s), 0 warning(s)" in sink.getvalue()
+
+
+def test_each_stream_keeps_its_own_error_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only the encoding is forced; reconfiguring resets the handler otherwise.
+
+    The two handlers are the ones CPython hands the real streams:
+    surrogateescape on stdout (on some platforms), backslashreplace on stderr.
+    """
+    _redirect(monkeypatch, "stdout", "cp1252", errors="surrogateescape")
+    _redirect(monkeypatch, "stderr", "cp1252", errors="backslashreplace")
+    assert main(["validate", str(CORPUS_DIR / "ranges" / "test20080407.lift")]) == 0
+    assert (sys.stdout.encoding, sys.stdout.errors) == ("utf-8", "surrogateescape")
+    assert (sys.stderr.encoding, sys.stderr.errors) == ("utf-8", "backslashreplace")
+
+
+def test_export_to_a_broken_pipe_leaves_stdout_usable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The csv sink borrows stdout's byte layer, so it must not close it."""
+
+    def broken(data: object) -> int:
+        raise BrokenPipeError(32, "Broken pipe")
+
+    raw = _redirect(monkeypatch, "stdout", "utf-8")
+    monkeypatch.setattr(raw, "write", broken)
+    assert main(["export", str(CORPUS_DIR / "spec-examples" / "0.13" / "full-entry.lift")]) == 2
+    assert not raw.closed
+    assert not sys.stdout.closed
+
+
+def test_a_borrowed_stdout_that_cannot_drain_is_pointed_at_the_null_device() -> None:
+    """Bytes a dead pipe rejected stay buffered, and every flush after it retries them.
+
+    Redirecting the descriptor is what stops the interpreter's own flush at exit
+    from failing all over again, so the exit code survives.
+    """
+    read_fd, write_fd = os.pipe()
+    os.close(read_fd)  # the reader hangs up before a single byte is written
+    with open(write_fd, "wb") as buffer:
+        buffer.write(b"bytes that can never land")  # buffered, so the flush is what fails
+        with pytest.raises(OSError):
+            buffer.flush()
+        _abandon_borrowed_stdout(buffer)
+        buffer.flush()  # the same bytes, now going somewhere harmless
+
+
+def test_export_to_a_closed_pipe_exits_on_its_own_code() -> None:
+    """The interpreter flushes stdout after ``main`` returns, and that can fail too.
+
+    Only a real process shows it: the bytes the pipe rejected are still in the
+    byte layer at exit, and the flush on the way out reports a failure no
+    handler can catch, replacing the exit code with 120.
+    """
+    # More output than a pipe buffer holds: a smaller fixture would drain into
+    # the buffer and exit 0, never reaching the flush this test is about.
+    lift = CORPUS_DIR / "large" / "sango" / "sango.lift"
+    source = (
+        f"import sys; from sil_lift._cli import main; sys.exit(main(['export', {str(lift)!r}]))"
+    )
+    proc = subprocess.Popen(
+        [sys.executable, "-c", source], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    assert proc.stdout is not None
+    assert proc.stderr is not None
+    proc.stdout.close()
+    stderr = proc.stderr.read()
+    proc.stderr.close()
+    assert proc.wait() == 2
+    assert b"Exception ignored" not in stderr
