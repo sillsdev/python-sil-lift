@@ -24,13 +24,16 @@ entry.lexical_unit["en"] = "grove"      # les chaînes de caractères brutes son
 
 Le `Texte` est structuré — il s'agit d'une liste ordonnée de fragments `str` et `Span` — car `<text>` peut contenir des balises `<span>` imbriquées. `str(text)` convertit le contenu en texte brut ; les fragments conservent le balisage pour permettre la conversion aller-retour.
 
-Dans LIFT, les glosses ont la forme d’une _forme_ (chaque `<gloss>` possède son propre langage) ; ainsi, un sens est défini par `glosses: list[Form]` et dispose d’une fonction d’aide :
+Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus helpers:
 
 ```python
-sense = entry.senses[0]
-sense.gloss("en")                       # Texte | None
-entry.gloss_langs()                     # {"en", "id"}
+sense = entry.senses[0]                 # top level only
+sense.gloss("en")                       # Text | None
+entry.all_senses()                      # every sense and subsense, document order
+entry.gloss_langs()                     # {"en", "id"}, subsenses included
 ```
+
+Reach for `all_senses()` whenever a question concerns the whole entry: counting senses, collecting languages, finding media. `entry.senses` gives the top level, which is what you want only when the nesting itself matters.
 
 ## Enregistrement
 
