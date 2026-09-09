@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """Retorna todos os sentidos, incluindo os sub-sentidos (recursivo)."""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -39,15 +31,16 @@ errors = [p for p in lex.iter_problems() if p.level == "error"]
 if errors:
     for problem in errors:
         print(problem)
-    sys.exit(f"interrupção: {len(errors)} erro(s) de validação, nada guardado")
+    sys.exit(f"interrompendo: {len(errors)} erro(s) de validação, nada guardado")
 
 lex.save()
-print(f"gloss(es) editado(s) {edited_glosses} em {len(changed)} entrada(s)")
+print(f"glossário(s) editado(s) {edited_glosses} em {len(changed)} entrada(s)")
 ```
 
 Algumas coisas que vale a pena referir:
 
-- `Sense.subsenses` é, por si só, uma `list[Sense]`, pelo que `iter_senses` a percorre de forma recursiva — uma edição em massa que apenas percorresse `entry.senses` ignoraria silenciosamente qualquer gloss aninhado sob um subsense.
+- `entry.all_senses()` devolve todos os sentidos _e sub-sentidos_, em ordem de profundidade, seguindo a ordem do documento.
+  - `entry.senses` contém apenas o nível superior, pelo que uma edição em massa que percorresse esse elemento ignoraria silenciosamente qualquer glossário aninhado sob um sub-significado.
 - `gloss.text` é um `Text`, não uma string simples: `str(gloss.text)` simplifica-o para efeitos de correspondência, e a substituição é gravada novamente com `sil_lift.Text([new])`, em vez de alterar a string no local.
 - A função `lex.changed_entries()` indica quais as entradas que diferem do ficheiro tal como foi carregado. Uma vez que o resumo de uma entrada abrange toda a sua subárvore, uma alteração num sub-significado aninhado é comunicada à entrada que o contém.
   - Como compara conteúdo serializado, a atribuição a um campo do valor que este já possuía não é registada.
