@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """返回每个词义，包括子词义（递归）。”""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -47,7 +39,8 @@ print(f"已编辑 {edited_glosses} {len(changed)} 个条目中的释义")
 
 有几点值得注意：
 
-- `Sense.subsenses` 本身是一个 `list[Sense]`，因此 `iter_senses` 会递归遍历它——如果批量编辑操作仅遍历 `entry.senses`，则会无提示地跳过任何嵌套在子义项下的释义。
+- `entry.all_senses()` 会按文档顺序以深度优先的方式返回每个词义及其子词义。
+  - `entry.senses` 仅包含顶级条目，因此，在批量编辑过程中遍历该数组时，会默默跳过嵌套在子义项下的任何释义。
 - `gloss.text` 是一个 `Text` 对象，而不是普通的字符串：`str(gloss.text)` 会将其扁平化以便进行匹配，而替换后的内容会通过 `sil_lift.Text([new])` 写回，而不是直接修改原字符串。
 - `lex.changed_entries()` 会报告哪些条目与加载的文件存在差异。 由于条目的摘要涵盖了其整个子树，因此对嵌套的子义项进行编辑时，系统会报告包含该子义项的条目。
   - 它会比较序列化的内容，因此将某个字段赋值为其原有的值时，系统不会报告该操作。
