@@ -20,7 +20,12 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # plain strings are coerced
 "en" in entry.citation                  # False
+entry.lexical_unit.keys()               # ["seh", "en"]
 ```
+
+`keys()`, `values()` and `items()` are lists, one entry per language, and they stay parallel. Deletion works on the language rather than the form, so `del entry.lexical_unit["en"]` removes every English form. There is no `len()`: ask `keys()` or `forms` for the count you mean.
+
+A schema-valid document has nothing more, but real files sometimes carry a second form for a language already present, or a form with no `lang` at all — neither is reachable by key. `forms` holds every form in file order, and [`validate`](validate.md#problem-codes) reports the duplicate as [`duplicate-form-lang`](validate.md#problem-codes). Where a language is repeated, assignment updates its first form and leaves the rest alone; `forms` is where you edit a duplicate deliberately.
 
 `Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
 

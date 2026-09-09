@@ -7,6 +7,7 @@ import sil_lift
 from sil_lift import LiftParseError, Span
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
+NEGATIVE_DIR = CORPUS_DIR / "negative"
 
 LOADABLE = sorted(
     p
@@ -108,6 +109,28 @@ def test_all_senses_is_depth_first_document_order() -> None:
     # A subsense follows its parent, not the parent's siblings.
     assert [s.id for s in entry.all_senses()] == ["opon_1", "opon_1a", "opon_1b", "opon_2"]
     assert [s.id for s in entry.senses] == ["opon_1", "opon_2"]
+
+
+def test_repeated_form_lang_reads_as_one_key_over_both_forms() -> None:
+    lexicon = sil_lift.load(NEGATIVE_DIR / "duplicate-form-lang.lift")
+    (entry,) = lexicon.entries
+    lexical_unit = entry.lexical_unit
+    assert [(form.lang, str(form.text)) for form in lexical_unit.forms] == [
+        ("en", "colour"),
+        ("en", "color"),
+    ]
+    assert lexical_unit.keys() == ["en"]
+    assert str(lexical_unit["en"]) == "colour"  # the first form for a language
+    assert len(dict(lexical_unit)) == 1
+
+
+def test_lang_less_form_reads_as_no_key_at_all() -> None:
+    lexicon = sil_lift.load(NEGATIVE_DIR / "schema-invalid.lift")
+    (entry,) = lexicon.entries
+    lexical_unit = entry.lexical_unit
+    assert [(form.lang, str(form.text)) for form in lexical_unit.forms] == [(None, "x")]
+    assert lexical_unit.keys() == []
+    assert lexical_unit  # truthy: there is still a form to serialize
 
 
 def test_reversal_main_chain() -> None:

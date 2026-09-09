@@ -85,20 +85,33 @@ class Form:
 
 @dataclass(slots=True, repr=False)
 class Multitext:
-    """An insertion-ordered collection of forms, one per language.
+    """An insertion-ordered collection of forms, keyed by language.
 
-    Behaves like a ``Mapping[str, Text]`` keyed by language (``mt["en"]``),
-    with assignment coercing plain strings (``mt["en"] = "dog"``). The
-    underlying ``forms`` list is the full truth — forms with a ``None`` lang
-    (schema-invalid input) are reachable there but not via mapping keys.
+    Not a ``Mapping``: ``keys()``, ``values()`` and ``items()`` return lists,
+    and ``isinstance(mt, Mapping)`` is ``False``. What it does offer is the
+    familiar subset — ``mt["en"]``, ``"en" in mt``, ``mt.get(...)``, iteration
+    over languages, ``dict(mt)`` — plus assignment, which coerces plain strings
+    (``mt["en"] = "dog"``), and deletion, which takes every form for the
+    language, so ``del mt["en"]`` leaves ``"en" not in mt``.
+
+    ``forms`` is the full truth and holds what no key can reach: a form with a
+    ``None`` lang, and a second form for a language already present. Where a
+    language repeats, the mapping side reads and updates its first form only.
+
+    There is no ``len()``. Ask ``forms`` or ``keys()`` for the count you mean —
+    they differ exactly on the files above. ``bool(mt)`` asks "is there anything
+    to serialize", so a multitext holding only residue or only a lang-less form
+    is truthy while ``keys()`` is empty.
     """
 
     forms: list[Form] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
 
     def _find(self, lang: str) -> Form | None:
+        # A lang-less form is not a key: matching one here would answer
+        # __getitem__ and get() for something keys() never reports.
         for form in self.forms:
-            if form.lang == lang:
+            if form.lang is not None and form.lang == lang:
                 return form
         return None
 
@@ -117,10 +130,10 @@ class Multitext:
             form.text = text
 
     def __delitem__(self, lang: str) -> None:
-        form = self._find(lang)
-        if form is None:
+        if self._find(lang) is None:
             raise KeyError(lang)
-        self.forms.remove(form)
+        # Sliced in place rather than rebound, because callers hold `forms`.
+        self.forms[:] = [form for form in self.forms if form.lang != lang]
 
     def get(self, lang: str, default: Text | None = None) -> Text | None:
         form = self._find(lang)
@@ -129,24 +142,26 @@ class Multitext:
     def __contains__(self, lang: object) -> bool:
         return isinstance(lang, str) and self._find(lang) is not None
 
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.keys())
+    def keys(self) -> list[str]:
+        """The languages, first occurrence first, one entry each."""
+        return list(dict.fromkeys(f.lang for f in self.forms if f.lang is not None))
 
-    def __len__(self) -> int:
-        return len(self.forms)
+    def values(self) -> list[Text]:
+        """One text per language in ``keys()`` order — the first form's."""
+        return [self[lang] for lang in self.keys()]
+
+    def items(self) -> list[tuple[str, Text]]:
+        """``keys()`` zipped with ``values()``."""
+        return [(lang, self[lang]) for lang in self.keys()]
+
+    def __iter__(self) -> Iterator[str]:
+        # keys() is a fresh list, so deleting through the mapping while
+        # iterating it reaches every language.
+        return iter(self.keys())
 
     def __bool__(self) -> bool:
         return bool(self.forms) or bool(self.extra)
 
-    def keys(self) -> list[str]:
-        return [form.lang for form in self.forms if form.lang is not None]
-
-    def values(self) -> list[Text]:
-        return [form.text for form in self.forms if form.lang is not None]
-
-    def items(self) -> list[tuple[str, Text]]:
-        return [(form.lang, form.text) for form in self.forms if form.lang is not None]
-
     def __repr__(self) -> str:
-        inner = ", ".join(f"{form.lang!r}: {str(form.text)!r}" for form in self.forms)
-        return f"Multitext({{{inner}}})"
+        inner = ", ".join(f"({form.lang!r}, {str(form.text)!r})" for form in self.forms)
+        return f"Multitext([{inner}])"
