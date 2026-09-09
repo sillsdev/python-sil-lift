@@ -12,23 +12,15 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """Devuelve cada acepción, incluidas las subacepciones (recursivo)."""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
-        for glosa en sentido.glosas:
-            if glosa.idioma != "en":
+    for sense in entry.all_senses():
+        for gloss in sense.glosses:
+            if gloss.lang != "en":
                 continue
-            antiguo = str(glosa.texto)
-            nuevo = antiguo.replace("colour", "color")
+            old = str(gloss.text)
+            new = old.replace("colour", "color")
             si new != old:
                 gloss.text = sil_lift.Text([new])
                 edited_glosses += 1
@@ -47,7 +39,8 @@ print(f"glosa(s) editada(s) {edited_glosses} en {len(changed)} entrada(s)")
 
 Algunas cosas que conviene destacar:
 
-- `Sense.subsenses` es en sí mismo una `lista[Sense]`, por lo que `iter_senses` recorre su contenido de forma recursiva; una edición masiva que solo recorriera `entry.senses` omitiría sin avisar cualquier glosa anidada bajo un subsentido.
+- `entry.all_senses()` devuelve todos los significados _y subsignificados_, siguiendo un recorrido en profundidad según el orden del documento.
+  - `entry.senses` solo contiene el nivel superior, por lo que una edición masiva que recorriera este campo omitiría sin avisar cualquier glosa anidada bajo un subsignificado.
 - `gloss.text` es un `Text`, no una cadena simple: `str(gloss.text)` lo convierte en una cadena para la búsqueda de coincidencias, y la sustitución se vuelve a escribir con `sil_lift.Text([new])` en lugar de modificar la cadena in situ.
 - `lex.changed_entries()` indica qué entradas difieren del archivo tal y como se ha cargado. Dado que el resumen de una entrada abarca todo su subárbol, cualquier modificación en un subsignificado anidado se refleja en la entrada que lo contiene.
   - Comparando contenido serializado, no se registra el hecho de asignar a un campo el valor que ya tenía.
