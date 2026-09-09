@@ -12,8 +12,6 @@ lex.all_ranges()                            # 合并后的 {id: Range} 视图
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-Companion discovery 处理现实情况：使用指向现有文件的 `range/@href`； FieldWorks 中悬空的绝对 `file://C:/...` href 会回退到 href 的基名，并将其附加在 `.lift` 之后；而常规的 `<name>.lift-ranges` 同级文件，即使没有任何引用，也会被识别出来。
-
 `lex.save()` 会将 `.lift` 以及所有被追踪的伴生类一起写入。 对 `RangesFile` 进行的修改将保存回该文件；未修改的范围将保留其精确的字节数据。 独立使用：
 
 ```python
@@ -22,6 +20,16 @@ ranges.find("grammatical-info")
 ranges.sort()
 ranges.save()
 ```
+
+### 伴星发现
+
+尝试了几个候选项，并加载了其中每个不同的文件。
+
+- 指向现有文件的 `range/@href` 标头按原样使用。
+- 如果 href 解析后没有结果，则会回退到其基础名称后跟 `.lift` 的形式——FieldWorks 会从导出机器写入悬空的绝对 `file://C:/...` 路径，而正是这种回退机制使得它们在本地能够正常工作。
+- 即使没有任何内容引用它，系统仍会自动识别常规的 `<name>.lift-ranges` 同级元素。
+
+仅在大小写或 Unicode 规范化方面存在差异的名称仍会被视为匹配——`Dict.LIFT` 会找到 `Dict.lift-ranges`——除非有多个文件匹配同一个名称，这种情况下将不会加载任何文件，并报告为 [`ambiguous-ranges-file`](validate.md#problem-codes)。
 
 向 `load()` 传递 `resolve_ranges=False` 参数，以跳过伴侣节点发现。
 
