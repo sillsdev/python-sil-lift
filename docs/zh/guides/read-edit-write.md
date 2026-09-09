@@ -24,13 +24,16 @@ entry.lexical_unit["en"] = "grove"      # 普通字符串会被强制转换
 
 `Text` 具有结构化特征——即由 `str` 和 `Span` 片段组成的有序列表——因为 `<text>` 可能包含嵌套的 `<span>` 标记。 `str(text)` 会将其转换为纯文本；这些片段保留了标记，以便进行往返转换。
 
-在 LIFT 中，释义是 _Form 类型的_（每个 `<gloss>` 都承载着自己的语言），因此一个语义具有 `glosses: list[Form]` 以及一个辅助函数：
+在 LIFT 中，释义是 _Form 类型的_（每个 `<gloss>` 都承载着自己的语言），因此一个语义具有 `glosses: list[Form]` 以及一些辅助函数：
 
 ```python
-sense = entry.senses[0]
+sense = entry.senses[0]                 # 仅顶级释义
 sense.gloss("en")                       # Text | None
-entry.gloss_langs()                     # {"en", "id"}
+entry.all_senses()                      # 所有释义和子释义，按文档顺序排列
+entry.gloss_langs()                     # {"en", "id"}，包含子释义
 ```
+
+只要问题涉及整个条目——例如统计词义、收集语言信息或查找媒体资源——请使用 `all_senses()`。 `entry.senses` 返回顶级层级，这仅在嵌套关系本身重要时才符合你的需求。
 
 ## 保存
 
