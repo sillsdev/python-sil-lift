@@ -12,8 +12,6 @@ lex.all_ranges()                            # mtazamo uliounganishwa wa {id: Ran
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-Ugunduzi wa Companion unashughulikia ulimwengu halisi: `range/@href` inayoelekeza kwenye faili iliyopo hutumika; Viungo kamili vilivyokatika vya FieldWorks (`file://C:/...`) hurudi kwenye jina la msingi la faili lililo kwenye `.lift`; na ndugu wa kawaida `<name>.lift-ranges` huchukuliwa hata kama hakuna kinachorejelea.
-
 `lex.save()` huandika `.lift` na kila mwandani aliyefuatiliwa pamoja. Marekebisho kwenye `RangesFile` huhifadhiwa tena kwenye faili yake; vipimo visivyoguswa hubaki na baiti zao halisi. Matumizi ya peke yake:
 
 ```python
@@ -22,6 +20,16 @@ ranges.find("grammatical-info")
 ranges.sort()
 ranges.save()
 ```
+
+### Ugunduzi wa mwenzi
+
+Wagombea kadhaa wanajaribiwa, na kila faili tofauti miongoni mwao inapakia.
+
+- Kichwa `range/@href` kinachoelekeza kwenye faili iliyopo kinatumika kama kilivyo.
+- An href ambayo haipati chochote hurudi kwenye jina lake la msingi kando ya `.lift` — FieldWorks huandika njia kamili zisizo na mwisho `file://C:/...` kutoka kwenye mashine ya kusafirisha, na kurejea huko ndiko kunafanya zifanye kazi ndani ya eneo.
+- Ndugu wa kawaida wa `<name>.lift-ranges` huchaguliwa hata wakati hakuna kinachorejelea.
+
+Majina yanayotofautiana tu kwa herufi kubwa/ndogo au kwa usawazishaji wa Unicode bado yanalingana — `Dict.LIFT` hupata `Dict.lift-ranges` — isipokuwa faili kadhaa zinapolingana na jina moja, ambalo halipaki yoyote kati yao na linaripotiwa kama [`ambiguous-ranges-file`](validate.md#problem-codes).
 
 Pitisha `resolve_ranges=False` kwenye `load()` ili kupuuza ugunduzi wa vifaa viendani.
 
