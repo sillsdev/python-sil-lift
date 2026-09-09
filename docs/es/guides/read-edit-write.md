@@ -24,13 +24,16 @@ entry.lexical_unit["en"] = "grove"      # las cadenas simples se convierten
 
 El `texto` está estructurado —una lista ordenada de fragmentos `str` y `Span`— porque `<text>` puede contener marcado anidado `<span>`. `str(text)` convierte el contenido en texto sin formato; los fragmentos conservan el marcado para facilitar la conversión de ida y vuelta.
 
-En LIFT, los glosas tienen forma de _forma_ (cada `<gloss>` tiene su propio lenguaje), por lo que un sentido tiene `glosses: list[Form]`, además de una función auxiliar:
+En LIFT, los glosas tienen forma de _forma_ (cada `<gloss>` tiene su propio lenguaje), por lo que un sentido tiene `glosses: list[Form]`, además de funciones auxiliares:
 
 ```python
-sense = entry.senses[0]
+sense = entry.senses[0]                 # solo el nivel superior
 sense.gloss("en")                       # Texto | None
-entry.gloss_langs()                     # {"en", "id"}
+entry.all_senses()                      # todos los significados y subsignificados, en el orden del documento
+entry.gloss_langs()                     # {"en", "id"}, incluidos los subsignificados
 ```
+
+Recurre a `all_senses()` siempre que una pregunta se refiera a toda la entrada: contar acepciones, recopilar idiomas o buscar archivos multimedia. `entry.senses` proporciona el nivel superior, que es lo que te interesa únicamente cuando el propio anidamiento es relevante.
 
 ## Ahorro
 
