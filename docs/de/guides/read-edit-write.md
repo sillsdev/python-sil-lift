@@ -24,13 +24,16 @@ entry.lexical_unit["en"] = "grove"      # einfache Zeichenketten werden umgewand
 
 `Text` ist strukturiert – eine geordnete Liste aus `str`- und `Span`-Fragmenten –, da `<text>` verschachtelte `<span>`-Markups enthalten kann. `str(text)` wandelt den Text in reinen Text um; die Fragmente behalten das Markup für den Hin- und Rücktransport bei.
 
-Glossare sind in LIFT _form-förmig_ (jedes `<gloss>` enthält eine eigene Sprache), daher hat ein Sense `glosses: list[Form]` sowie eine Hilfsfunktion:
+Glossare sind in LIFT _Form-förmig_ (jede `<gloss>` enthält ihre eigene Sprache), daher hat ein Sense `glosses: list[Form]` sowie Hilfsfunktionen:
 
 ```python
-sense = entry.senses[0]
+sense = entry.senses[0]                 # nur oberste Ebene
 sense.gloss("en")                       # Text | None
-entry.gloss_langs()                     # {"en", "id"}
+entry.all_senses()                      # alle Bedeutungen und Unterbedeutungen, in der Reihenfolge des Dokuments
+entry.gloss_langs()                     # {"en", "id"}, einschließlich Unterbedeutungen
 ```
+
+Verwenden Sie `all_senses()`, wann immer sich eine Frage auf den gesamten Eintrag bezieht: zum Zählen von Bedeutungen, zum Erfassen von Sprachen oder zum Suchen von Medien. `entry.senses` gibt die oberste Ebene an, was nur dann sinnvoll ist, wenn die Verschachtelung selbst eine Rolle spielt.
 
 ## Speichern
 
