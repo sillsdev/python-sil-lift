@@ -24,13 +24,16 @@ entry.lexical_unit["en"] = "grove"      # プレーン文字列は型変換さ�
 
 `Text` は、`str` および `Span` のフラグメントからなる順序付きリストとして構成されています。これは、`<text>` にネストされた `<span>` マークアップが含まれる可能性があるためです。 `str(text)` はプレーンテキストに変換されますが、フラグメントは往復処理のためにマークアップを維持します。
 
-LIFT では、グロスは _Form 型_ です（各 `<gloss>` は独自の言語を持ちます）。したがって、センスには `glosses: list[Form]` と、ヘルパー関数が定義されています：
+LIFT では、グロスは _form の形_ をとります（各 `<gloss>` は独自の言語を持ちます）。したがって、センスには `glosses: list[Form]` と、以下のヘルパー関数が用意されています：
 
 ```python
-sense = entry.senses[0]
+sense = entry.senses[0]                 # 最上位の意味のみ
 sense.gloss("en")                       # Text | None
-entry.gloss_langs()                     # {"en", "id"}
+entry.all_senses()                      # すべての意味と下位の意味、文書順
+entry.gloss_langs()                     # {"en", "id"}、下位の意味を含む
 ```
+
+項目全体に関する質問（語義の数を数えたり、使用言語をまとめたり、メディアを探したりすることなど）がある場合は、いつでも `all_senses()` を利用してください。 `entry.senses` は最上位レベルを示しますが、これはネスト構造そのものが重要である場合にのみ必要な情報です。
 
 ## 保存
 
