@@ -12,18 +12,10 @@ import sil_lift
 path = "dictionary.lift"
 lex = sil_lift.load(path)
 
-
-def iter_senses(senses):
-    """Yeyeza kila hisia, ikiwa ni pamoja na hisia ndogo (kwa kujirudia)."""
-    for sense in senses:
-        yield sense
-        yield from iter_senses(sense.subsenses)
-
-
 edited_glosses = 0
 
 for entry in lex.entries:
-    for sense in iter_senses(entry.senses):
+    for sense in entry.all_senses():
         for gloss in sense.glosses:
             if gloss.lang != "en":
                 continue
@@ -47,7 +39,8 @@ print(f"edited {edited_glosses} gloss(es) across {len(changed)} entry(ies)")
 
 Mambo machache ya kuzingatia:
 
-- `Sense.subsenses` ni `list[Sense]` yenyewe, kwa hivyo `iter_senses` inarudia ndani yake — uhariri wa jumla ambao ungepitia tu `entry.senses` ungeacha kimya kimya fasili yoyote iliyoko chini ya subsense.
+- `entry.all_senses()` hutoa kila hisia na hisia ndogo, kwa mpangilio wa kina-kwanza kulingana na mpangilio wa hati.
+  - `entry.senses` huhifadhi tu ngazi ya juu, hivyo uhariri wa pamoja unaopitia ndani yake utapuuza kimya kimya fasili yoyote iliyopachikwa chini ya hisia ndogo.
 - `gloss.text` ni `Text`, si mfululizo wa kawaida: `str(gloss.text)` huifanya iwe mfululizo wa kawaida kwa ajili ya kulinganisha, na mbadala huandikwa tena kwa kutumia `sil_lift.Text([new])` badala ya kubadilisha mfululizo mahali pake.
 - `lex.changed_entries()` huripoti ni vipengee gani vinatofautiana na faili kama ilivyoandaliwa. Kwa kuwa muhtasari wa kijumla wa kipengee unajumuisha tawi lake lote, uhariri wa kipengele kidogo kilichojumuishwa huripoti kipengee kinachokijumuisha.
   - Inalinganisha maudhui yaliyopangwa kwa mfululizo, hivyo kutoa uwanja thamani yake ya awali hakuripotiwi.
