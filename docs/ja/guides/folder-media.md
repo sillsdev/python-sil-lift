@@ -12,8 +12,6 @@ lex.all_ranges()                            # マージされた {id: Range} ビ
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-コンパニオンディスカバリーは実世界の状況を適切に処理します。既存のファイルを指す `range/@href` が使用されます。 FieldWorksの未参照の絶対パス `file://C:/...` のhrefは、`.lift`の隣にあるhrefのベース名にフォールバックします。また、従来の `<name>.lift-ranges` という同階層のファイルは、参照元がなくても自動的に検出されます。
-
 `lex.save()` は、`.lift` と追跡対象のすべてのコンパニオンをまとめて書き込みます。 `RangesFile` への編集内容は、そのファイルに保存されます。変更されていない範囲については、バイト単位でそのまま保持されます。 単体での使用：
 
 ```python
@@ -22,6 +20,16 @@ ranges.find("grammatical-info")
 ranges.sort()
 ranges.save()
 ```
+
+### コンパニオンの発見
+
+いくつかの候補が試され、その中から個別のファイルがすべて読み込まれます。
+
+- 既存のファイルを指すヘッダー `range/@href` は、指定された通りに使用されます。
+- 何も解決されない href は、`.lift` の後に続くベース名にフォールバックします。FieldWorks は、エクスポート元のマシンからの未参照の絶対パス `file://C:/...` を書き出しますが、このフォールバック機能によって、ローカル環境で正常に動作するようになっています。
+- 従来の `<name>.lift-ranges` という同階層要素は、それを参照している要素が何もなくても検出されます。
+
+大文字小文字やUnicodeの正規化のみが異なる名前でも一致します（`Dict.LIFT` は `Dict.lift-ranges` を検出します）。ただし、1つの名前に対して複数のファイルが一致する場合は、いずれのファイルも読み込まれず、[`ambiguous-ranges-file`](validate.md#problem-codes) として報告されます。
 
 `load()` に `resolve_ranges=False` を渡すと、コンパニオンの検出をスキップできます。
 
