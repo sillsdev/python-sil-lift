@@ -24,13 +24,16 @@ entry.lexical_unit["en"] = "grove"      # nyuzi rahisi zinageuzwa
 
 `Text` imepangwa — orodha iliyopangwa ya vipande vya `str` na `Span` — kwa sababu `<text>` inaweza kuwa na markup ya `<span>` iliyojificha ndani yake. `str(text)` inageuza kuwa maandishi ya kawaida; vipande vinabaki na alama za uandishi ili kuruhusu kurudi nyuma.
 
-Glosses ni _form-shaped_ katika LIFT (kila `<gloss>` lina lugha yake mwenyewe), hivyo sense ina `glosses: list[Form]` pamoja na kisaidizi:
+Glosses ni _form-shaped_ katika LIFT (kila `<gloss>` lina lugha yake mwenyewe), hivyo sense ina `glosses: list[Form]` pamoja na vifaa vya msaada:
 
 ```python
-sense = entry.senses[0]
-sense.gloss("en")                       # Text | None
-entry.gloss_langs()                     # {"en", "id"}
+sense = entry.senses[0]                 # ngazi ya juu tu
+sense.gloss("en")                       # maandishi | hakuna
+entry.all_senses()                      # kila maana na maana ndogo, mpangilio wa hati
+entry.gloss_langs()                     # {"en", "id"}, maana ndogo zimejumuishwa
 ```
+
+Tumia `all_senses()` kila unapouliza swali linalohusu kijumla kiingizo: kuhesabu maana, kukusanya lugha, kupata vyombo vya habari. `entry.senses` hutoa ngazi ya juu, ambayo ni kile unachotaka tu wakati muingiliano wenyewe ndio muhimu.
 
 ## Akiba
 
