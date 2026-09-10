@@ -222,16 +222,16 @@ RESIDUE_ONLY_MULTITEXT = b"""<?xml version="1.0" encoding="UTF-8"?>
 def test_multitext_carrying_only_residue_survives_touched_reserialization(
     tmp_path: Path,
 ) -> None:
-    # A multitext with no forms is empty as a mapping, so the writer's decision
-    # to emit it cannot come from len(). Nothing else in the corpus has this
+    # A multitext with no forms has no keys, so the writer's decision to emit
+    # it cannot come from the key side. Nothing else in the corpus has this
     # shape, and losing it would lose the attribute silently.
     source = tmp_path / "residue-only.lift"
     source.write_bytes(RESIDUE_ONLY_MULTITEXT)
     lexicon = sil_lift.load(source)
     entry = lexicon.find(id="one")
     assert entry is not None
-    assert len(entry.lexical_unit) == 0
     assert entry.lexical_unit.forms == []
+    assert len(entry.lexical_unit) == 0
     assert entry.lexical_unit  # the residue alone is worth serializing
 
     entry.senses[0].glosses[0].text = sil_lift.Text(["ONE (edited)"])

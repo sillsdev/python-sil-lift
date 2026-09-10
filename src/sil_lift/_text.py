@@ -93,11 +93,10 @@ class Multitext(Mapping[str, Text]):
     strings (``mt["en"] = "dog"``), and deletion, which takes every form for
     the language, so ``del mt["en"]`` leaves ``"en" not in mt``.
 
-    ``forms`` is the full truth and holds what no mapping can represent: a
-    form with a ``None`` lang, and a second form for a language already
-    present. Neither is reachable by key, yielded by a view, or counted by
-    ``len()``; where a language repeats, the mapping reads and updates its
-    first form only.
+    ``forms`` is the full truth and holds what no key can reach: a form with
+    a ``None`` lang, and a second form for a language already present. Neither
+    is yielded by a view or counted by ``len()``; where a language repeats,
+    the mapping reads and updates its first form only.
 
     ``bool(mt)`` asks "is there anything to serialize", so a multitext holding
     only residue or only a lang-less form is truthy while ``len()`` is 0.
@@ -108,8 +107,8 @@ class Multitext(Mapping[str, Text]):
     extra: Extras = field(default_factory=Extras)
 
     def _find(self, lang: str) -> Form | None:
-        # A None lang is not a key. Matching one would answer __getitem__ and
-        # __contains__ for a form that no view yields and len() does not count.
+        # A lang-less form is not a key: matching one here would answer
+        # __getitem__ and get() for something keys() never reports.
         for form in self.forms:
             if form.lang is not None and form.lang == lang:
                 return form

@@ -1,9 +1,7 @@
 """Tests for Multitext's mapping surface.
 
 `test_reader` covers what the reader builds from schema-invalid files and
-`test_writer` covers what survives a save; these pin the mapping semantics
-themselves — which key a repeated language resolves to, what the mutators
-reach, and the two places Multitext deviates from `Mapping` on purpose.
+`test_writer` covers what survives a save; these pin the semantics themselves.
 Multitexts are built directly rather than parsed so each case states the form
 list it is about.
 """
@@ -65,8 +63,8 @@ def test_a_lang_less_form_is_not_a_key() -> None:
 def test_assignment_updates_the_named_form_and_leaves_later_duplicates() -> None:
     multitext = _multitext(("en", "first"), ("en", "second"), ("fr", "deux"))
     multitext["en"] = "edited"
-    # A Form carries annotations and residue the mapping cannot show a caller,
-    # so assignment never discards one it was not asked about.
+    # A Form carries annotations and residue no key reaches, so assignment
+    # never discards one it was not asked about.
     assert [(form.lang, str(form.text)) for form in multitext.forms] == [
         ("en", "edited"),
         ("en", "second"),
@@ -96,7 +94,7 @@ def test_deletion_removes_every_form_for_the_language() -> None:
         del multitext["en"]
 
 
-def test_deleting_through_the_mapping_while_iterating_it_reaches_every_language() -> None:
+def test_deleting_while_iterating_reaches_every_language() -> None:
     multitext = _multitext(("en", "a"), ("fr", "b"), ("de", "c"), ("es", "d"))
     keys = multitext.keys()  # a live view, walked while its mapping shrinks
     for lang in keys:
@@ -112,15 +110,15 @@ def test_deleting_through_the_mapping_while_iterating_it_reaches_every_language(
 
 def test_truthiness_asks_whether_there_is_anything_to_serialize() -> None:
     assert not Multitext()
-    # Empty as a mapping, but there is a form the writer must emit. The other
-    # case truthiness exists for — residue and no forms at all — needs a parsed
+    # No keys, but there is a form the writer must emit. The other case
+    # truthiness exists for — residue and no forms at all — needs a parsed
     # document to build, so test_writer owns it.
     lang_less = _multitext((None, "orphan"))
     assert lang_less
     assert len(lang_less) == 0
 
 
-def test_equality_compares_form_lists_not_mapping_contents() -> None:
+def test_equality_compares_form_lists() -> None:
     assert _multitext(("en", "dog")) == _multitext(("en", "dog"))
     # Stricter than Mapping equality: a form no key reaches still counts.
     assert _multitext(("en", "dog")) != _multitext(("en", "dog"), (None, "orphan"))

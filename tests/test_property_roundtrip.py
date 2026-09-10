@@ -69,7 +69,7 @@ def _texts(draw: st.DrawFn) -> Text:
 def _multitexts(draw: st.DrawFn) -> Multitext:
     # Langs are neither unique nor always present: a repeated language and a
     # lang-less form are both schema-invalid shapes the reader accepts, so the
-    # round-trip has to hold for form lists the mapping cannot represent.
+    # round-trip has to hold for form lists no key can reach.
     langs = draw(st.lists(st.sampled_from([*_LANGS, None]), max_size=3))
     return Multitext([Form(lang, draw(_texts())) for lang in langs])
 
