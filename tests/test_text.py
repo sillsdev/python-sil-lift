@@ -38,6 +38,16 @@ def test_keys_are_languages_in_insertion_order() -> None:
     assert multitext.keys() == ["th", "en", "fr", "de"]
 
 
+def test_get_and_contains_answer_for_a_language_that_is_present() -> None:
+    multitext = _multitext(("en", "dog"), ("fr", "chien"))
+    assert "en" in multitext
+    assert multitext.get("en") is multitext["en"]
+    fallback = Text(["none of them"])
+    assert "de" not in multitext
+    assert multitext.get("de") is None
+    assert multitext.get("de", fallback) is fallback
+
+
 def test_a_repeated_language_is_one_key_answering_with_the_first_form() -> None:
     multitext = _multitext(("en", "first"), ("en", "second"), ("fr", "deux"))
     assert multitext.keys() == ["en", "fr"]
