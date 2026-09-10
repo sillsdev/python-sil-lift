@@ -24,16 +24,16 @@ entry.lexical_unit["en"] = "grove"      # les chaînes de caractères brutes son
 
 Le `Texte` est structuré — il s'agit d'une liste ordonnée de fragments `str` et `Span` — car `<text>` peut contenir des balises `<span>` imbriquées. `str(text)` convertit le contenu en texte brut ; les fragments conservent le balisage pour permettre la conversion aller-retour.
 
-Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus helpers:
+Dans LIFT, les glosses ont la forme d’une _forme_ (chaque `<gloss>` possède son propre langage) ; ainsi, un sens dispose de `glosses: list[Form]` ainsi que d’auxiliaires :
 
 ```python
-sense = entry.senses[0]                 # top level only
-sense.gloss("en")                       # Text | None
-entry.all_senses()                      # every sense and subsense, document order
-entry.gloss_langs()                     # {"en", "id"}, subsenses included
+sense = entry.senses[0]                 # niveau supérieur uniquement
+sense.gloss("en")                       # Texte | None
+entry.all_senses()                      # tous les sens et sous-sens, dans l'ordre du document
+entry.gloss_langs()                     # {"en", "id"}, sous-sens inclus
 ```
 
-Reach for `all_senses()` whenever a question concerns the whole entry: counting senses, collecting languages, finding media. `entry.senses` gives the top level, which is what you want only when the nesting itself matters.
+Utilisez la fonction `all_senses()` chaque fois qu'une question concerne l'entrée dans son ensemble : compter les sens, recenser les langues, trouver des supports. `entry.senses` fournit le niveau supérieur, ce qui ne vous intéresse que lorsque l'imbrication elle-même a de l'importance.
 
 ## Enregistrement
 
