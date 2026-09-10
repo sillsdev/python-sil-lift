@@ -109,12 +109,16 @@ that script; committed so tests don't depend on regeneration.
 Validated 2026-07-14 against the vendored RELAX NG grammar (`lift-0.13.rng`,
 abbreviated RNG throughout this file) via `lxml.etree.RelaxNG`. Two real-world
 quirk classes make some fixtures schema-invalid; they are kept as-is — the
-library's losslessness contract must carry exactly this kind of content, and
-the validator needs realistic subjects:
+reader must load exactly this kind of content, and the validator needs
+realistic subjects:
 
 1. **`<form>` without `@lang` inside `<etymology>`** — the RNG requires `@lang`
    on every form. Affects: `spec-examples/0.13/dialects.lift`,
    `spec-examples/0.13/fields any order.lift` (and their 0.12 originals).
+   Unlike quirk 2, this one does not survive an edit: validation reports it as
+   `form-missing-lang`, and re-serializing the node drops it. These fixtures
+   are byte-identical while untouched, and lose the form once something in
+   the entry changes.
 2. **`range/@href` of the shape `file://C:/...`** — fails the RNG's `anyURI`
    datatype under libxml2 (malformed authority; often unencoded spaces too).
    This is how FLEx actually writes range hrefs: **every real FLEx export in

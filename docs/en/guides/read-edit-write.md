@@ -23,9 +23,9 @@ entry.lexical_unit["en"] = "grove"      # plain strings are coerced
 list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
 
-`keys()`, `values()` and `items()` are views, one key per language, and `len()` counts languages rather than forms. Deletion works on the language rather than the form, so `del entry.lexical_unit["en"]` removes every English form.
+`keys()`, `values()` and `items()` are views, one key per language, and `len()` counts languages rather than forms. Both mutators work on the language rather than on one form: `del entry.lexical_unit["en"]` removes every English form, and assigning to `"en"` leaves exactly one.
 
-A schema-valid document has nothing more, but real files sometimes carry a second form for a language already present, or a form with no `lang` at all — neither is reachable by key. `forms` holds every form in file order, and [`validate`](validate.md#problem-codes) reports the duplicate as [`duplicate-form-lang`](validate.md#problem-codes). Where a language is repeated, assignment updates its first form and leaves the rest alone; `forms` is where you edit a duplicate deliberately.
+A schema-valid document has nothing more, but real files sometimes repeat a language. `forms` holds every form in file order, reads answer with the first, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language. A form carrying no `lang` at all cannot be created through the mapping, is reported as `form-missing-lang`, and is dropped when its node re-serializes.
 
 `Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
 

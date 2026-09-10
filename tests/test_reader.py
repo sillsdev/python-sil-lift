@@ -131,7 +131,8 @@ def test_lang_less_form_reads_as_no_key_at_all() -> None:
     assert [(form.lang, str(form.text)) for form in lexical_unit.forms] == [(None, "x")]
     assert list(lexical_unit.keys()) == []
     assert len(lexical_unit) == 0
-    assert lexical_unit  # truthy: there is still a form to serialize
+    # Falsy: the form is not re-serialized, so there is nothing to write.
+    assert not lexical_unit
 
 
 def test_reversal_main_chain() -> None:

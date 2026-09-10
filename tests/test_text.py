@@ -12,7 +12,7 @@ from collections.abc import Mapping
 
 import pytest
 
-from sil_lift import Form, Multitext, Text
+from sil_lift import Annotation, Form, Multitext, Text
 
 
 def _multitext(*pairs: tuple[str | None, str]) -> Multitext:
@@ -70,16 +70,31 @@ def test_a_lang_less_form_is_not_a_key() -> None:
     assert [str(form.text) for form in multitext.forms if form.lang is None] == ["orphan"]
 
 
-def test_assignment_updates_the_named_form_and_leaves_later_duplicates() -> None:
-    multitext = _multitext(("en", "first"), ("en", "second"), ("fr", "deux"))
+def test_assignment_leaves_one_form_for_the_language() -> None:
+    multitext = _multitext(("en", "first"), ("en", "second"), (None, "orphan"), ("fr", "deux"))
     multitext["en"] = "edited"
-    # A Form carries annotations and residue no key reaches, so assignment
-    # never discards one it was not asked about.
+    # Every form for the language, not just the first: leaving one behind would
+    # serialize a value this assignment replaced. Other languages are untouched.
     assert [(form.lang, str(form.text)) for form in multitext.forms] == [
         ("en", "edited"),
-        ("en", "second"),
+        (None, "orphan"),
         ("fr", "deux"),
     ]
+
+
+def test_assignment_keeps_the_surviving_forms_annotations() -> None:
+    multitext = _multitext(("en", "first"), ("en", "second"))
+    multitext.forms[0].annotations.append(Annotation(name="reviewed"))
+    multitext["en"] = "edited"
+    (form,) = multitext.forms
+    assert [a.name for a in form.annotations] == ["reviewed"]
+
+
+def test_assigning_none_as_a_language_is_refused() -> None:
+    multitext = _multitext(("en", "dog"))
+    with pytest.raises(TypeError, match="cannot be None"):
+        multitext[None] = "x"  # type: ignore[index]
+    assert [form.lang for form in multitext.forms] == ["en"]
 
 
 def test_assignment_coerces_a_plain_string_and_appends_a_new_language() -> None:
@@ -120,12 +135,10 @@ def test_deleting_while_iterating_reaches_every_language() -> None:
 
 def test_truthiness_asks_whether_there_is_anything_to_serialize() -> None:
     assert not Multitext()
-    # No keys, but there is a form the writer must emit. The other case
-    # truthiness exists for — residue and no forms at all — needs a parsed
-    # document to build, so test_writer owns it.
-    lang_less = _multitext((None, "orphan"))
-    assert lang_less
-    assert len(lang_less) == 0
+    # A lang-less form is not serialized, so on its own there is nothing to
+    # write. Residue is the one thing that makes an unkeyed multitext truthy;
+    # building that needs a parsed document, so test_writer owns it.
+    assert not _multitext((None, "orphan"))
 
 
 def test_equality_compares_form_lists() -> None:

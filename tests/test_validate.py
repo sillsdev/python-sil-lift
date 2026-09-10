@@ -229,6 +229,36 @@ def test_duplicate_form_lang_is_schematron_only_warning() -> None:
     assert problem.entry_id == "one"
 
 
+def test_form_missing_lang_is_an_error_naming_the_defect() -> None:
+    # The RNG rejects the document too, but only as "failed to validate
+    # content"; this names what is actually wrong.
+    problems = problems_for(NEGATIVE_DIR / "schema-invalid.lift")
+    (problem,) = [p for p in problems if p.code == "form-missing-lang"]
+    assert problem.level == "error"
+    assert problem.message == "a form has no lang, which the schema requires"
+    assert problem.entry_id == "broken"
+
+
+def test_form_missing_lang_covers_a_gloss_and_nests() -> None:
+    # Glosses are form-shaped but live outside any Multitext, and a note's
+    # forms is a nested Multitext -- both are reported.
+    lexicon = sil_lift.Lexicon()
+    entry = sil_lift.Entry(id="e1", guid="55555555-5555-4444-8888-555555555555")
+    entry.lexical_unit["en"] = "e1"
+    sense = sil_lift.Sense(id="s1")
+    sense.glosses.append(sil_lift.Form(lang=None, text=sil_lift.Text(["g"])))
+    entry.senses.append(sense)
+    note = sil_lift.Note()
+    note.forms.forms.append(sil_lift.Form(lang=None, text=sil_lift.Text(["n"])))
+    entry.notes.append(note)
+    lexicon.entries.append(entry)
+    messages = sorted(p.message for p in lexicon.iter_problems() if p.code == "form-missing-lang")
+    assert messages == [
+        "a form has no lang, which the schema requires",
+        "a gloss has no lang, which the schema requires",
+    ]
+
+
 def test_schema_violation_is_error_addressed_to_entry() -> None:
     problems = problems_for(NEGATIVE_DIR / "schema-invalid.lift")
     schema_errors = [p for p in problems if p.code == "schema"]

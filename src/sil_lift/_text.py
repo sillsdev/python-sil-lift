@@ -90,16 +90,22 @@ class Multitext(Mapping[str, Text]):
 
     A ``Mapping[str, Text]`` — ``mt["en"]``, ``"en" in mt``, ``mt.get(...)``,
     ``mt.keys()`` and the other views — plus assignment, which coerces plain
-    strings (``mt["en"] = "dog"``), and deletion, which takes every form for
-    the language, so ``del mt["en"]`` leaves ``"en" not in mt``.
+    strings (``mt["en"] = "dog"``), and deletion.
 
-    ``forms`` is the full truth and holds what no key can reach: a form with
-    a ``None`` lang, and a second form for a language already present. Neither
-    is yielded by a view or counted by ``len()``; where a language repeats,
-    the mapping reads and updates its first form only.
+    Both mutators act on the language, not on one form: assignment leaves a
+    single form for the language it names, and ``del mt["en"]`` leaves
+    ``"en" not in mt``. Writing through the mapping is therefore also how a
+    caller repairs a form list the schema does not allow.
 
-    ``bool(mt)`` asks "is there anything to serialize", so a multitext holding
-    only residue or only a lang-less form is truthy while ``len()`` is 0.
+    ``forms`` is the full truth and holds what no key can reach: a form with a
+    ``None`` lang, and a second form for a language already present. Neither is
+    yielded by a view or counted by ``len()``, reads answer with the first form
+    for a language, and validation reports both as ``form-missing-lang`` and
+    ``duplicate-form-lang``. Assigning ``None`` is refused, and re-serializing
+    drops a lang-less form read from a file.
+
+    ``bool(mt)`` asks "is there anything to serialize", which residue defeats on
+    its own, so a residue-only multitext is truthy while ``len()`` is 0.
     Equality compares ``forms``, stricter than ``Mapping`` equality.
     """
 
@@ -121,12 +127,18 @@ class Multitext(Mapping[str, Text]):
         return form.text
 
     def __setitem__(self, lang: str, value: Text | str) -> None:
+        if lang is None:  # reachable from data, where a form's lang can be None
+            raise TypeError("a language cannot be None; the schema requires one per form")
         text = Text([value]) if isinstance(value, str) else value
         form = self._find(lang)
         if form is None:
             self.forms.append(Form(lang, text))
-        else:
-            form.text = text
+            return
+        form.text = text
+        # One form per language afterwards: a later form for it is what the
+        # schema's rule counts as the violation, and leaving one behind would
+        # let the node serialize a value this assignment just replaced.
+        self.forms[:] = [f for f in self.forms if f.lang != lang or f is form]
 
     def __delitem__(self, lang: str) -> None:
         if self._find(lang) is None:
@@ -149,7 +161,8 @@ class Multitext(Mapping[str, Text]):
         return sum(1 for _ in self)
 
     def __bool__(self) -> bool:
-        return bool(self.forms) or bool(self.extra)
+        # Diverges from len() only for residue: a lang-less form is not serialized.
+        return len(self) > 0 or bool(self.extra)
 
     def __repr__(self) -> str:
         pairs = [(form.lang, str(form.text)) for form in self.forms]

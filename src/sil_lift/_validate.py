@@ -51,7 +51,7 @@ from ._model import (
     _ranges_candidates,
     _same_file,
 )
-from ._text import Multitext, Trait
+from ._text import Form, Multitext, Trait
 
 if TYPE_CHECKING:
     import os
@@ -399,6 +399,24 @@ def _semantic_problems(
                     guid=entry.guid,
                     line=at(index),
                 )
+
+    # Forms and glosses with no lang. The RNG rejects the document too, but only
+    # as an opaque "failed to validate content", so this names the defect. One
+    # finding per element.
+    for index, entry in enumerate(lexicon.entries):
+        for label, form in _iter_instances(entry, Form):
+            if form.lang is not None:
+                continue
+            tag = "gloss" if label == "glosses" else "form"
+            yield Problem(
+                "error",
+                "form-missing-lang",
+                f"a {tag} has no lang, which the schema requires",
+                file=file,
+                entry_id=entry.id,
+                guid=entry.guid,
+                line=at(index),
+            )
 
     # Duplicate form languages (the RNG's Schematron rule; lxml ignores it) —
     # every Multitext under the entry, not just the top-level ones.

@@ -75,11 +75,9 @@ releases may contain breaking changes.
   file, entry, and line it concerns. RELAX NG layer with two documented
   departures from strict validation (invalid `file://` hrefs downgraded to
   `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and ten semantic checks the grammar cannot
-  express, one `Problem` code each (with missing-id opt-in via `require_ids`).
-  Names resolve against range and range-element ids under NFC; a match that
-  needed normalizing is reported as normalization-mismatch, once per id.
-  Every code is described in `docs/en/guides/validate.md`.
+  ranges schema over companions; and eleven semantic checks, one `Problem`
+  code each (with missing-id opt-in via `require_ids`). Every code is
+  described in `docs/en/guides/validate.md`.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and
