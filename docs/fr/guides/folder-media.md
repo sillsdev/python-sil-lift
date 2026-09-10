@@ -21,15 +21,15 @@ ranges.sort()
 ranges.save()
 ```
 
-### Companion discovery
+### Découverte de compagnons
 
-Several candidates are tried, and every distinct file among them is loaded.
+Plusieurs candidats sont testés, et chaque fichier distinct parmi ceux-ci est chargé.
 
-- A header `range/@href` that points at an existing file is used as given.
-- An href that resolves to nothing falls back to its basename next to the `.lift` — FieldWorks writes dangling absolute `file://C:/...` paths from the exporting machine, and that fallback is what makes them work locally.
-- The conventional `<name>.lift-ranges` sibling is picked up even when nothing references it.
+- Un en-tête `range/@href` pointant vers un fichier existant est utilisé tel quel.
+- Un lien `href` qui ne renvoie rien utilise par défaut son nom de base suivi de `.lift` — FieldWorks génère des chemins absolus « orphelins » de type `file://C:/...` à partir de la machine d'exportation, et c'est ce recours par défaut qui leur permet de fonctionner localement.
+- L'élément frère conventionnel `<name>.lift-ranges` est pris en compte même si aucun élément ne le référence.
 
-Names that differ only in case or Unicode normalization still match — `Dict.LIFT` finds `Dict.lift-ranges` — unless several files match one name, which loads none of them and is reported as [`ambiguous-ranges-file`](validate.md#problem-codes).
+Les noms qui ne diffèrent que par la casse ou la normalisation Unicode sont toujours considérés comme identiques — `Dict.LIFT` trouve `Dict.lift-ranges` — sauf si plusieurs fichiers correspondent à un même nom, auquel cas aucun d’entre eux n’est chargé et une erreur [`ambiguous-ranges-file`](validate.md#problem-codes) est signalée.
 
 Transmettez `resolve_ranges=False` à la fonction `load()` pour ignorer la recherche de composants associés.
 
