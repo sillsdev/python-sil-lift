@@ -107,6 +107,12 @@ def test_deleting_while_iterating_reaches_every_language() -> None:
         del multitext[lang]
     assert multitext.forms == []
 
+    multitext = _multitext(("en", "a"), ("fr", "b"), ("de", "c"), ("es", "d"))
+    for lang in multitext:
+        if lang != "en":
+            del multitext[lang]
+    assert multitext.keys() == ["en"]
+
 
 def test_truthiness_asks_whether_there_is_anything_to_serialize() -> None:
     assert not Multitext()

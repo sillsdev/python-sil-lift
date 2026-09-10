@@ -94,9 +94,9 @@ class Multitext:
     (``mt["en"] = "dog"``), and deletion, which takes every form for the
     language, so ``del mt["en"]`` leaves ``"en" not in mt``.
 
-    ``forms`` is the full truth and holds what no key can reach: a form with a
-    ``None`` lang, and a second form for a language already present. Where a
-    language repeats, the mapping side reads and updates its first form only.
+    ``forms`` is the full truth and holds what no key can reach: a form with
+    a ``None`` lang, and a second form for a language already present. Where a
+    language repeats, the mapping reads and updates its first form only.
 
     There is no ``len()``. Ask ``forms`` or ``keys()`` for the count you mean —
     they differ exactly on the files above. ``bool(mt)`` asks "is there anything
@@ -132,7 +132,8 @@ class Multitext:
     def __delitem__(self, lang: str) -> None:
         if self._find(lang) is None:
             raise KeyError(lang)
-        # Sliced in place rather than rebound, because callers hold `forms`.
+        # Every form for the language, so the key is gone afterwards. Sliced in
+        # place because callers hold `forms` directly.
         self.forms[:] = [form for form in self.forms if form.lang != lang]
 
     def get(self, lang: str, default: Text | None = None) -> Text | None:
