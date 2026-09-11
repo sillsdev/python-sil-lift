@@ -106,7 +106,7 @@ that script; committed so tests don't depend on regeneration.
 
 ## Known RNG-invalid fixtures (kept deliberately)
 
-Validated 2026-07-14 against the vendored RELAX NG grammar (`lift-0.13.rng`,
+Validated 2026-07-14 against vendored RELAX NG (RNG) grammar (`lift-0.13.rng`,
 abbreviated RNG throughout this file) via `lxml.etree.RelaxNG`. Two real-world
 quirk classes make some fixtures schema-invalid; they are kept as-is — the
 reader must load exactly this kind of content, and the validator needs

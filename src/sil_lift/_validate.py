@@ -2,7 +2,7 @@
 
 Three layers, all explicit-call (never implicit on load/save):
 
-1. RELAX NG against the vendored ``lift-0.13.rng`` — with two deliberate
+1. RELAX NG (RNG) against the vendored ``lift-0.13.rng``, with two deliberate
    deviations from raw libxml2 behavior:
 
    - ``href`` attributes are masked before validation. libxml2's ``anyURI``
@@ -25,8 +25,8 @@ Three layers, all explicit-call (never implicit on load/save):
    ``Problem.code`` below; ``docs/en/guides/validate.md`` tabulates each one's
    level and what it flags.
 
-A document that cannot be serialized at all — a lone surrogate assigned through
-the API — is reported as a single ``lone-surrogate`` error instead of the layers
+A document that cannot be serialized at all (a lone surrogate assigned through
+the API) is reported as a single ``lone-surrogate`` error instead of the layers
 above, all of which need the rendered bytes.
 """
 
@@ -251,26 +251,18 @@ def _iter_instances(obj: object, cls: type[_T], label: str = "") -> Iterator[tup
     """Every instance of ``cls`` reachable from ``obj``, with the field name it
     was found under (dashed, as the XML spells it).
 
-    Walking the dataclass tree rather than hand-listing fields is what keeps
-    these checks in sync as the model grows, and each of its three callers
-    needs a reach a hand-written traversal would not have:
+    Walking the dataclass tree rather than hand-listing fields keeps these
+    checks in sync as the model grows, and reaches two things a hand-written
+    traversal would miss:
 
-    - ``Multitext`` mirrors the RNG's Schematron ``multitext-content`` rule,
-      which fires on every ``<form>``-bearing element in the grammar —
-      including forms nested inside annotation content, since
-      ``Annotation.content`` is itself a Multitext and is reachable from almost
-      any node via ``.annotations``.
-    - ``Trait`` is not just entry/sense-direct: real FLEx exports nest traits
-      inside ``<relation>`` (``is-primary``, ``complex-form-type``),
-      ``<variant>`` (``morph-type``), ``<pronunciation>``, and other
-      extensible elements.
-    - ``GrammaticalInfo`` sits on senses, reversals, and reversal ``main``
-      chains alike.
+    - ``Annotation.content`` is itself a ``Multitext`` and hangs off almost any
+      node via ``.annotations``, so forms nest inside annotation content.
+    - Real FLEx exports nest traits inside ``<relation>`` (``is-primary``,
+      ``complex-form-type``), ``<variant>`` (``morph-type``) and
+      ``<pronunciation>``, not only entry- and sense-direct.
 
     A match is descended into as well as yielded, which is what finds a
-    Multitext inside a Multitext's own annotations. Nothing in the model nests
-    a Trait or a GrammaticalInfo inside another, so for those two the descent
-    finds nothing and costs only the walk.
+    Multitext inside a Multitext's own annotations.
     """
     if isinstance(obj, cls):
         yield label, obj
@@ -282,6 +274,51 @@ def _iter_instances(obj: object, cls: type[_T], label: str = "") -> Iterator[tup
         return
     for f in fields(obj):
         yield from _iter_instances(getattr(obj, f.name), cls, f.name.replace("_", "-"))
+
+
+def _form_shape_problems(
+    root: object,
+    *,
+    file: Path | None,
+    entry_id: str | None = None,
+    guid: str | None = None,
+    line: int | None = None,
+) -> Iterator[Problem]:
+    """The two form-shape rules over every ``Form`` and ``Multitext`` under ``root``.
+
+    A form with no lang, and a language repeated within one multitext. Both read
+    the model rather than the rendered bytes, which is what lets them reach past
+    entries. The header and a companion ranges file have no entry to name, so
+    their findings carry the file alone.
+
+    The RNG catches a lang-less form only while the document still holds one,
+    which a re-serialized node does not. It never catches a repeated language:
+    that's an embedded Schematron rule, which the parser ignores.
+    """
+    for label, form in _iter_instances(root, Form):
+        if form.lang is None:
+            tag = "gloss" if label == "glosses" else "form"
+            yield Problem(
+                "error",
+                "form-missing-lang",
+                f"a {tag} has no lang, which the schema requires",
+                file=file,
+                entry_id=entry_id,
+                guid=guid,
+                line=line,
+            )
+    for label, multitext in _iter_instances(root, Multitext):
+        langs = Counter(f.lang for f in multitext.forms if f.lang is not None)
+        for lang in sorted(lang for lang, count in langs.items() if count > 1):
+            yield Problem(
+                "warning",
+                "duplicate-form-lang",
+                f"{label} has more than one form with lang {lang!r}",
+                file=file,
+                entry_id=entry_id,
+                guid=guid,
+                line=line,
+            )
 
 
 def _semantic_problems(
@@ -320,12 +357,11 @@ def _semantic_problems(
                         line=at(index),
                     )
 
-    # Duplicate GUIDs (C# Validator parity case): Validator.GetDuplicateGuidErrors
-    # scans every element's guid attribute in the document being validated, not
-    # just entries -- the RNG also allows one on <range> and <range-element>.
-    # Scope is per rendered document, matching that per-file scan: the .lift
-    # (entries plus any inline header ranges/range-elements) is one scope, and
-    # each .lift-ranges companion (its own ranges/range-elements) is another.
+    # Duplicate GUIDs, mirroring the C# Validator.GetDuplicateGuidErrors. That
+    # scans every element carrying a guid, not just entries: the RNG allows one
+    # on <range> and <range-element> too. Scope is per rendered document,
+    # matching its per-file scan. So a guid shared by a .lift and its companion
+    # is not a duplicate.
     def _range_guids(
         ranges: list[Range],
     ) -> Iterator[tuple[str, str, str | None, int | None]]:
@@ -400,39 +436,16 @@ def _semantic_problems(
                     line=at(index),
                 )
 
-    # Forms and glosses with no lang. The RNG rejects the document too, but only
-    # as an opaque "failed to validate content", so this names the defect. One
-    # finding per element.
+    # form-missing-lang and duplicate-form-lang, everywhere a form can sit.
     for index, entry in enumerate(lexicon.entries):
-        for label, form in _iter_instances(entry, Form):
-            if form.lang is not None:
-                continue
-            tag = "gloss" if label == "glosses" else "form"
-            yield Problem(
-                "error",
-                "form-missing-lang",
-                f"a {tag} has no lang, which the schema requires",
-                file=file,
-                entry_id=entry.id,
-                guid=entry.guid,
-                line=at(index),
-            )
-
-    # Duplicate form languages (the RNG's Schematron rule; lxml ignores it) —
-    # every Multitext under the entry, not just the top-level ones.
-    for index, entry in enumerate(lexicon.entries):
-        for label, multitext in _iter_instances(entry, Multitext):
-            langs = Counter(f.lang for f in multitext.forms if f.lang is not None)
-            for lang in sorted(lang for lang, count in langs.items() if count > 1):
-                yield Problem(
-                    "warning",
-                    "duplicate-form-lang",
-                    f"{label} has more than one form with lang {lang!r}",
-                    file=file,
-                    entry_id=entry.id,
-                    guid=entry.guid,
-                    line=at(index),
-                )
+        yield from _form_shape_problems(
+            entry, file=file, entry_id=entry.id, guid=entry.guid, line=at(index)
+        )
+    yield from _form_shape_problems(lexicon.header, file=file)
+    for ranges_file in lexicon.ranges_files.values():
+        # `.ranges` rather than the file: RangesFile is not a dataclass, so the
+        # walk would stop at it.
+        yield from _form_shape_problems(ranges_file.ranges, file=ranges_file.path)
 
     # FLEx used to write some ids in NFD but every reference to them in NFC,
     # so resolving a name to an id has to compare both forms.
