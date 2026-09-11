@@ -1,4 +1,5 @@
 import unicodedata
+from collections.abc import Callable
 from dataclasses import is_dataclass
 from pathlib import Path
 from typing import get_args, get_type_hints
@@ -227,6 +228,101 @@ def test_duplicate_form_lang_is_schematron_only_warning() -> None:
     (problem,) = problems
     assert (problem.level, problem.code) == ("warning", "duplicate-form-lang")
     assert problem.entry_id == "one"
+
+
+def test_form_missing_lang_is_an_error_naming_the_defect() -> None:
+    # Validation rejects the document too, but only as "failed to validate
+    # content"; this names what is actually wrong.
+    problems = problems_for(NEGATIVE_DIR / "schema-invalid.lift")
+    (problem,) = [p for p in problems if p.code == "form-missing-lang"]
+    assert problem.level == "error"
+    assert problem.message == "a form has no lang, which the schema requires"
+    assert problem.entry_id == "broken"
+
+
+def test_form_missing_lang_covers_a_gloss_and_nests() -> None:
+    # Glosses are form-shaped but live outside any Multitext, and a note's
+    # forms is a nested Multitext -- both are reported.
+    lexicon = sil_lift.Lexicon()
+    entry = sil_lift.Entry(id="e1", guid="55555555-5555-4444-8888-555555555555")
+    entry.lexical_unit["en"] = "e1"
+    sense = sil_lift.Sense(id="s1")
+    sense.glosses.append(sil_lift.Form(lang=None, text=sil_lift.Text(["g"])))
+    entry.senses.append(sense)
+    note = sil_lift.Note()
+    note.forms.forms.append(sil_lift.Form(lang=None, text=sil_lift.Text(["n"])))
+    entry.notes.append(note)
+    lexicon.entries.append(entry)
+    messages = sorted(p.message for p in lexicon.iter_problems() if p.code == "form-missing-lang")
+    assert messages == [
+        "a form has no lang, which the schema requires",
+        "a gloss has no lang, which the schema requires",
+    ]
+
+
+def _lexicon_with_header_range() -> sil_lift.Lexicon:
+    """A document that validates clean, with a form in each place one can sit."""
+    lexicon = sil_lift.Lexicon()
+    entry = sil_lift.Entry(id="e1", guid="55555555-5555-4444-8888-555555555555")
+    entry.lexical_unit["en"] = "e1"
+    lexicon.entries.append(entry)
+    lexicon.header.description["en"] = "a header"
+    range_ = sil_lift.Range(id="r1")
+    range_.description["en"] = "a range"
+    range_.add_element("re1").label["en"] = "an element"
+    lexicon.header.ranges.append(range_)
+    return lexicon
+
+
+def test_the_form_rules_reach_the_header_and_its_ranges() -> None:
+    # The schema layer cannot cover a lang-less form outside an entry: it parses
+    # what save() would write, and the writer drops one. Nothing else reports it.
+    assert not list(_lexicon_with_header_range().iter_problems())
+    holders: tuple[Callable[[sil_lift.Lexicon], sil_lift.Multitext], ...] = (
+        lambda lex: lex.header.description,
+        lambda lex: lex.header.ranges[0].description,
+        lambda lex: lex.header.ranges[0].elements[0].label,
+    )
+    for holder in holders:
+        lexicon = _lexicon_with_header_range()
+        holder(lexicon).forms.append(sil_lift.Form(lang=None, text=sil_lift.Text(["orphan"])))
+        assert [p.code for p in lexicon.iter_problems()] == ["form-missing-lang"]
+
+        lexicon = _lexicon_with_header_range()
+        holder(lexicon).forms.append(sil_lift.Form(lang="en", text=sil_lift.Text(["second"])))
+        assert [p.code for p in lexicon.iter_problems()] == ["duplicate-form-lang"]
+
+
+RANGES_HOST = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<header><ranges><range id="r1" href="x.lift-ranges"/></ranges></header>
+<entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit></entry>
+</lift>
+"""
+
+RANGES_COMPANION = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift-ranges>
+<range id="r1"><range-element id="re1"><label><form lang="en"><text>ok</text></form></label>
+</range-element></range>
+</lift-ranges>
+"""
+
+
+def test_the_form_rules_reach_a_companion_ranges_file(tmp_path: Path) -> None:
+    source = tmp_path / "x.lift"
+    source.write_bytes(RANGES_HOST)
+    (tmp_path / "x.lift-ranges").write_bytes(RANGES_COMPANION)
+    lexicon = sil_lift.load(source)
+    assert not list(lexicon.iter_problems())
+
+    (ranges_file,) = lexicon.ranges_files.values()
+    label = ranges_file.ranges[0].elements[0].label
+    label.forms.append(sil_lift.Form(lang=None, text=sil_lift.Text(["orphan"])))
+    (problem,) = lexicon.iter_problems()
+    assert problem.code == "form-missing-lang"
+    # Addressed to the file that defines it, which has no entry to name.
+    assert problem.file == ranges_file.path
+    assert (problem.entry_id, problem.line) == (None, None)
 
 
 def test_schema_violation_is_error_addressed_to_entry() -> None:

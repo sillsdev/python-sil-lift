@@ -28,7 +28,7 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 
 ## Problem codes
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other ten are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
 
 | code                     | level   | what it flags                                                              |
 | ------------------------ | ------- | -------------------------------------------------------------------------- |
@@ -37,6 +37,7 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `dangling-ref`           | error   | a `relation/@ref` or `variant/@ref` matching no entry or sense             |
 | `duplicate-form-lang`    | warning | two forms in one multitext sharing a language                              |
 | `duplicate-guid`         | error   | a guid reused among entries, or among one document's ranges/range-elements |
+| `form-missing-lang`      | error   | a `<form>` or `<gloss>` without the `lang` the schema requires             |
 | `missing-id`             | error   | opt-in via `require_ids`: an entry without a guid, a sense without an id   |
 | `missing-media`          | warning | a referenced audio or picture file not on disk                             |
 | `normalization-mismatch` | warning | a name that reaches the id it refers to only under NFC                     |

@@ -18,24 +18,41 @@ def corpus_id(path: Path) -> str:
     return path.relative_to(CORPUS_DIR).as_posix()
 
 
-def _normalize(el: etree._Element) -> None:
+def _normalize(el: etree._Element) -> bool:
     """Make interleave-equivalent documents compare equal.
 
     Outside mixed content: drop ignorable whitespace, then stable-sort children
     by tag — the RELAX NG (RNG) grammar uses interleave everywhere, so
     cross-type sibling order is not semantically significant, while relative
     order within one tag (a repeated list) is preserved by the stable sort.
+
+    Also applies the two documented approximations that make a touched node
+    write less than it read (see docs/en/fidelity.md): a form or gloss with no
+    lang is not re-serialized, and a multitext left carrying nothing by that
+    removal is not re-emitted either. Both are applied to each side, so the
+    comparison covers everything except what the writer declines to write.
+    Returns whether the caller should drop this element for the second reason.
     """
     if el.tag in ("text", "span"):
-        return  # everything inside mixed content is significant
+        return False  # everything inside mixed content is significant
     if el.text is not None and not el.text.strip():
         el.text = None
+    emptied = []
     for child in el:
         if child.tail is not None and not child.tail.strip():
             child.tail = None
-        if isinstance(child.tag, str):
-            _normalize(child)
+        if isinstance(child.tag, str) and _normalize(child):
+            emptied.append(child)
+    for child in emptied:
+        el.remove(child)
+    stripped = False
+    for child in [c for c in el if c.tag in ("form", "gloss") and c.get("lang") is None]:
+        el.remove(child)
+        stripped = True
     el[:] = sorted(el, key=lambda c: c.tag if isinstance(c.tag, str) else "")
+    # Only a wrapper this rule emptied: an element that was already empty in
+    # the source (out-of-schema `<bogus/>`, say) is re-emitted and must compare.
+    return stripped and len(el) == 0 and not el.attrib and not (el.text or "").strip()
 
 
 def _semantic_bytes(data: bytes) -> bytes:
@@ -207,6 +224,91 @@ def test_out_of_schema_content_survives_touched_reserialization(tmp_path: Path) 
     assert reloaded_entry is not None
     assert reloaded_entry.extra  # unknown attr + element still carried
     assert _semantic_bytes(result) != b""  # well-formed enough to canonicalize
+
+
+LANG_LESS_FORMS = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13">
+<entry id="one">
+<lexical-unit><form lang="en"><text>one</text></form>
+<form><text>ORPHANFORM</text></form></lexical-unit>
+<sense id="s1"><gloss lang="en"><text>ONE</text></gloss><gloss><text>ORPHANGLOSS</text></gloss>
+<definition><form><text>ORPHANDEF</text></form></definition></sense>
+</entry>
+<entry id="two">
+<lexical-unit><form><text>SURVIVOR</text></form></lexical-unit>
+</entry>
+</lift>
+"""
+
+
+def test_a_lang_less_form_is_dropped_when_its_node_re_serializes(tmp_path: Path) -> None:
+    source = tmp_path / "lang-less.lift"
+    source.write_bytes(LANG_LESS_FORMS)
+    lexicon = sil_lift.load(source)
+    out = tmp_path / "out.lift"
+
+    # Untouched: the source bytes stand, orphans and all.
+    lexicon.save(out)
+    assert out.read_bytes() == LANG_LESS_FORMS
+
+    entry = lexicon.find(id="one")
+    assert entry is not None
+    entry.senses[0].glosses[0].text = sil_lift.Text(["ONE (edited)"])
+    lexicon.save(out)
+    result = out.read_bytes()
+
+    assert b"ONE (edited)" in result
+    for gone in (b"ORPHANFORM", b"ORPHANGLOSS", b"ORPHANDEF"):
+        assert gone not in result  # a form, a gloss, and a definition's only form
+    # A multitext the drop emptied is not re-emitted at all.
+    assert b"<definition" not in result
+    assert b'<form lang="en">' in result  # the keyed sibling is untouched
+    # The other entry was not touched, so its lang-less form survives verbatim.
+    assert b"<lexical-unit><form><text>SURVIVOR</text></form></lexical-unit>" in result
+
+    reloaded = sil_lift.load(out)
+    touched = reloaded.find(id="one")
+    assert touched is not None
+    assert [f.lang for f in touched.lexical_unit.forms] == ["en"]
+    assert touched.senses[0].definition.forms == []
+    # The finding follows the content: only the entry that still holds one.
+    assert {p.entry_id for p in reloaded.iter_problems() if p.code == "form-missing-lang"} == {
+        "two"
+    }
+
+
+RESIDUE_ONLY_MULTITEXT = b"""<?xml version="1.0" encoding="UTF-8"?>
+<lift version="0.13" xmlns:x="urn:x">
+<entry id="one">
+<lexical-unit x:note="keepme"/>
+<sense id="s1"><gloss lang="en"><text>ONE</text></gloss></sense>
+</entry>
+</lift>
+"""
+
+
+def test_multitext_carrying_only_residue_survives_touched_reserialization(
+    tmp_path: Path,
+) -> None:
+    # A multitext with no forms has no keys, so the writer's decision to emit
+    # it cannot come from the key side. Nothing else in the corpus has this
+    # shape, and losing it would lose the attribute silently.
+    source = tmp_path / "residue-only.lift"
+    source.write_bytes(RESIDUE_ONLY_MULTITEXT)
+    lexicon = sil_lift.load(source)
+    entry = lexicon.find(id="one")
+    assert entry is not None
+    assert entry.lexical_unit.forms == []
+    assert len(entry.lexical_unit) == 0
+    assert entry.lexical_unit  # the residue alone is worth serializing
+
+    entry.senses[0].glosses[0].text = sil_lift.Text(["ONE (edited)"])
+    out = tmp_path / "roundtrip.lift"
+    lexicon.save(out)
+    assert b'note="keepme"' in out.read_bytes()
+    reloaded = sil_lift.load(out).find(id="one")
+    assert reloaded is not None
+    assert reloaded.lexical_unit.extra
 
 
 # Residue that is neither an element nor an attribute: a processing instruction,
