@@ -385,6 +385,34 @@ def test_a_refused_write_leaves_nothing_stamped(tmp_path: Path) -> None:
     assert not out.exists()
 
 
+def test_a_refused_companion_write_leaves_the_lift_alone(tmp_path: Path) -> None:
+    """Every document is rendered before any is written, companions included.
+
+    A companion is written after the .lift, so content refused while rendering
+    one would otherwise leave the .lift rewritten and stamped for a save that
+    raised.
+    """
+    source = tmp_path / "doc.lift"
+    source.write_bytes(UNDATED.read_bytes())
+    lexicon = sil_lift.load(source)
+    before = source.read_bytes()
+    baseline = dict(lexicon._stamps)
+    offending = sil_lift.Range(id="etymology")
+    offending.label["en"] = "\ud800"
+    ranges_file = sil_lift.RangesFile()
+    ranges_file.ranges.append(offending)
+    lexicon.add_ranges_file(ranges_file, href="doc.lift-ranges")
+    lexicon.entries[0].lexical_unit["en"] = "edited"
+
+    with pytest.raises(sil_lift.LiftWriteError):
+        lexicon.save(when=WHEN)
+
+    assert source.read_bytes() == before
+    assert not (tmp_path / "doc.lift-ranges").exists()
+    assert lexicon.entries[0].date_modified is None
+    assert lexicon._stamps == baseline
+
+
 def test_a_refused_zip_write_leaves_nothing_stamped(tmp_path: Path) -> None:
     lexicon = sil_lift.load(_in_its_own_folder(UNDATED, tmp_path))
     entry = lexicon.entries[0]

@@ -745,11 +745,11 @@ class Lexicon:
 
         Raises :class:`ValueError` if no target path is available (none was
         passed and the lexicon was not loaded from a file) or if ``when`` is
-        naive, and :class:`~sil_lift.LiftWriteError` if the model holds content
-        XML cannot represent (a lone surrogate) — nothing is written in that
-        case, and nothing is stamped.
+        naive, and :class:`~sil_lift.LiftWriteError` if the lexicon or one of
+        its companions holds content XML cannot represent (a lone surrogate) —
+        nothing is written in that case, and nothing is stamped.
         """
-        from ._writer import render_document
+        from ._writer import render_document, render_ranges_document
 
         target = Path(path) if path is not None else self.path
         if target is None:
@@ -758,7 +758,14 @@ class Lexicon:
         undo = self._apply_stamps(stamp, when)
         written = False
         try:
-            target.write_bytes(render_document(self))
+            # Rendered ahead of any write, so content refused in a companion
+            # leaves the .lift untouched too.
+            lift_bytes = render_document(self)
+            companions = [
+                (ranges_file, dest, render_ranges_document(ranges_file))
+                for ranges_file, dest in self._companion_targets(target, original_dir)
+            ]
+            target.write_bytes(lift_bytes)
             written = True
         finally:
             # A companion failing further down leaves the .lift on disk carrying
@@ -766,22 +773,36 @@ class Lexicon:
             if not written:
                 undo.restore()
         self.path = target
-        relocating = not _same_dir(target.parent, original_dir)
-        for key, ranges_file in self.ranges_files.items():
-            if ranges_file.path is None:
-                # A from-scratch companion (see add_ranges_file): the dict key
-                # is its intended href — write it beside the saved .lift.
-                ranges_file.save(target.parent / Path(key).name)
-            elif relocating:
-                ranges_file.save(target.parent / ranges_file.path.name)
-            else:
-                ranges_file.save()
+        for ranges_file, dest, data in companions:
+            dest.write_bytes(data)
+            ranges_file.path = dest
         # Keys must keep tracking the companions' current locations.
         self.ranges_files = {
             ranges_file.path.resolve(): ranges_file
             for ranges_file in self.ranges_files.values()
             if ranges_file.path is not None
         }
+
+    def _companion_targets(
+        self, target: Path, original_dir: Path | None
+    ) -> list[tuple[RangesFile, Path]]:
+        """Where each tracked companion goes for a ``.lift`` saved to ``target``.
+
+        Settled before anything is rendered, so the write step is nothing but
+        bytes to paths (see :meth:`save`).
+        """
+        relocating = not _same_dir(target.parent, original_dir)
+        targets: list[tuple[RangesFile, Path]] = []
+        for key, ranges_file in self.ranges_files.items():
+            if ranges_file.path is None:
+                # A from-scratch companion (see add_ranges_file): the dict key
+                # is its intended href — write it beside the saved .lift.
+                targets.append((ranges_file, target.parent / Path(key).name))
+            elif relocating:
+                targets.append((ranges_file, target.parent / ranges_file.path.name))
+            else:
+                targets.append((ranges_file, ranges_file.path))
+        return targets
 
     def save_zip(
         self,
