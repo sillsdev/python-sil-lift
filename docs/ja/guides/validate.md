@@ -28,22 +28,23 @@ problems = list(lex.iter_problems())
 
 ## 問題コード
 
-各検出結果には、それがどのレイヤーで生成されたかにかかわらず、これらのいずれかが含まれます。`schema` と `uri-not-rfc` はスキーマ・レイヤーからのもので、残りの10個はセマンティックチェックによるものです。 文字列はサポートされているインターフェースです。`--strict` を指定すると、すべての警告がエラーとして扱われます。
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. 文字列はサポートされているインターフェースです。`--strict` を指定すると、すべての警告がエラーとして扱われます。
 
-| コード                     | レベル | 何がフラグとして表示されるか                                      |
-| ----------------------- | --- | --------------------------------------------------- |
-| `ambiguous-ranges-file` | 警告  | ケースフォールディングおよびNFCの条件下で、1つのコンパニオン名に対応する複数のファイル       |
-| `dangling-ranges-href`  | 警告  | ヘッダー `range/@href` が、対応するファイルが見つからない状態になっている        |
-| `dangling-ref`          | エラー | エントリや意味に一致する `relation/@ref` または `variant/@ref` がない |
-| `duplicate-form-lang`   | 警告  | 1つのマルチテキスト内に、同じ言語を使用する2つのフォーム                       |
-| `duplicate-guid`        | エラー | エントリ間で、あるいは1つのドキュメント内の範囲／範囲要素間で再利用されるGUID           |
-| `missing-id`            | エラー | `require_ids` によるオプトイン：GUID のないエントリ、ID のないセンス       |
-| `missing-media`         | 警告  | 参照先の音声ファイルまたは画像ファイルがディスク上にありません                     |
-| `正規化の不一致`               | 警告  | NFCでのみ、そのIDを参照するIDに到達する名前                           |
-| `range-parent`          | エラー | `range-element/@parent` には、兄弟要素の ID が定義されていない       |
-| `スキーマ`                  | エラー | `.lift` ファイルまたはコンパニオン内で、RELAX NG 文法違反が発生しています       |
-| `未定義の範囲値`               | 警告  | 文法情報または範囲キー付き形質値のうち、その範囲にリストされていないもの                |
-| `uri-not-rfc`           | 警告  | 有効なURIではないhref — FLExの `file://C:/...`              |
+| コード                     | レベル | 何がフラグとして表示されるか                                                 |
+| ----------------------- | --- | -------------------------------------------------------------- |
+| `ambiguous-ranges-file` | 警告  | ケースフォールディングおよびNFCの条件下で、1つのコンパニオン名に対応する複数のファイル                  |
+| `dangling-ranges-href`  | 警告  | ヘッダー `range/@href` が、対応するファイルが見つからない状態になっている                   |
+| `dangling-ref`          | エラー | エントリや意味に一致する `relation/@ref` または `variant/@ref` がない            |
+| `duplicate-form-lang`   | 警告  | 1つのマルチテキスト内に、同じ言語を使用する2つのフォーム                                  |
+| `duplicate-guid`        | エラー | エントリ間で、あるいは1つのドキュメント内の範囲／範囲要素間で再利用されるGUID                      |
+| `form-missing-lang`     | エラー | a `<form>` or `<gloss>` without the `lang` the schema requires |
+| `missing-id`            | エラー | `require_ids` によるオプトイン：GUID のないエントリ、ID のないセンス                  |
+| `missing-media`         | 警告  | 参照先の音声ファイルまたは画像ファイルがディスク上にありません                                |
+| `正規化の不一致`               | 警告  | NFCでのみ、そのIDを参照するIDに到達する名前                                      |
+| `range-parent`          | エラー | `range-element/@parent` には、兄弟要素の ID が定義されていない                  |
+| `スキーマ`                  | エラー | `.lift` ファイルまたはコンパニオン内で、RELAX NG 文法違反が発生しています                  |
+| `未定義の範囲値`               | 警告  | 文法情報または範囲キー付き形質値のうち、その範囲にリストされていないもの                           |
+| `uri-not-rfc`           | 警告  | 有効なURIではないhref — FLExの `file://C:/...`                         |
 
 3つのレイヤーはすべて、`save()` が書き込む内容を基に動作するため、まったくシリアライズできないドキュメントについては、代わりに単一の `lone-surrogate` エラーとして報告されます。詳細は [忠実度の保証](../fidelity.md#content-xml-cannot-represent) を参照してください。
 
