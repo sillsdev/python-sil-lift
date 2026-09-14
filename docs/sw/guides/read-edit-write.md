@@ -12,7 +12,7 @@ lex = sil_lift.load("dictionary.lift")
 
 ## Mfano
 
-Kila kipengele cha LIFT ni dataclass iliyotengwa aina: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, na kadhalika. Maandishi ya lugha nyingi ni `Multitext`, ambayo hufanya kazi kama uhusiano kutoka kwa msimbo wa lugha hadi `Text`:
+Kila kipengele cha LIFT ni dataclass iliyotengwa aina: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, na kadhalika. Maandishi ya lugha nyingi ni `Multitext`, ambayo ni `Mapping` kutoka kwa msimbo wa lugha hadi `Text`:
 
 ```python
 entry = lex.find(id="abat")
@@ -20,7 +20,12 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # nyuzi rahisi zinageuzwa
 "en" in entry.citation                  # Si kweli
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`, `values()` na `items()` ni mitazamo, ufunguo mmoja kwa kila lugha, na `len()` huhesabu lugha badala ya fomu. Mutator zote mbili zinafanya kazi kwenye lugha badala ya kwenye fomu moja: `del entry.lexical_unit["en"]` huondoa kila fomu ya Kiingereza, na kuweka thamani kwenye `"en"` huacha moja tu.
+
+Hati iliyothibitishwa na schema haina zaidi ya hivyo, lakini faili halisi wakati mwingine hurudia lugha. `forms` huhifadhi kila fomu kwa mpangilio wa faili, husoma jibu la kwanza, na [`validate`](validate.md#problem-codes) huripoti `duplicate-form-lang` hadi utakapoiwekea lugha hiyo. Fomu isiyo na `lang` kabisa haiwezi kuundwa kupitia upangaji, inaripotiwa kama `form-missing-lang`, na inaachwa wakati node yake inapopangwa tena.
 
 `Text` imepangwa — orodha iliyopangwa ya vipande vya `str` na `Span` — kwa sababu `<text>` inaweza kuwa na markup ya `<span>` iliyojificha ndani yake. `str(text)` inageuza kuwa maandishi ya kawaida; vipande vinabaki na alama za uandishi ili kuruhusu kurudi nyuma.
 
