@@ -12,7 +12,7 @@ lex = sil_lift.load("dictionary.lift")
 
 ## モデル
 
-LIFTの各要素は、型付きデータクラスです。具体的には、`Entry`、`Sense`、`Example`、`Pronunciation`、`Variant`、`Relation`、`Etymology`、`Reversal`などがあります。 多言語テキストは `Multitext` であり、言語コードから `Text` へのマッピングのように動作します：
+LIFTの各要素は、型付きデータクラスです。具体的には、`Entry`、`Sense`、`Example`、`Pronunciation`、`Variant`、`Relation`、`Etymology`、`Reversal`などがあります。 多言語テキストは `Multitext` であり、これは言語コードから `Text` への `Mapping` です：
 
 ```python
 entry = lex.find(id="abat")
@@ -20,7 +20,12 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # プレーン文字列は型変換される
 "en" in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`、`values()`、`items()` はビューであり、言語ごとに 1 つのキーが割り当てられ、`len()` はフォームの数ではなく言語の数を数えます。 どちらのミューテータも、特定の語形ではなく言語全体に対して作用します。`del entry.lexical_unit["en"]` はすべての英語の語形を削除し、`"en"` に代入すると、ちょうど 1 つだけが残ります。
+
+スキーマに準拠したドキュメントにはそれ以上の要素は含まれていませんが、実際のファイルでは言語が重複することがあります。 `forms` にはファイル順にすべてのフォームが格納されており、最初のフォームから回答を読み込み、[`validate`](validate.md#problem-codes) はその言語を割り当てるまで `duplicate-form-lang` を報告します。 `lang` がまったく指定されていないフォームは、マッピングを通じて作成することができず、`form-missing-lang` として報告され、そのノードが再シリアル化される際に破棄されます。
 
 `Text` は、`str` および `Span` のフラグメントからなる順序付きリストとして構成されています。これは、`<text>` にネストされた `<span>` マークアップが含まれる可能性があるためです。 `str(text)` はプレーンテキストに変換されますが、フラグメントは往復処理のためにマークアップを維持します。
 
