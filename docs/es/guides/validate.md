@@ -28,7 +28,7 @@ Cada `Problema` incluye un `nivel` (`«error»`/`«advertencia»`), un `código`
 
 ## Códigos de error
 
-Cada resultado incluye uno de estos elementos, independientemente de la capa en la que se haya generado: `schema` y `uri-not-rfc` proceden de las capas de esquema, mientras que los otros diez son comprobaciones semánticas. Las cadenas son una interfaz compatible; la opción `--strict` convierte todas las advertencias en errores.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. Las cadenas son una interfaz compatible; la opción `--strict` convierte todas las advertencias en errores.
 
 | código                           | nivel       | lo que señala                                                                                                                    |
 | -------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,6 +37,7 @@ Cada resultado incluye uno de estos elementos, independientemente de la capa en 
 | `dangling-ref`                   | error       | una `relation/@ref` o `variant/@ref` que no coincide con ninguna entrada ni acepción                                             |
 | `duplicate-form-lang`            | advertencia | dos formas en un multitexto que comparten un idioma                                                                              |
 | `duplicate-guid`                 | error       | un identificador reutilizado entre entradas, o entre los rangos o elementos de rango de un mismo documento                       |
+| `form-missing-lang`              | error       | a `<form>` or `<gloss>` without the `lang` the schema requires                                                                   |
 | `id-faltante`                    | error       | Inclusión mediante `require_ids`: una entrada sin GUID, un sentido sin ID                                        |
 | `archivos-que-faltan`            | advertencia | un archivo de audio o imagen al que se hace referencia y que no se encuentra en el disco                                         |
 | `desajuste de normalización`     | advertencia | un nombre que solo permite acceder al identificador al que hace referencia mediante NFC                                          |
