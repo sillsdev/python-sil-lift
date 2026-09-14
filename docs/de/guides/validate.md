@@ -28,7 +28,7 @@ Jedes `Problem` enthält einen `Level` (`„error“`/`„warning“`), einen st
 
 ## Fehlercodes
 
-Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Ebene er entstanden ist – `schema` und `uri-not-rfc` stammen aus den Schema-Ebenen, die anderen zehn sind semantische Prüfungen. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler.
 
 | Code                                     | Ebene   | Was es markiert                                                                                                             |
 | ---------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -37,6 +37,7 @@ Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Eben
 | `dangling-ref`                           | Fehler  | ein `relation/@ref` oder `variant/@ref`, für das kein Eintrag oder keine Bedeutung gefunden wurde                           |
 | `duplicate-form-lang`                    | Warnung | Zwei Formen in einem Multitext, die dieselbe Sprache verwenden                                                              |
 | `duplicate-guid`                         | Fehler  | ein GUID, der innerhalb mehrerer Einträge oder innerhalb der Bereiche/Bereichselemente eines Dokuments wiederverwendet wird |
+| `form-missing-lang`                      | Fehler  | a `<form>` or `<gloss>` without the `lang` the schema requires                                                              |
 | `fehlende-ID`                            | Fehler  | Opt-in über `require_ids`: Ein Eintrag ohne GUID, ein Eintrag ohne ID                                       |
 | `fehlende Medien`                        | Warnung | Eine referenzierte Audio- oder Bilddatei, die sich nicht auf der Festplatte befindet                                        |
 | `Normalisierungsabweichung`              | Warnung | ein Name, der nur über NFC auf die ID zugreift, auf die er sich bezieht                                                     |
