@@ -12,15 +12,20 @@ La fonction `load()` accepte tout document LIFT **0.13** correctement formé, y 
 
 ## Le modèle
 
-Chaque élément de LIFT est une classe de données typée : `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, etc. Un texte multilingue est un `Multitext`, qui se comporte comme une correspondance entre un code de langue et un `Text` :
+Chaque élément de LIFT est une classe de données typée : `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, etc. Un texte multilingue est un `Multitext`, c'est-à-dire un `Mapping` entre un code de langue et un `Text` :
 
 ```python
 entry = lex.find(id="abat")
 
-str(entry.lexical_unit["seh"])          # "abat"
+str(entry.lexical_unit["seh"])          # « abat »
 entry.lexical_unit["en"] = "grove"      # les chaînes de caractères brutes sont converties
-"en" in entry.citation                  # False
+"en" in entry.citation                  # Faux
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`, `values()` et `items()` sont des vues, avec une clé par langue, et `len()` compte le nombre de langues plutôt que le nombre de formulaires. Ces deux mutateurs agissent sur la langue dans son ensemble plutôt que sur une forme en particulier : `del entry.lexical_unit["en"]` supprime toutes les formes en anglais, tandis qu'une affectation à `"en"` n'en laisse qu'une seule.
+
+Un document conforme au schéma ne contient rien de plus, mais les fichiers réels reprennent parfois un langage. `forms` contient tous les formulaires classés par ordre de fichier ; il lit la réponse du premier formulaire, et [`validate`](validate.md#problem-codes) signale l'erreur `duplicate-form-lang` tant que vous n'avez pas attribué de langue à ce formulaire. Un formulaire ne comportant aucun attribut `lang` ne peut pas être créé via le mappage ; il est signalé comme `form-missing-lang` et est supprimé lors de la resérialisation de son nœud.
 
 Le `Texte` est structuré — il s'agit d'une liste ordonnée de fragments `str` et `Span` — car `<text>` peut contenir des balises `<span>` imbriquées. `str(text)` convertit le contenu en texte brut ; les fragments conservent le balisage pour permettre la conversion aller-retour.
 
