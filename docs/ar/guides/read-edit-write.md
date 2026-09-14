@@ -12,7 +12,7 @@ lex = sil_lift.load("dictionary.lift")
 
 ## النموذج
 
-كل عنصر في LIFT هو فئة بيانات محددة النوع: `Entry`، `Sense`، `Example`، `Pronunciation`، `Variant`، `Relation`، `Etymology`، `Reversal`، وهكذا دواليك. النص متعدد اللغات هو كائن من نوع `Multitext`، والذي يعمل كخريطة تربط رمز اللغة بكائن من نوع `Text`:
+كل عنصر في LIFT هو فئة بيانات محددة النوع: `Entry`، `Sense`، `Example`، `Pronunciation`، `Variant`، `Relation`، `Etymology`، `Reversal`، وهكذا دواليك. النص متعدد اللغات هو `Multitext`، وهو عبارة عن `Mapping` يربط رمز اللغة بـ `Text`:
 
 ```python
 entry = lex.find(id="abat")
@@ -20,7 +20,12 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # يتم تحويل السلاسل العادية
 "en" in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+تُعدّ `keys()` و`values()` و`items()` طرق عرض، بحيث يمثل كل مفتاح لغة واحدة، بينما تُحسب `len()` عدد اللغات وليس عدد النماذج. يعمل كلا المُغيّرين على اللغة ككل وليس على شكل واحد: `del entry.lexical_unit["en"]` يزيل كل الأشكال الإنجليزية، أما التعيين إلى `"en"` فيترك شكلاً واحداً فقط.
+
+لا يحتوي المستند الصالح من حيث المخطط على أي شيء آخر، لكن الملفات الفعلية قد تتضمن أحيانًا تكرارًا للغة. يحتوي `forms` على جميع النماذج مرتبة حسب ترتيب الملفات، ويقرأ الإجابة من النموذج الأول، ويقوم [`validate`](validate.md#problem-codes) بالإبلاغ عن خطأ `duplicate-form-lang` حتى تقوم بتعيين تلك اللغة. لا يمكن إنشاء نموذج لا يحتوي على سمة `lang` على الإطلاق من خلال عملية التعيين، ويتم الإبلاغ عنه باعتباره `form-missing-lang`، ويتم استبعاده عند إعادة تسلسل العقدة الخاصة به.
 
 يتم تنظيم `Text` — كقائمة مرتبة من أجزاء `str` و`Span` — لأن `<text>` يمكن أن تحتوي على علامات `<span>` متداخلة. يُحول `str(text)` النص إلى نص عادي؛ بينما تحتفظ الأجزاء بعلامات الترميز لضمان إمكانية العودة إلى الصيغة الأصلية.
 
