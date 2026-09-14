@@ -263,24 +263,30 @@ class _StampUndo:
 
 
 def note_caller_dates(lexicon: Lexicon) -> _StampUndo:
-    """Move the stamping baseline onto a date the caller set, for a save that stamps nothing.
+    """Adopt the dates a ``stamp=False`` save writes as the new stamping baseline.
 
-    A ``stamp=False`` save writes what the model holds, so a date the caller
-    put there is the date now on disk, and the next stamping save has to measure
-    a further edit against it. Without this the entry would keep failing the
-    stale test for good — its date differs from the load, which is exactly what
-    a deliberate date looks like — and never be stamped again. A stamping save
-    makes the same adoption for the stamps it writes.
+    Such a save writes what the model holds, so a date the caller put on an
+    entry is the date now on disk. The next stamping save has to measure a
+    further edit against that, not against the load. Without this step
+    :func:`_needs_stamp` would go on seeing a date that differs from the loaded
+    one, read it as deliberate, and never stamp the entry again.
 
-    Only a date that moved off its baseline is noted, and only that entry is
-    digested. An entry written unstamped under the date it was loaded with is
-    left out on purpose: its content is on disk under a date that no longer
-    describes it, and the next stamping save should still say so.
+    Only an entry whose date moved off its baseline is noted, and only that
+    entry is digested. One written unstamped under the date it was loaded with
+    is left out on purpose: its content is now on disk under a date that no
+    longer describes it, and the next stamping save should still say so.
+
+    The rest of the baseline carries over from the last save, less any entry
+    that has since left the lexicon: a record nothing will consult again would
+    hold its entry's whole subtree alive. :func:`stamp_entries` adopts the
+    dates it writes the same way, and rebuilds its own baseline for that same
+    reason.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps
-    stamps = dict(previous)
-    for entry in _by_identity(lexicon):
+    entries = _by_identity(lexicon)
+    stamps = {id(entry): previous[id(entry)] for entry in entries if id(entry) in previous}
+    for entry in entries:
         key = id(entry)
         baseline = previous.get(key)
         if baseline is None:

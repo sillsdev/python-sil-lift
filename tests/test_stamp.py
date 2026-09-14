@@ -445,6 +445,49 @@ def test_a_removed_entry_drops_out_of_the_stamping_baseline(tmp_path: Path) -> N
     assert lexicon._stamps == {}
 
 
+def test_an_unstamped_save_drops_a_removed_entry_too(tmp_path: Path) -> None:
+    """A stamp=False save adopts caller-set dates, carrying nothing the lexicon lost.
+
+    It starts from the records the last save left rather than rebuilding, so
+    without a filter a dropped entry would stay alive here, subtree and all,
+    until the next stamping save.
+    """
+    lexicon = sil_lift.load(UNDATED)
+    appended = sil_lift.Entry(id="temporary")
+    lexicon.entries.append(appended)
+    out = tmp_path / "out.lift"
+    lexicon.save(out, when=WHEN)
+    assert [record.entry.id for record in lexicon._stamps.values()] == ["temporary"]
+
+    lexicon.entries.remove(appended)
+    lexicon.save(out, stamp=False)
+
+    assert lexicon._stamps == {}
+
+
+def test_a_re_added_entry_keeps_the_date_it_left_with(tmp_path: Path) -> None:
+    """The cost of dropping what left: a re-added entry reads as deliberately dated.
+
+    The record that goes when an entry leaves is the only evidence that its
+    date is one this library generated, so the edit below ships under the old
+    stamp rather than a fresh one.
+    """
+    lexicon = sil_lift.load(UNDATED)
+    entry = sil_lift.Entry(id="temporary")
+    lexicon.entries.append(entry)
+    out = tmp_path / "out.lift"
+    lexicon.save(out, when=WHEN)
+    assert entry.date_modified == WHEN
+
+    lexicon.entries.remove(entry)
+    lexicon.save(out, when=WHEN)  # the rebuild drops its record
+    lexicon.entries.append(entry)
+    entry.lexical_unit["en"] = "edited"
+    lexicon.save(out, when=LATER)
+
+    assert entry.date_modified == WHEN  # LATER, if #45 is taken up
+
+
 def test_an_aliased_entry_is_stamped_once(tmp_path: Path) -> None:
     """One entry object, one pair of dates — however many list slots point at it."""
     lexicon = sil_lift.load(UNDATED)
