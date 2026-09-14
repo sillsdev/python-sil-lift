@@ -12,15 +12,20 @@ lex = sil_lift.load("dictionary.lift")
 
 ## Das Modell
 
-Jedes LIFT-Element ist eine typisierte Datenklasse: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal` und so weiter. Mehrsprachiger Text ist ein `Multitext`, der sich wie eine Zuordnung vom Sprachcode zu `Text` verhält:
+Jedes LIFT-Element ist eine typisierte Datenklasse: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal` und so weiter. Mehrsprachiger Text ist ein `Multitext`, also eine `Zuordnung` vom Sprachcode zum `Text`:
 
 ```python
 entry = lex.find(id="abat")
 
-str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # einfache Zeichenketten werden umgewandelt
-"en" in entry.citation                  # False
+str(entry.lexical_unit["seh"])          # „abat“
+entry.lexical_unit["en"] = „grove“      # einfache Zeichenketten werden umgewandelt
+„en“ in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`, `values()` und `items()` sind Ansichten, wobei jede Sprache einen Schlüssel darstellt, und `len()` zählt die Sprachen und nicht die Formulare. Beide Mutatoren wirken auf die Sprache insgesamt und nicht auf eine bestimmte Form: `del entry.lexical_unit["en"]` entfernt alle englischen Formen, und durch die Zuweisung an `"en"` bleibt genau eine übrig.
+
+Ein schemakonformes Dokument enthält nichts weiter, doch in realen Dateien kommt eine Sprache manchmal mehrmals vor. `forms` enthält alle Formulare in der Reihenfolge ihrer Speicherung in der Datei, liest die Antwort des ersten Formulars ein, und [`validate`](validate.md#problem-codes) meldet den Fehler `duplicate-form-lang`, bis Sie diese Sprache zuweisen. Ein Formular, das überhaupt keinen `lang`-Attributwert enthält, kann über das Mapping nicht erstellt werden, wird als `form-missing-lang` gemeldet und bei der erneuten Serialisierung seines Knotens verworfen.
 
 `Text` ist strukturiert – eine geordnete Liste aus `str`- und `Span`-Fragmenten –, da `<text>` verschachtelte `<span>`-Markups enthalten kann. `str(text)` wandelt den Text in reinen Text um; die Fragmente behalten das Markup für den Hin- und Rücktransport bei.
 
