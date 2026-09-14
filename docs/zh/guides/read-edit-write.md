@@ -12,7 +12,7 @@ lex = sil_lift.load("dictionary.lift")
 
 ## 该模型
 
-每个 LIFT 元素都是一个带类型的数据类：`Entry`、`Sense`、`Example`、`Pronunciation`、`Variant`、`Relation`、`Etymology`、`Reversal` 等。 多语言文本是一个 `Multitext`，其行为类似于从语言代码到 `Text` 的映射：
+每个 LIFT 元素都是一个带类型的数据类：`Entry`、`Sense`、`Example`、`Pronunciation`、`Variant`、`Relation`、`Etymology`、`Reversal` 等。 多语言文本是一个 `Multitext`，它是一个从语言代码映射到 `Text` 的 `Mapping`：
 
 ```python
 entry = lex.find(id="abat")
@@ -20,7 +20,12 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # 普通字符串会被强制转换
 "en" in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`、`values()` 和 `items()` 是视图，每个语言对应一个键，而 `len()` 统计的是语言的数量，而不是表单的数量。 这两个变异器作用于整个语言，而非某个具体形式：`del entry.lexical_unit["en"]` 会移除所有英语形式，而将值赋给 `"en"` 则会保留恰好一个。
+
+一个符合模式的文档中不会包含其他内容，但实际文件中有时会重复某种语言。 `forms` 按文件顺序存储所有表单，从第一个表单开始读取答案，并且 [`validate`](validate.md#problem-codes) 会持续报告 `duplicate-form-lang` 错误，直到你为该语言进行赋值为止。 通过映射无法创建完全不包含 `lang` 的表单，系统会报告为 `form-missing-lang`，且当其节点重新序列化时，该表单将被丢弃。
 
 `Text` 具有结构化特征——即由 `str` 和 `Span` 片段组成的有序列表——因为 `<text>` 可能包含嵌套的 `<span>` 标记。 `str(text)` 会将其转换为纯文本；这些片段保留了标记，以便进行往返转换。
 
