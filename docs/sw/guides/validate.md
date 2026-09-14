@@ -28,7 +28,7 @@ Kila `Problem` hubeba `level` (`"error"`/`"warning"`), `code` thabiti, `message`
 
 ## Misimbo ya matatizo
 
-Kila ugunduzi hubeba mojawapo ya hizi, bila kujali ni safu gani iliyouzalisha — `schema` na `uri-not-rfc` hutoka kwenye safu za schema, zingine kumi ni ukaguzi wa semantiki. Vifungo ni kiolesura kinachotumika; `--strict` huibadilisha kila onyo kuwa kosa.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. Vifungo ni kiolesura kinachotumika; `--strict` huibadilisha kila onyo kuwa kosa.
 
 | msimbo                         | kiwango  | kinachoashiria                                                                                         |
 | ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------ |
@@ -37,6 +37,7 @@ Kila ugunduzi hubeba mojawapo ya hizi, bila kujali ni safu gani iliyouzalisha �
 | rejea-isiyo na mwisho          | Hitilafu | `relation/@ref` au `variant/@ref` inayolingana na kiingilio au maana yoyote                            |
 | fomu-maradufu-lugha            | Onyo     | fomu mbili katika maandishi mengi yanayoshiriki lugha moja                                             |
 | nakala-ya-guid                 | Hitilafu | mwongozo unaotumika tena miongoni mwa maingizo, au miongoni mwa wigo/vipengele-vya-wigo vya hati moja  |
+| `form-missing-lang`            | Hitilafu | a `<form>` or `<gloss>` without the `lang` the schema requires                                         |
 | kitambulisho-kinachokosekana   | Hitilafu | kuingia kwa hiari kupitia `require_ids`: kipengee kisicho na guid, hisia kisicho na id |
 | Vyombo vya habari vinakosekana | Onyo     | Faili ya sauti au picha iliyorejelewa haipo kwenye diski                                               |
 | kutopatana kwa urekebishaji    | Onyo     | Jina linalofikia kitambulisho kinachorejelewa tu kupitia NFC                                           |
