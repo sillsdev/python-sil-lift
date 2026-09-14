@@ -28,7 +28,7 @@ Chaque `Problème` comporte un `niveau` (`"erreur"`/`"avertissement"`), un `code
 
 ## Codes d'erreur
 
-Chaque résultat comporte l'un de ces éléments, quelle que soit la couche qui l'a généré : « `schema` » et « `uri-not-rfc` » proviennent des couches de schéma, tandis que les dix autres correspondent à des vérifications sémantiques. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur.
 
 | code                          | niveau        | ce qu'il signale                                                                                                  |
 | ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -37,6 +37,7 @@ Chaque résultat comporte l'un de ces éléments, quelle que soit la couche qui 
 | `référence pendante`          | erreur        | une `relation/@ref` ou une `variant/@ref` ne correspondant à aucune entrée ni à aucun sens                        |
 | `duplicate-form-lang`         | avertissement | deux formes dans un même multitexte partageant une même langue                                                    |
 | `duplicate-guid`              | erreur        | un identifiant réutilisé entre plusieurs entrées, ou entre les plages et les éléments de plage d'un même document |
+| `form-missing-lang`           | erreur        | a `<form>` or `<gloss>` without the `lang` the schema requires                                                    |
 | `identifiant manquant`        | erreur        | inscription via `require_ids` : une entrée sans GUID, une entrée sans identifiant                 |
 | `fichiers-manquants`          | avertissement | un fichier audio ou image référencé qui ne se trouve pas sur le disque                                            |
 | `décalage de normalisation`   | avertissement | un nom qui n'accède à l'identifiant auquel il fait référence que via NFC                                          |
