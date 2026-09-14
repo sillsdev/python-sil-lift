@@ -12,7 +12,7 @@ lex = sil_lift.load("dictionary.lift")
 
 ## मॉडल
 
-प्रत्येक LIFT तत्व एक प्रकारित डेटाक्लास है: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, आदि। बहुभाषी पाठ एक `Multitext` है, जो भाषा कोड से `Text` तक एक मैपिंग की तरह व्यवहार करता है:
+प्रत्येक LIFT तत्व एक प्रकारित डेटाक्लास है: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, आदि। बहुभाषी पाठ एक `Multitext` है, जो भाषा कोड से `Text` के लिए एक `Mapping` है:
 
 ```python
 entry = lex.find(id="abat")
@@ -20,7 +20,12 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # साधारण स्ट्रिंग्स को कोअर्स्ड किया जाता है
 "en" in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`, `values()` और `items()` व्यूज़ हैं, प्रत्येक भाषा के लिए एक कुंजी, और `len()` फ़ॉर्म के बजाय भाषाओं की गिनती करता है। दोनों म्यूटेटर्स किसी एक रूप पर नहीं बल्कि भाषा पर काम करते हैं: `del entry.lexical_unit["en"]` सभी अंग्रेज़ी रूपों को हटा देता है, और `"en"` को असाइन करने पर ठीक एक ही रूप बचता है।
+
+एक स्कीमा-मान्य दस्तावेज़ में इससे अधिक कुछ नहीं होता, लेकिन वास्तविक फ़ाइलें कभी-कभी भाषा को दोहराती हैं। `forms` फ़ाइल क्रम में प्रत्येक फ़ॉर्म को रखता है, पहले वाले के साथ उत्तर पढ़ता है, और [`validate`](validate.md#problem-codes) `duplicate-form-lang` रिपोर्ट करता है जब तक आप उस भाषा को असाइन नहीं करते। मैपिंग के माध्यम से कोई भी ऐसा फ़ॉर्म नहीं बनाया जा सकता जिसमें बिल्कुल भी `lang` न हो, इसे `form-missing-lang` के रूप में रिपोर्ट किया जाता है, और जब उसका नोड पुनः सीरियलाइज़ होता है तो उसे हटा दिया जाता है।
 
 `Text` संरचित है — `str` और `Span` खंडों की एक क्रमबद्ध सूची — क्योंकि `<text>` में घिरी हुई `<span>` मार्कअप हो सकती है। `str(text)` सादे पाठ में बदल देता है; खंड राउंड-ट्रिपिंग के लिए मार्कअप बनाए रखते हैं।
 
