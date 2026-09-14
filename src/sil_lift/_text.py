@@ -10,6 +10,7 @@ type of its own.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import TYPE_CHECKING
@@ -84,21 +85,38 @@ class Form:
 
 
 @dataclass(slots=True, repr=False)
-class Multitext:
-    """An insertion-ordered collection of forms, one per language.
+class Multitext(Mapping[str, Text]):
+    """An insertion-ordered collection of forms, keyed by language.
 
-    Behaves like a ``Mapping[str, Text]`` keyed by language (``mt["en"]``),
-    with assignment coercing plain strings (``mt["en"] = "dog"``). The
-    underlying ``forms`` list is the full truth — forms with a ``None`` lang
-    (schema-invalid input) are reachable there but not via mapping keys.
+    A ``Mapping[str, Text]`` — ``mt["en"]``, ``"en" in mt``, ``mt.get(...)``,
+    ``mt.keys()`` and the other views — plus assignment, which coerces plain
+    strings (``mt["en"] = "dog"``), and deletion.
+
+    Both mutators act on the language, not on one form: assignment leaves a
+    single form for the language it names, and ``del mt["en"]`` leaves
+    ``"en" not in mt``. Writing through the mapping is therefore also how a
+    caller repairs a form list the schema does not allow.
+
+    ``forms`` is the full truth and holds what no key can reach: a form with a
+    ``None`` lang, and a second form for a language already present. Neither is
+    yielded by a view or counted by ``len()``, reads answer with the first form
+    for a language, and validation reports both as ``form-missing-lang`` and
+    ``duplicate-form-lang``. Assigning ``None`` is refused, and re-serializing
+    drops a lang-less form read from a file.
+
+    ``bool(mt)`` asks "is there anything to serialize", which residue defeats on
+    its own, so a residue-only multitext is truthy while ``len()`` is 0.
+    Equality compares ``forms``, stricter than ``Mapping`` equality.
     """
 
     forms: list[Form] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
 
     def _find(self, lang: str) -> Form | None:
+        # A lang-less form is not a key: matching one here would answer
+        # __getitem__ and get() for something keys() never reports.
         for form in self.forms:
-            if form.lang == lang:
+            if form.lang is not None and form.lang == lang:
                 return form
         return None
 
@@ -109,44 +127,51 @@ class Multitext:
         return form.text
 
     def __setitem__(self, lang: str, value: Text | str) -> None:
+        if lang is None:  # reachable from data, where a form's lang can be None
+            raise TypeError("a language cannot be None; the schema requires one per form")
         text = Text([value]) if isinstance(value, str) else value
         form = self._find(lang)
         if form is None:
             self.forms.append(Form(lang, text))
-        else:
-            form.text = text
+            return
+        form.text = text
+        # One form per language afterwards: a later form for it is what the
+        # schema's rule counts as the violation, and leaving one behind would
+        # let the node serialize a value this assignment just replaced.
+        self.forms[:] = [f for f in self.forms if f.lang != lang or f is form]
 
     def __delitem__(self, lang: str) -> None:
-        form = self._find(lang)
-        if form is None:
+        if self._find(lang) is None:
             raise KeyError(lang)
-        self.forms.remove(form)
-
-    def get(self, lang: str, default: Text | None = None) -> Text | None:
-        form = self._find(lang)
-        return default if form is None else form.text
-
-    def __contains__(self, lang: object) -> bool:
-        return isinstance(lang, str) and self._find(lang) is not None
+        # Every form for the language, so the key is gone afterwards. Sliced in
+        # place because callers hold `forms` directly.
+        self.forms[:] = [form for form in self.forms if form.lang != lang]
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self.keys())
+        # Snapshot so a caller can delete through the mapping while iterating
+        # it; walking forms live would skip the language after each removal.
+        # Reads forms rather than a view: the views are built on this method.
+        seen: set[str] = set()
+        for form in tuple(self.forms):
+            if form.lang is not None and form.lang not in seen:
+                seen.add(form.lang)
+                yield form.lang
 
     def __len__(self) -> int:
-        return len(self.forms)
+        return sum(1 for _ in self)
 
     def __bool__(self) -> bool:
-        return bool(self.forms) or bool(self.extra)
-
-    def keys(self) -> list[str]:
-        return [form.lang for form in self.forms if form.lang is not None]
-
-    def values(self) -> list[Text]:
-        return [form.text for form in self.forms if form.lang is not None]
-
-    def items(self) -> list[tuple[str, Text]]:
-        return [(form.lang, form.text) for form in self.forms if form.lang is not None]
+        # Diverges from len() only for residue: a lang-less form is not serialized.
+        return len(self) > 0 or bool(self.extra)
 
     def __repr__(self) -> str:
-        inner = ", ".join(f"{form.lang!r}: {str(form.text)!r}" for form in self.forms)
-        return f"Multitext({{{inner}}})"
+        pairs = [(form.lang, str(form.text)) for form in self.forms]
+        langs = [lang for lang, _ in pairs]
+        # Dict-shaped only while the forms are one per language: a repeated or
+        # lang-less form would render as a dict literal that cannot exist and
+        # whose keys contradict keys().
+        if None not in langs and len(set(langs)) == len(langs):
+            inner = ", ".join(f"{lang!r}: {text!r}" for lang, text in pairs)
+            return f"Multitext({{{inner}}})"
+        inner = ", ".join(f"({lang!r}, {text!r})" for lang, text in pairs)
+        return f"Multitext([{inner}])"

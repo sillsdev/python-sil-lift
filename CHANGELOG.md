@@ -25,10 +25,12 @@ releases may contain breaking changes.
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
   test corpus with provenance, corpus-prep and large-file-generator tooling.
 - Full object model: all 35 LIFT 0.13 elements as typed dataclasses.
-  `Entry.all_senses()` walks every subsense depth-first in document order,
-  which `Entry.senses` (top level only) does not. `sil_lift.load()` /
-  `Lexicon.load()` full-document reader that keeps LIFT residue per node in
-  `Extras`; LIFT-version guard.
+  Multilingual fields are `Multitext`, a `Mapping` from language code to
+  `Text` that coerces plain strings on assignment; the `forms` list stays the
+  full truth, holding forms no key reaches. `Entry.all_senses()` walks every
+  subsense depth-first in document order, which `Entry.senses` (top level
+  only) does not. `sil_lift.load()` / `Lexicon.load()` full-document reader
+  that keeps LIFT residue per node in `Extras`; LIFT-version guard.
 - `Lexicon.save()` writer with byte-fidelity passthrough — unchanged
   documents and untouched entries are written byte-identically; touched entries
   re-serialize canonically with all out-of-schema content preserved. Fidelity
@@ -73,11 +75,9 @@ releases may contain breaking changes.
   file, entry, and line it concerns. RELAX NG layer with two documented
   departures from strict validation (invalid `file://` hrefs downgraded to
   `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and ten semantic checks the grammar cannot
-  express, one `Problem` code each (with missing-id opt-in via `require_ids`).
-  Names resolve against range and range-element ids under NFC; a match that
-  needed normalizing is reported as normalization-mismatch, once per id.
-  Every code is described in `docs/en/guides/validate.md`.
+  ranges schema over companions; and eleven semantic checks, one `Problem`
+  code each (with missing-id opt-in via `require_ids`). Every code is
+  described in `docs/en/guides/validate.md`.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and

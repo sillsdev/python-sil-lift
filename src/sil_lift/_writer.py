@@ -252,9 +252,20 @@ def _form_el(tag: str, form: Form) -> etree._Element:
     return el
 
 
+def _append_form(el: etree._Element, tag: str, form: Form) -> None:
+    """Append a ``<form>`` or ``<gloss>``, dropping one with no lang.
+
+    Deliberate, and only reachable for a touched node; an untouched one is
+    written from its source bytes. See docs/en/fidelity.md.
+    """
+    if form.lang is None:
+        return
+    el.append(_form_el(tag, form))
+
+
 def _append_forms(el: etree._Element, multitext: Multitext) -> None:
     for form in multitext.forms:
-        el.append(_form_el("form", form))
+        _append_form(el, "form", form)
 
 
 def _multitext_el(tag: str, multitext: Multitext) -> etree._Element:
@@ -423,7 +434,7 @@ def _etymology_el(etymology: Etymology) -> etree._Element:
     )
     _append_forms(el, etymology.forms)
     for gloss in etymology.glosses:
-        el.append(_form_el("gloss", gloss))
+        _append_form(el, "gloss", gloss)
     _append_extensible(el, etymology.annotations, etymology.traits, etymology.fields)
     _merge_extra_attrs(el, etymology.forms.extra)
     _apply_extra_nodes(el, etymology.forms.extra)
@@ -512,7 +523,7 @@ def _sense_el(sense: Sense, tag: str = "sense") -> etree._Element:
     if sense.grammatical_info is not None:
         el.append(_grammatical_info_el(sense.grammatical_info))
     for gloss in sense.glosses:
-        el.append(_form_el("gloss", gloss))
+        _append_form(el, "gloss", gloss)
     if sense.definition:
         el.append(_multitext_el("definition", sense.definition))
     for relation in sense.relations:

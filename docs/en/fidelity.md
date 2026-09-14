@@ -36,4 +36,5 @@ A _lone_ surrogate (U+D800–U+DFFF) is different: a Python string may hold one,
 
 - Comments _inside_ a `<text>` run are preserved but moved next to the run, not kept at their exact character offset.
 - Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
+- A `<form>` or `<gloss>` with no `lang` is not re-emitted, and neither is anything it held; validation reports the omission as `form-missing-lang`. An untouched node keeps its source bytes, so such a form survives until something in its entry is edited.
 - A multitext element that is present but carries nothing — no forms, no residue, e.g. `<definition></definition>` — is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
