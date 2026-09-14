@@ -12,15 +12,20 @@ La función `load()` admite cualquier documento LIFT **0.13** bien formado, incl
 
 ## El modelo
 
-Cada elemento de LIFT es una clase de datos tipada: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, etc. Un texto multilingüe es un `Multitext`, que se comporta como una correspondencia entre un código de idioma y un `Text`:
+Cada elemento de LIFT es una clase de datos tipada: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, etc. Un texto multilingüe es un `Multitext`, que es una `Mapping` del código de idioma a `Text`:
 
 ```python
 entry = lex.find(id="abat")
 
-str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # las cadenas simples se convierten
-"en" in entry.citation                  # False
+str(entry.lexical_unit["seh"])          # «abat»
+entry.lexical_unit["en"] = «grove»      # las cadenas simples se convierten
+«en» in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`, `values()` e `items()` son vistas, con una clave por idioma, y `len()` cuenta los idiomas en lugar de los formularios. Ambos mutadores actúan sobre el idioma en su conjunto, en lugar de sobre una forma concreta: `del entry.lexical_unit["en"]` elimina todas las formas en inglés, y al asignar un valor a `"en"` queda exactamente una.
+
+Un documento válido según el esquema no contiene nada más, pero los archivos reales a veces repiten un idioma. `forms` contiene todos los formularios en el orden en que aparecen en el archivo, lee la respuesta del primero y [`validate`](validate.md#problem-codes) muestra el error `duplicate-form-lang` hasta que se asigne ese idioma. No se puede crear mediante la asignación un formulario que no incluya ningún atributo `lang`; se notifica como `form-missing-lang` y se descarta cuando se vuelve a serializar su nodo.
 
 El `texto` está estructurado —una lista ordenada de fragmentos `str` y `Span`— porque `<text>` puede contener marcado anidado `<span>`. `str(text)` convierte el contenido en texto sin formato; los fragmentos conservan el marcado para facilitar la conversión de ida y vuelta.
 
