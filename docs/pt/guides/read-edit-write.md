@@ -12,7 +12,7 @@ A função `load()` aceita qualquer documento LIFT **0.13** bem formado — incl
 
 ## O modelo
 
-Cada elemento do LIFT é uma classe de dados tipada: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, e assim por diante. Um texto multilingue é um `Multitext`, que funciona como um mapeamento de um código de idioma para `Text`:
+Cada elemento do LIFT é uma classe de dados tipada: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, e assim por diante. Um texto multilingue é um `Multitext`, que consiste num `Mapping` do código do idioma para `Text`:
 
 ```python
 entry = lex.find(id="abat")
@@ -20,7 +20,12 @@ entry = lex.find(id="abat")
 str(entry.lexical_unit["seh"])          # "abat"
 entry.lexical_unit["en"] = "grove"      # as cadeias de caracteres simples são convertidas
 "en" in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
+
+`keys()`, `values()` e `items()` são visualizações, uma chave por língua, e `len()` conta as línguas em vez dos formulários. Ambos os mutadores atuam sobre a língua e não sobre uma forma específica: `del entry.lexical_unit["en"]` remove todas as formas em inglês, e a atribuição a `"en"` deixa exatamente uma.
+
+Um documento válido segundo o esquema não contém nada mais, mas os ficheiros reais por vezes repetem uma linguagem. `forms` contém todos os formulários pela ordem em que aparecem no ficheiro, lê a resposta do primeiro e [`validate`](validate.md#problem-codes) apresenta o erro `duplicate-form-lang` até que se atribua esse idioma. Um formulário que não inclua qualquer atributo `lang` não pode ser criado através do mapeamento, é sinalizado como `form-missing-lang` e é descartado quando o seu nó é resserializado.
 
 O `Text` está estruturado — uma lista ordenada de fragmentos `str` e `Span` — porque `<text>` pode conter marcação aninhada `<span>`. `str(text)` converte o texto em texto simples; os fragmentos mantêm a marcação para permitir a conversão de ida e volta.
 
