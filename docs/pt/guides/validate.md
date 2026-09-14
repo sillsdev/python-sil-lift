@@ -28,7 +28,7 @@ Cada `Problema` contém um `nível` (`"erro"`/`"aviso"`), um `código` fixo, uma
 
 ## Códigos de problema
 
-Cada resultado contém um destes, independentemente da camada que o tenha gerado — `schema` e `uri-not-rfc` provêm das camadas de esquema, enquanto os outros dez são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
 
 | código                              | nível | o que assinala                                                                                                                      |
 | ----------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,6 +37,7 @@ Cada resultado contém um destes, independentemente da camada que o tenha gerado
 | `dangling-ref`                      | erro  | um `relation/@ref` ou `variant/@ref` que não corresponde a nenhuma entrada ou significado                                           |
 | `duplicate-form-lang`               | aviso | duas formas num único multitexto que partilham uma língua                                                                           |
 | `duplicate-guid`                    | erro  | um GUID reutilizado entre entradas ou entre intervalos/elementos de intervalo de um mesmo documento                                 |
+| `form-missing-lang`                 | erro  | a `<form>` or `<gloss>` without the `lang` the schema requires                                                                      |
 | `missing-id`                        | erro  | adesão através de `require_ids`: uma entrada sem um GUID, um sentido sem um ID                                      |
 | `failas-de-meios`                   | aviso | um ficheiro de áudio ou de imagem referenciado que não se encontra no disco                                                         |
 | `incompatibilidade de normalização` | aviso | um nome que acede ao ID a que se refere apenas através da tecnologia NFC                                                            |
