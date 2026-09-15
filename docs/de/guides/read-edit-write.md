@@ -1,0 +1,74 @@
+# Lesen, bearbeiten, schreiben
+
+## Wird geladen
+
+```python
+import sil_lift
+
+lex = sil_lift.load("dictionary.lift")
+```
+
+`load()` akzeptiert jedes wohlgeformte LIFT-**0.13**-Dokument – einschließlich schemaverstossender Dateien aus der Praxis. Alles, was das Modell nicht definiert (unbekannte Elemente/Attribute, Kommentare), wird verlustfrei als LIFT-Rest im undurchsichtigen `extra`-Feld jedes Knotens übertragen. Andere LIFT-Versionen lösen einen `LiftParseError` aus, in dem die Version angegeben wird.
+
+## Das Modell
+
+Jedes LIFT-Element ist eine typisierte Datenklasse: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal` und so weiter. Mehrsprachiger Text ist ein `Multitext`, also eine `Zuordnung` vom Sprachcode zum `Text`:
+
+```python
+entry = lex.find(id="abat")
+
+str(entry.lexical_unit["seh"])          # „abat“
+entry.lexical_unit["en"] = „grove“      # einfache Zeichenketten werden umgewandelt
+„en“ in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
+```
+
+`keys()`, `values()` und `items()` sind Ansichten, wobei jede Sprache einen Schlüssel darstellt, und `len()` zählt die Sprachen und nicht die Formulare. Beide Mutatoren wirken auf die Sprache insgesamt und nicht auf eine bestimmte Form: `del entry.lexical_unit["en"]` entfernt alle englischen Formen, und durch die Zuweisung an `"en"` bleibt genau eine übrig.
+
+Ein schemakonformes Dokument enthält nichts weiter, doch in realen Dateien kommt eine Sprache manchmal mehrmals vor. `forms` enthält alle Formulare in der Reihenfolge ihrer Speicherung in der Datei, liest die Antwort des ersten Formulars ein, und [`validate`](validate.md#problem-codes) meldet den Fehler `duplicate-form-lang`, bis Sie diese Sprache zuweisen. Ein Formular, das überhaupt keinen `lang`-Attributwert enthält, kann über das Mapping nicht erstellt werden, wird als `form-missing-lang` gemeldet und bei der erneuten Serialisierung seines Knotens verworfen.
+
+`Text` ist strukturiert – eine geordnete Liste aus `str`- und `Span`-Fragmenten –, da `<text>` verschachtelte `<span>`-Markups enthalten kann. `str(text)` wandelt den Text in reinen Text um; die Fragmente behalten das Markup für den Hin- und Rücktransport bei.
+
+Glossare sind in LIFT _Form-förmig_ (jede `<gloss>` enthält ihre eigene Sprache), daher hat ein Sense `glosses: list[Form]` sowie Hilfsfunktionen:
+
+```python
+sense = entry.senses[0]                 # nur oberste Ebene
+sense.gloss("en")                       # Text | None
+entry.all_senses()                      # alle Bedeutungen und Unterbedeutungen, in der Reihenfolge des Dokuments
+entry.gloss_langs()                     # {"en", "id"}, einschließlich Unterbedeutungen
+```
+
+Verwenden Sie `all_senses()`, wann immer sich eine Frage auf den gesamten Eintrag bezieht: zum Zählen von Bedeutungen, zum Erfassen von Sprachen oder zum Suchen von Medien. `entry.senses` gibt die oberste Ebene an, was nur dann sinnvoll ist, wenn die Verschachtelung selbst eine Rolle spielt.
+
+## Speichern
+
+```python
+lex.save()                # zurück an den Ort, von dem es geladen wurde
+lex.save("elsewhere.lift")
+```
+
+Einträge, die Sie nicht geändert haben, werden **byte-identisch** zurückgeschrieben; ein Dokument, das Sie überhaupt nicht geändert haben, ist vom ersten bis zum letzten Byte byte-identisch. Den genauen Vertragsinhalt finden Sie unter [Fidelity-Garantien](../fidelity.md).
+
+## Von Grund auf neu aufbauen
+
+```python
+lex = sil_lift.Lexicon(producer="my-script 1.0")
+entry = sil_lift.Entry(id="hello", guid="...")
+entry.lexical_unit["en"] = "hello"
+sense = sil_lift.Sense()
+sense.glosses.append(sil_lift.Form("fr", sil_lift.Text(["bonjour"])))
+entry.senses.append(sense)
+lex.entries.append(entry)
+lex.save("new.lift")
+```
+
+## Kanonische Sortierung
+
+```python
+lex.sort()      # Einträge nach (GUID, ID); Bereiche/Felddefinitionen nach ID/Tag
+lex.save()      # Unveränderte Einträge behalten ihre exakten Bytes in der neuen Reihenfolge
+
+sil_lift.canonicalize("in.lift", "out.lift")   # vollständig neu serialisiert, bereit für den Vergleich
+```
+
+Siehe auch: [Beispiel: Massenbearbeitung von Glossaren](bulk-edit-glosses.md).
