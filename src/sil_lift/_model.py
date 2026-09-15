@@ -720,28 +720,26 @@ class Lexicon:
         name in the *same* directory leaves companions at their original
         paths (they are shared with the original document, not copied).
 
-        Every entry whose content changed since the load goes out with a fresh
-        ``dateModified``, and with a ``dateCreated`` if it had none — an edit
-        shipped under its loaded date looks unmodified to everything downstream
-        that reconciles on that attribute. Three cases are left as they stand:
-        an entry whose date the caller set deliberately, an entry created since
-        the load that already carries one, and an untouched entry, reordering
-        included (see :meth:`sort`). Depth does not matter: an edit to a gloss
-        on a nested subsense stamps the entry containing it. This mutates the
-        model — here, and in a ``save(path)`` used to export a copy — and costs
-        one canonical serialization pass over the entries.
+        This mutates the model. Every entry whose content changed since the
+        load goes out with a fresh ``dateModified``, and with a ``dateCreated``
+        if it had none — in a ``save(path)`` used to export a copy too — at the
+        cost of one canonical serialization pass over the entries.
 
-        ``stamp=False`` writes the model exactly as it stands — though a date
-        you set yourself is noted even then, so that a later edit to that entry
-        is stamped rather than left on a date it has outgrown. ``when``
-        supplies the moment in place of the clock, normalized to UTC at seconds
-        precision, which is what makes stamped output byte-reproducible; it must
-        be timezone-aware, since a naive moment could as easily mean UTC as
-        local time. Seconds are the resolution, so an edit saved within a second
-        of the previous one carries the same date.
+        Left as they stand: an entry whose date the caller set deliberately, an
+        entry created since the load that already carries one, and an untouched
+        entry, reordering included (see :meth:`sort`). Depth does not matter, so
+        an edit to a gloss on a nested subsense stamps the entry containing it.
 
-        Stamping commits with the write: a refused or failed one puts the dates
-        back, so the model never carries a date for output that does not exist.
+        ``stamp=False`` writes the model exactly as it stands, though a date you
+        set yourself is noted even then, so that a later edit to that entry is
+        stamped rather than left on a date it has outgrown. ``when`` supplies
+        the moment in place of the clock; it must be timezone-aware, and is
+        normalized to UTC at seconds precision, which is what makes stamped
+        output byte-reproducible.
+
+        Stamping commits with the ``.lift`` write: a refused or failed one puts
+        the dates back. Once it lands the dates stand, even if a companion write
+        fails after it.
 
         Raises :class:`ValueError` if no target path is available (none was
         passed and the lexicon was not loaded from a file) or if ``when`` is

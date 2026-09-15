@@ -174,17 +174,11 @@ def range_digest(range_: Range) -> bytes:
 def default_now() -> datetime:
     """The clock for generated timestamps: UTC at seconds precision.
 
-    Seconds precision is the shape real exports use. Across the seven
-    FieldWorks 8.3-9.0 exports in The Combine's ``Backend.Tests/Assets``, all
-    70,636 ``dateCreated``/``dateModified`` literals are exactly the
-    20-character ``YYYY-MM-DDTHH:MM:SSZ`` form — no bare dates, numeric
-    offsets, or fractional seconds. :func:`_fmt_date` renders an aware UTC
-    value that way.
-
-    One second holds one date, so an edit saved within a second of the previous
-    one carries the same stamp and reads as no change to anything comparing
-    dates. Sub-second precision would buy that distinction at the cost of the
-    one form every consumer expects; ``when`` forces a distinct moment.
+    Seconds precision is the shape real exports use: every date literal in the
+    surveyed FieldWorks 8.3-9.0 exports is the 20-character
+    ``YYYY-MM-DDTHH:MM:SSZ`` form, with no bare dates, offsets, or fractional
+    seconds. One second holds one date, so an edit saved within a second of the
+    previous one carries the same stamp; ``when`` forces a distinct moment.
     """
     return datetime.now(UTC).replace(microsecond=0)
 
@@ -213,12 +207,9 @@ def resolve_when(when: datetime | None) -> datetime:
 def _dates_differ(left: datetime | date | None, right: datetime | date | None) -> bool:
     """Whether two dates would reach the document as different attribute values.
 
-    Rendered rather than compared as moments, because the question is always
-    whether the caller changed the date the file will carry. Two aware values an
-    hour and an offset apart are the same instant and equal to ``==``, so
-    re-expressing a date in another offset would otherwise register as leaving
-    it alone — and being overwritten, though it is the one thing the caller
-    touched.
+    Rendered rather than compared as moments: re-expressing a date in another
+    offset is the same instant and equal to ``==``, but it changes the bytes,
+    and it is the one thing the caller touched.
     """
     return _fmt_opt_date(left) != _fmt_opt_date(right)
 
@@ -277,10 +268,8 @@ def note_caller_dates(lexicon: Lexicon) -> _StampUndo:
     longer describes it, and the next stamping save should still say so.
 
     The rest of the baseline carries over from the last save, less any entry
-    that has since left the lexicon: a record nothing will consult again would
-    hold its entry's whole subtree alive. :func:`stamp_entries` adopts the
-    dates it writes the same way, and rebuilds its own baseline for that same
-    reason.
+    that has since left the lexicon, for the reason :func:`stamp_entries`
+    rebuilds. That function adopts the dates it writes the same way.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps

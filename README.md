@@ -37,8 +37,7 @@ not understand.
 - Entries you did modify are re-serialized in a documented canonical form, with
   all out-of-schema content (unknown elements, attributes, comments) preserved,
   and are stamped with a fresh `dateModified` so the edit does not go out under
-  the date it was loaded with (`save(stamp=False)` writes the dates the model
-  holds; `save(when=...)` pins the moment).
+  the date it was loaded with.
 - Whitespace inside `<text>` is never altered — not even for indentation.
 
 The precise rules and their few edge cases are documented in
