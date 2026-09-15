@@ -8,12 +8,12 @@ canonical sorting — with streaming APIs for large lexicons.
 ```python
 import sil_lift
 
-lex = sil_lift.load("thesaurus.lift")      # tracks .lift-ranges companions too
+lex = sil_lift.load("thesaurus.lift")  # tracks .lift-ranges companions too
 for entry in lex.entries:
     ...
 entry = lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
-lex.save()                                 # edits stamped; the rest verbatim
+lex.save()                             # edited entries stamped; rest verbatim
 ```
 
 **Status: pre-release, under active development.** The API is not yet stable.

@@ -238,8 +238,9 @@ def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> 
 class _StampUndo:
     """How to put a stamping pass back if the write it ran for never happens.
 
-    Stamping precedes serialization, so without this a refused or failed write
-    would leave the model dated for output that does not exist.
+    Stamping precedes serialization, so without this anything that kept the
+    ``.lift`` write from landing would leave the model dated for output that
+    does not exist.
     """
 
     lexicon: Lexicon
@@ -263,13 +264,14 @@ def note_caller_dates(lexicon: Lexicon) -> _StampUndo:
     one, read it as deliberate, and never stamp the entry again.
 
     Only an entry whose date moved off its baseline is noted, and only that
-    entry is digested. One written unstamped under the date it was loaded with
-    is left out on purpose: its content is now on disk under a date that no
-    longer describes it, and the next stamping save should still say so.
+    entry is digested. An entry written unstamped under the date it was loaded
+    with is left out on purpose: its content is now on disk under a date that
+    no longer describes it, and the next stamping save should still say so.
 
     The rest of the baseline carries over from the last save, less any entry
-    that has since left the lexicon, for the reason :func:`stamp_entries`
-    rebuilds. That function adopts the dates it writes the same way.
+    that has since left the lexicon — dropped for the same reason
+    :func:`stamp_entries` rebuilds its own dict each pass. That function adopts
+    the dates it writes the same way.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps
@@ -310,18 +312,18 @@ def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
 
     Each save leaves behind the state it wrote, in ``lexicon._stamps``, and the
     next save measures against that rather than against the load. Without it a
-    second round of edits on the same in-memory lexicon would ship unstamped:
-    its content differs from the loaded content all right, but so does its date
-    — this library's own stamp from the first save — which reads exactly like
-    a date the caller set deliberately. An entry still matching its parse-time
-    record needs no such override and is recorded nowhere, so a save of a few
-    edited entries remembers only those; rebuilding the dict each pass also
-    drops entries that have since left the lexicon, which would otherwise stay
-    alive here for a baseline nothing will consult again.
+    second round of edits on the same in-memory lexicon would ship unstamped.
+    Its content differs from the loaded content, but so does its date: the
+    first save's own stamp, which reads exactly like a date the caller set
+    deliberately. An entry still matching its parse-time record needs no such
+    override and is recorded nowhere, so a save of a few edited entries
+    remembers only those. Rebuilding the dict each pass also drops entries that
+    have since left the lexicon, which would otherwise stay alive here for a
+    baseline nothing will consult again.
 
     Deciding comes before mutating because digesting is the only step that can
-    fail (see :func:`_guarded`): content XML cannot represent is refused with
-    nothing stamped rather than half-stamped at the entry it was found on.
+    fail (see :func:`_guarded`). Content XML cannot represent is refused with
+    nothing stamped, rather than half-stamped at the entry it was found on.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps

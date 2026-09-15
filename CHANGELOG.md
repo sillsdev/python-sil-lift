@@ -41,27 +41,14 @@ releases may contain breaking changes.
   `lone-surrogate`.
 - Generated timestamps on save: `Lexicon.save()` and `Lexicon.save_zip()` stamp
   `dateModified` on every entry whose content changed since it was loaded, and
-  fill a blank `dateCreated` with the same moment — an edit shipped under its
-  loaded date looks unmodified to everything that reconciles on that attribute.
-  `<entry>` only, however deep the edit; a date you set yourself is left alone,
-  and reordering stamps nothing. `stamp=False` writes the model exactly as it
-  stands, and `when=` supplies the moment in place of the wall clock — a
-  timezone-aware value, normalized to UTC whole seconds — which is what keeps
-  stamped output byte-reproducible.
+  fill a blank `dateCreated` with the same moment. `stamp=False` turns it off;
+  `when=` supplies the moment in place of the wall clock.
 - Change detection against the loaded document, reading the same parse-time
-  digests. `Lexicon.changed_entries()` reports entries whose content differs
-  (an entry's digest covers its whole subtree, so an edit at any depth reports
-  the entry containing it, while an identical rewrite or a `sort()` reports
-  nothing); `added_entries()` and `removed_entries()` report the rest — an
-  entry already in the document, appended a second time, counts as an addition
-  — and need no serialization. `Lexicon.changes()` and `RangesFile.changes()`
-  return `Changes` / `RangesChanges`, covering entry content, additions,
-  removals, reordering, the header, the root element, and every tracked
-  companion — each falsy only when `save()` would reproduce the source bytes,
-  so `if not lex.changes():` is a correct guard for skipping an in-place write
-  (content, not destination: a `save(path)` into another directory writes
-  there regardless). Comparison is always against the loaded document, never
-  against the most recent `save()`.
+  digests. `Lexicon.changed_entries()`, `added_entries()`, and
+  `removed_entries()` report entries; `Lexicon.changes()` and
+  `RangesFile.changes()` return a `Changes` / `RangesChanges` summary covering
+  entry content, additions, removals, reordering, the header, the root
+  element, and tracked companions.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`), `save()` writes companions together,

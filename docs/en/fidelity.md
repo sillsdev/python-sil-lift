@@ -20,7 +20,13 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 ## Saving an edited document
 
 - **Untouched entries are emitted verbatim from their original bytes.** An entry counts as touched if any part of its model object changed since parse (detected by canonical-serialization snapshot, not a dirty flag).
-- **Touched entries are re-serialized canonically and completely**: UTF-8, 2-space indentation _outside_ mixed content (whitespace inside `<text>` and `<span>` is never altered), a documented child grouping per element (e.g. entry: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields), fixed attribute order, dates in ISO-8601 (`Z` for UTC). All residue is re-emitted; its position is restored to the original child index, clamped to the new child list (an approximation — exact byte positions are only guaranteed for untouched entries).
+- **Touched entries are re-serialized canonically and completely.** Canonical form is:
+    - UTF-8.
+    - 2-space indentation _outside_ mixed content; whitespace inside `<text>` and `<span>` is never altered.
+    - A documented child grouping per element; for `<entry>`: lexical-unit, citation, pronunciations, variants, senses, notes, relations, etymologies, annotations, traits, fields.
+    - Fixed attribute order.
+    - Dates in ISO-8601 (`Z` for UTC).
+- **All residue is re-emitted.** Its position is restored to the original child index, clamped to the new child list — an approximation, since exact byte positions are only guaranteed for untouched entries.
 - Adding, removing, or reordering entries re-serializes the document structure but still emits every unchanged entry's bytes verbatim.
 - **A touched entry is stamped** with a fresh `dateModified`, and a `dateCreated` if it had none — see [Generated timestamps](#generated-timestamps).
 
@@ -33,10 +39,12 @@ A generated stamp is the one thing in the output that is not a function of the i
 
 - **What is stamped.** Every entry whose content changed since it was read, with a fresh `dateModified` and, if it had none, a `dateCreated` of the same moment. An edit shipped under its loaded date looks unmodified to everything that reconciles on that attribute, FieldWorks and The Combine's LIFT import included.
 - **Entries only.** No node below an `<entry>`, and nothing in the header.
-- **What is left alone.** An entry whose date the caller set deliberately, and an entry created since the load that already carries one. `save(stamp=False)` writes the model exactly as it stands, residue included.
+- **What is left alone.** An entry whose date the caller set deliberately, and an entry created since the load that already carries one.
 - **An unparseable date is replaced.** A date the model could not parse is [residue](#reading) rather than a date, so a stamp overwrites it and the original string is dropped — an edited entry is better off carrying a real date than `dateModified="whenever"`.
-- **The moment.** UTC at seconds precision (`YYYY-MM-DDTHH:MM:SSZ`, the shape every surveyed FieldWorks export uses), read from the wall clock. `save(when=...)` supplies it instead, which is what keeps stamped output reproducible for a diff-based CI gate; it must be timezone-aware, and is normalized to UTC whole seconds. One second holds one date, so an edit saved within a second of the previous one carries the same stamp.
-- **Stamping commits with the `.lift` write.** A refused or failed one puts the dates back. Once it lands they stand, even if a companion write fails after it.
+- **The moment.** UTC at seconds precision (`YYYY-MM-DDTHH:MM:SSZ`, the shape every surveyed FieldWorks export uses), read from the wall clock. One second holds one date, so an edit saved within a second of the previous one carries the same stamp.
+- **`save(when=...)`** supplies the moment instead of the wall clock, which is what keeps stamped output reproducible for a diff-based CI gate. It must be timezone-aware, and is normalized to UTC whole seconds.
+- **`save(stamp=False)`** writes the model exactly as it stands, residue included.
+- **Stamping commits with the `.lift` write.** Anything that keeps that write from landing puts the dates back. Once it lands they stand, even if a companion write fails after it.
 
 ## Content XML cannot represent
 

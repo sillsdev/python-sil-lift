@@ -66,10 +66,8 @@ class _ExtensibleNoFields:
     def _stamp(self, when: datetime) -> None:
         """Record ``when`` as this node's modification moment.
 
-        A blank ``dateCreated`` is filled with the same moment: a node whose
-        creation went unrecorded was created no later than the change being
-        stamped, and leaving it blank while ``dateModified`` fills in reads as
-        a node that was modified before it existed.
+        A blank ``dateCreated`` is filled with the same moment: blank beside a
+        fresh ``dateModified``, it reads as a node modified before it existed.
 
         The one place either date is generated, so that the nine date-bearing
         types share one policy — though only :class:`Entry` is stamped today
@@ -720,26 +718,16 @@ class Lexicon:
         name in the *same* directory leaves companions at their original
         paths (they are shared with the original document, not copied).
 
-        This mutates the model. Every entry whose content changed since the
+        This mutates the model: every entry whose content changed since the
         load goes out with a fresh ``dateModified``, and with a ``dateCreated``
-        if it had none — in a ``save(path)`` used to export a copy too — at the
-        cost of one canonical serialization pass over the entries.
+        if it had none — in a ``save(path)`` used to export a copy too. Left as
+        they stand: a date the caller set deliberately, and any entry whose
+        content did not change, reordering included (see :meth:`sort`).
 
-        Left as they stand: an entry whose date the caller set deliberately, an
-        entry created since the load that already carries one, and an untouched
-        entry, reordering included (see :meth:`sort`). Depth does not matter, so
-        an edit to a gloss on a nested subsense stamps the entry containing it.
-
-        ``stamp=False`` writes the model exactly as it stands, though a date you
-        set yourself is noted even then, so that a later edit to that entry is
-        stamped rather than left on a date it has outgrown. ``when`` supplies
-        the moment in place of the clock; it must be timezone-aware, and is
-        normalized to UTC at seconds precision, which is what makes stamped
-        output byte-reproducible.
-
-        Stamping commits with the ``.lift`` write: a refused or failed one puts
-        the dates back. Once it lands the dates stand, even if a companion write
-        fails after it.
+        ``stamp=False`` writes the model exactly as it stands. ``when`` supplies
+        the moment in place of the clock, normalized to UTC at seconds
+        precision, which is what makes stamped output byte-reproducible. See
+        ``docs/en/fidelity.md`` for the rest of the contract.
 
         Raises :class:`ValueError` if no target path is available (none was
         passed and the lexicon was not loaded from a file) or if ``when`` is
@@ -1010,11 +998,11 @@ class Lexicon:
         (line numbers match the file on disk); otherwise serialization is a
         documented cost on large lexicons.
 
-        Read-only, which is the one way the bytes validated here can differ
-        from the bytes written: :meth:`save` stamps ``dateModified`` on edited
-        entries, and this reports the document as it stands, before any of
-        that. Nothing generated is ever a finding — a stamp is a well-formed
-        date in a valid place — so validating first and saving after is sound.
+        Read-only: it reports the document as it stands, before the
+        ``dateModified`` stamping :meth:`save` does. That is the one way these
+        bytes differ from the bytes written. A stamp is a well-formed date in a
+        valid place, so nothing generated is ever a finding and validate-then-save
+        is sound.
 
         With ``require_ids``, entries missing a ``guid`` and senses missing an
         ``id`` are reported as ``missing-id`` errors — stricter than LIFT (both

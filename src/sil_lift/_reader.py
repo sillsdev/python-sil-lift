@@ -117,9 +117,9 @@ def _attach_stamp_baseline(lexicon: Lexicon) -> None:
 
     Byte reuse needs the source bytes; stamping needs only the digests, which
     are available whether or not the scan was declined. Without this a document
-    that was read rather than built would reach a save with no baseline at all,
-    and every undated entry in it would look new — stamping entries nobody
-    touched, on a save that changed nothing.
+    that was read rather than built would reach a save with no baseline at all.
+    Every undated entry would look new, so a save that changed nothing would
+    stamp entries nobody touched.
 
     Digesting refuses only a lone surrogate, which cannot arrive from a file, so
     this cannot raise for a document that has just parsed.
