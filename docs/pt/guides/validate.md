@@ -28,7 +28,7 @@ Cada `Problema` contém um `nível` (`"erro"`/`"aviso"`), um `código` fixo, uma
 
 ## Códigos de problema
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
+Cada resultado inclui um destes, independentemente da camada que o tenha gerado — `schema` e `uri-not-rfc` provêm das camadas de esquema, enquanto os outros onze são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
 
 | código                              | nível | o que assinala                                                                                                                      |
 | ----------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,7 +37,7 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `dangling-ref`                      | erro  | um `relation/@ref` ou `variant/@ref` que não corresponde a nenhuma entrada ou significado                                           |
 | `duplicate-form-lang`               | aviso | duas formas num único multitexto que partilham uma língua                                                                           |
 | `duplicate-guid`                    | erro  | um GUID reutilizado entre entradas ou entre intervalos/elementos de intervalo de um mesmo documento                                 |
-| `form-missing-lang`                 | erro  | a `<form>` or `<gloss>` without the `lang` the schema requires                                                                      |
+| `form-missing-lang`                 | erro  | um `<form>` ou `<gloss>` sem o atributo `lang` exigido pelo esquema                                                                 |
 | `missing-id`                        | erro  | adesão através de `require_ids`: uma entrada sem um GUID, um sentido sem um ID                                      |
 | `failas-de-meios`                   | aviso | um ficheiro de áudio ou de imagem referenciado que não se encontra no disco                                                         |
 | `incompatibilidade de normalização` | aviso | um nome que acede ao ID a que se refere apenas através da tecnologia NFC                                                            |
