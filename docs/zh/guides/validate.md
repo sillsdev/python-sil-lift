@@ -28,23 +28,23 @@ problems = list(lex.iter_problems())
 
 ## 问题代码
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. 字符串是一个受支持的接口；`--strict` 会将所有警告提升为错误。
+每个检测结果都包含其中之一，无论它来自哪个层——`schema` 和 `uri-not-rfc` 来自模式层，其余十一项则是语义检查。 字符串是一个受支持的接口；`--strict` 会将所有警告提升为错误。
 
-| 代码                      | 级别 | 它标记的是什么                                                        |
-| ----------------------- | -- | -------------------------------------------------------------- |
-| `ambiguous-ranges-file` | 警告 | 在大小写转换和NFC模式下，多个文件对应同一个伴侣名称                                    |
-| `dangling-ranges-href`  | 警告 | 一个解析为无关联文件的 `range/@href` 标头                                   |
-| `悬空引用`                  | 错误 | 一个 `relation/@ref` 或 `variant/@ref` 未匹配到任何条目或释义                |
-| `duplicate-form-lang`   | 警告 | 一种多文本中包含两种形式，且使用同一种语言                                          |
-| `duplicate-guid`        | 错误 | 在不同条目之间，或在一个文档的范围/范围元素之间重复使用的GUID                              |
-| `form-missing-lang`     | 错误 | a `<form>` or `<gloss>` without the `lang` the schema requires |
-| `缺失的ID`                 | 错误 | 通过 `require_ids` 进行选择加入：没有 GUID 的条目，没有 ID 的条目                  |
-| `缺失媒体`                  | 警告 | 引用的音频或图片文件不在磁盘上                                                |
-| `归一化不匹配`                | 警告 | 一个仅在NFC环境下才能访问其所引用的ID的名称                                       |
-| `range-parent`          | 错误 | a `range-element/@parent` 未定义同级元素 ID                           |
-| `schema`                | 错误 | `.lift` 文件或伴生文件中存在 RELAX NG 语法错误                               |
-| `未定义的范围值`               | 警告 | 一个语法信息或基于范围键的特征值，而该范围中未列出该值                                    |
-| `uri-not-rfc`           | 警告 | 一个不是有效 URI 的 href — FLEx 的 `file://C:/...`                     |
+| 代码                      | 级别 | 它标记的是什么                                         |
+| ----------------------- | -- | ----------------------------------------------- |
+| `ambiguous-ranges-file` | 警告 | 在大小写转换和NFC模式下，多个文件对应同一个伴侣名称                     |
+| `dangling-ranges-href`  | 警告 | 一个解析为无关联文件的 `range/@href` 标头                    |
+| `悬空引用`                  | 错误 | 一个 `relation/@ref` 或 `variant/@ref` 未匹配到任何条目或释义 |
+| `duplicate-form-lang`   | 警告 | 一种多文本中包含两种形式，且使用同一种语言                           |
+| `duplicate-guid`        | 错误 | 在不同条目之间，或在一个文档的范围/范围元素之间重复使用的GUID               |
+| `form-missing-lang`     | 错误 | `<form>` 或 `<gloss>`，但缺少架构要求的 `lang` 属性         |
+| `缺失的ID`                 | 错误 | 通过 `require_ids` 进行选择加入：没有 GUID 的条目，没有 ID 的条目   |
+| `缺失媒体`                  | 警告 | 引用的音频或图片文件不在磁盘上                                 |
+| `归一化不匹配`                | 警告 | 一个仅在NFC环境下才能访问其所引用的ID的名称                        |
+| `range-parent`          | 错误 | a `range-element/@parent` 未定义同级元素 ID            |
+| `schema`                | 错误 | `.lift` 文件或伴生文件中存在 RELAX NG 语法错误                |
+| `未定义的范围值`               | 警告 | 一个语法信息或基于范围键的特征值，而该范围中未列出该值                     |
+| `uri-not-rfc`           | 警告 | 一个不是有效 URI 的 href — FLEx 的 `file://C:/...`      |
 
 这三层都基于 `save()` 会写入的内容进行处理，因此，如果某个文档完全无法序列化，则会报告一个 `lone-surrogate` 错误——参见 [保真度保证](../fidelity.md#content-xml-cannot-represent)。
 
