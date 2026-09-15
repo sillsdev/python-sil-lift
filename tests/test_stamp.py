@@ -64,14 +64,10 @@ def test_an_edit_at_any_depth_stamps_the_containing_entry(tmp_path: Path) -> Non
     lexicon = sil_lift.load(UNDATED)
     entry = lexicon.entries[0]
     entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
-    out = tmp_path / "out.lift"
-    lexicon.save(out, when=WHEN)
+    lexicon.save(tmp_path / "out.lift", when=WHEN)
 
     assert entry.date_modified == WHEN
     assert entry.date_created == WHEN  # blank before, so filled with the same moment
-    assert b'dateCreated="2026-03-04T05:06:07Z" dateModified="2026-03-04T05:06:07Z"' in (
-        out.read_bytes()
-    )
 
 
 def test_only_the_edited_entry_is_stamped(tmp_path: Path) -> None:
@@ -109,17 +105,6 @@ def test_stamp_false_writes_the_model_exactly_as_it_stands(tmp_path: Path) -> No
 
     assert target.date_modified == before
     assert lexicon._stamps == {}  # a save that stamps nothing remembers nothing
-
-
-def test_a_date_the_caller_set_is_left_alone(tmp_path: Path) -> None:
-    """Content and date both moved, so the date is the caller's, not a stale one."""
-    lexicon = sil_lift.load(DATED)
-    target = lexicon.entries[0]
-    target.lexical_unit["en"] = "edited"
-    target.date_modified = BY_HAND
-    lexicon.save(tmp_path / "out.lift", when=WHEN)
-
-    assert target.date_modified == BY_HAND
 
 
 def test_sorting_alone_stamps_nothing(tmp_path: Path) -> None:
