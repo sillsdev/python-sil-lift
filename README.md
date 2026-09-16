@@ -8,12 +8,12 @@ canonical sorting — with streaming APIs for large lexicons.
 ```python
 import sil_lift
 
-lex = sil_lift.load("thesaurus.lift")      # tracks .lift-ranges companions too
+lex = sil_lift.load("thesaurus.lift")  # tracks .lift-ranges companions too
 for entry in lex.entries:
     ...
 entry = lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
-lex.save()                                 # untouched entries byte-identical
+lex.save()                             # edited entries stamped; rest verbatim
 ```
 
 **Status: pre-release, under active development.** The API is not yet stable.
@@ -35,7 +35,9 @@ not understand.
 - Entries you did not modify are written back **byte-identical**, even when
   other entries changed.
 - Entries you did modify are re-serialized in a documented canonical form, with
-  all out-of-schema content (unknown elements, attributes, comments) preserved.
+  all out-of-schema content (unknown elements, attributes, comments) preserved,
+  and are stamped with a fresh `dateModified` so the edit does not go out under
+  the date it was loaded with.
 - Whitespace inside `<text>` is never altered — not even for indentation.
 
 The precise rules and their few edge cases are documented in
