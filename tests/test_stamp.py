@@ -117,7 +117,7 @@ def test_sorting_alone_stamps_nothing(tmp_path: Path) -> None:
     assert _dates(lexicon) == before
 
 
-def test_a_second_round_of_edits_on_the_same_lexicon_is_stamped_too(tmp_path: Path) -> None:
+def test_a_second_round_of_edits_on_the_same_lexicon_is_also_stamped(tmp_path: Path) -> None:
     """The baseline moves with each save; without that, only the first edit would bump.
 
     After the first save the entry's date differs from the loaded one — this
@@ -233,6 +233,58 @@ def test_the_same_instant_in_another_offset_is_the_caller_touching_the_date(
 
     assert entry.date_modified == restated
     assert entry.date_modified.utcoffset() == timedelta(hours=-5)
+
+
+def test_clearing_a_loaded_date_is_left_alone(tmp_path: Path) -> None:
+    """Blanking the date is a deliberate value like any other, so no stamp replaces it.
+
+    It is the only way to hand an edited entry to a consumer that wants the
+    attribute absent, and nothing distinguishes it from the hand-set date
+    above: both are the caller saying what the output should carry.
+    """
+    lexicon = sil_lift.load(DATED)
+    entry = lexicon.entries[0]
+    entry.lexical_unit["en"] = "edited"
+    entry.date_modified = None
+    out = tmp_path / "out.lift"
+    lexicon.save(out, when=WHEN)
+
+    assert entry.date_modified is None
+    assert _dates(sil_lift.load(out))[entry.id] == (entry.date_created, None)
+
+
+def test_clearing_a_date_without_an_edit_is_left_alone_too(tmp_path: Path) -> None:
+    """A date is part of an entry's bytes, so clearing one moves the digest by itself.
+
+    What holds the stamp off is the date having left its baseline, not the
+    digest standing still — which it does not here.
+    """
+    lexicon = sil_lift.load(DATED)
+    entry = lexicon.entries[0]
+    entry.date_modified = None
+    out = tmp_path / "out.lift"
+    lexicon.save(out, when=WHEN)
+
+    assert entry.date_modified is None
+    assert _dates(sil_lift.load(out))[entry.id] == (entry.date_created, None)
+
+
+def test_clearing_a_date_an_entry_never_had_does_not_hold_off_the_stamp(
+    tmp_path: Path,
+) -> None:
+    """``None`` over ``None`` is the value already there, not a date the caller moved.
+
+    An entry read without a ``dateModified`` cannot tell a caller who cleared
+    it from one who never touched the field, so an edit stamps it as any other
+    edit does.
+    """
+    lexicon = sil_lift.load(UNDATED)
+    entry = lexicon.entries[0]
+    entry.senses[0].subsenses[0].glosses[0].text = sil_lift.Text(["edited"])
+    entry.date_modified = None
+    lexicon.save(tmp_path / "out.lift", when=WHEN)
+
+    assert entry.date_modified == WHEN
 
 
 def test_an_entry_added_after_load_is_stamped_only_when_its_date_is_blank(
