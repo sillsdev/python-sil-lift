@@ -1,0 +1,76 @@
+# Leer, editar, escribir
+
+## Cargando
+
+```python
+import sil_lift
+
+lex = sil_lift.load("dictionary.lift")
+```
+
+La función `load()` admite cualquier documento LIFT **0.13** bien formado, incluidos los archivos reales que no cumplen con el esquema. Todo aquello que el modelo no defina (elementos o atributos desconocidos, comentarios) se transmite sin pérdida de información como residuo LIFT en el campo opaco `extra` de cada nodo. Otras versiones de LIFT generan un error `LiftParseError` indicando la versión.
+
+## El modelo
+
+Cada elemento de LIFT es una clase de datos tipada: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, etc. Un texto multilingüe es un `Multitext`, que es una `Mapping` del código de idioma a `Text`:
+
+```python
+entry = lex.find(id="abat")
+
+str(entry.lexical_unit["seh"])          # «abat»
+entry.lexical_unit["en"] = «grove»      # las cadenas simples se convierten
+«en» in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["seh", "en"]
+```
+
+`keys()`, `values()` e `items()` son vistas, con una clave por idioma, y `len()` cuenta los idiomas en lugar de los formularios. Ambos mutadores actúan sobre el idioma en su conjunto, en lugar de sobre una forma concreta: `del entry.lexical_unit["en"]` elimina todas las formas en inglés, y al asignar un valor a `"en"` queda exactamente una.
+
+Un documento válido según el esquema no contiene nada más, pero los archivos reales a veces repiten un idioma. `forms` contiene todos los formularios en el orden en que aparecen en el archivo, lee la respuesta del primero y [`validate`](validate.md#problem-codes) muestra el error `duplicate-form-lang` hasta que se asigne ese idioma. No se puede crear mediante la asignación un formulario que no incluya ningún atributo `lang`; se notifica como `form-missing-lang` y se descarta cuando se vuelve a serializar su nodo.
+
+El `texto` está estructurado —una lista ordenada de fragmentos `str` y `Span`— porque `<text>` puede contener marcado anidado `<span>`. `str(text)` convierte el contenido en texto sin formato; los fragmentos conservan el marcado para facilitar la conversión de ida y vuelta.
+
+En LIFT, los glosas tienen forma de _forma_ (cada `<gloss>` tiene su propio lenguaje), por lo que un sentido tiene `glosses: list[Form]`, además de funciones auxiliares:
+
+```python
+sense = entry.senses[0]                 # solo el nivel superior
+sense.gloss("en")                       # Texto | None
+entry.all_senses()                      # todos los significados y subsignificados, en el orden del documento
+entry.gloss_langs()                     # {"en", "id"}, incluidos los subsignificados
+```
+
+Recurre a `all_senses()` siempre que una pregunta se refiera a toda la entrada: contar acepciones, recopilar idiomas o buscar archivos multimedia. `entry.senses` proporciona el nivel superior, que es lo que te interesa únicamente cuando el propio anidamiento es relevante.
+
+## Ahorro
+
+```python
+lex.save()                # volver al lugar desde donde se cargó
+lex.save("elsewhere.lift")
+```
+
+Las entradas que no hayas modificado se vuelven a escribir **con los mismos bytes**; un documento que no hayas modificado en absoluto es idéntico, byte a byte, desde el primer byte hasta el último. Consulta [las garantías de Fidelity](../fidelity.md) para conocer los términos exactos del contrato.
+
+Las entradas que has modificado se envían con un nuevo `dateModified` (y un `dateCreated` si no tenían ninguno), por lo que una modificación no se envía con la fecha con la que se cargó; las herramientas que fusionan LIFT determinan qué ha cambiado a partir de ese atributo. `lex.save(stamp=False)` guarda las fechas que contiene el modelo y nada más; `lex.save(when=...)` fija el momento en lugar de leer la hora del reloj. Consulta [Marcas de tiempo generadas](../fidelity.md#generated-timestamps) para ver el resto de las reglas.
+
+## Construir desde cero
+
+```python
+lex = sil_lift.Lexicon(producer="my-script 1.0")
+entry = sil_lift.Entry(id="hello", guid="...")
+entry.lexical_unit["en"] = "hello"
+sense = sil_lift.Sense()
+sense.glosses.append(sil_lift.Form("fr", sil_lift.Text(["bonjour"])))
+entry.senses.append(sense)
+lex.entries.append(entry)
+lex.save("new.lift")
+```
+
+## Ordenación canónica
+
+```python
+lex.sort()      # entradas ordenadas por (guid, id); rangos/definiciones de campos por id/etiqueta
+lex.save()      # las entradas no modificadas conservan sus bytes exactos, en el nuevo orden
+
+sil_lift.canonicalize("in.lift", "out.lift")   # totalmente reserializado, listo para la comparación de diferencias
+```
+
+Véase también: [Ejemplo práctico: edición masiva de glosas](bulk-edit-glosses.md).
