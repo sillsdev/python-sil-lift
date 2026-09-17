@@ -17,7 +17,7 @@ entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
 
 pron = sil_lift.Pronunciation()
-pron.forms["en"] = "Speaker: Ana"  # द कंबाइन का स्पीकर-लेबल कन्वेंशन
+pron.forms["en"] = "Speaker: Ana"  # The Combine's speaker-label convention
 pron.media.append(sil_lift.URLRef(href="audio/nkhuku.wav"))
 entry.pronunciations.append(pron)
 
@@ -52,9 +52,9 @@ ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# डिस्क पर लिखने से पहले save() क्या लिखेगा, इसकी जांच करें।
+# डिस्क को छूने से पहले दस्तावेज़ को जैसा है वैसा मान्य करें।
 problems = list(lex.iter_problems())
-print(f"validation: {len(problems)} problem(s)")
+print(f"मान्यकरण: {len(problems)} problem(s)")
 
 out = Path("export")
 out.mkdir(exist_ok=True)
@@ -70,7 +70,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 `validation: 0 problem(s)`, फिर `.lift` और उसका साथी एक साथ:
 
 ```
-=== birds.lift ===
+पक्षी।लिफ्ट
 <?xml version="1.0" encoding="UTF-8"?>
 <lift version="0.13" producer="my-exporter">
 <header>
@@ -79,45 +79,45 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
     <range id="semantic-domain-ddp4" href="birds.lift-ranges"/>
   </ranges>
 </header>
-<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d">
+<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d" dateCreated="2026-09-02T19:19:17Z" dateModified="2026-09-02T19:19:17Z">
   <lexical-unit>
     <form lang="seh">
-      <text>nkhuku</text>
+      <text>मुर्गी</text>
     </form>
     <form lang="pt">
-      <text>galinha</text>
+      <text>मुर्गी</text>
     </form>
   </lexical-unit>
   <pronunciation>
     <form lang="en">
-      <text>Speaker: Ana</text>
+      <text>वक्ता: आना</text>
     </form>
     <media href="audio/nkhuku.wav"/>
   </pronunciation>
   <sense id="kanga_s1">
     <grammatical-info value="Noun"/>
     <gloss lang="en">
-      <text>chicken</text>
+      <text>मुर्गी</text>
     </gloss>
     <definition>
       <form lang="en">
-        <text>a domestic fowl kept for its eggs and meat</text>
+        <text>अंडे और मांस के लिए पाला जाने वाला एक घरेलू मुर्गी</text>
       </form>
     </definition>
     <example>
       <form lang="seh">
-        <text>Ndinafuna nkhuku.</text>
+        <text>मुझे मुर्गी चाहिए।</text>
       </form>
       <translation>
         <form lang="en">
-          <text>I want a chicken.</text>
+          <text>मुझे एक मुर्गी चाहिए।</text>
         </form>
       </translation>
     </example>
     <illustration href="pictures/hen.jpg">
       <label>
         <form lang="en">
-          <text>A hen</text>
+          <text>एक मादा मुर्गी</text>
         </form>
       </label>
     </illustration>
@@ -137,7 +137,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="Noun">
     <label>
       <form lang="en">
-        <text>noun</text>
+        <text>संज्ञा</text>
       </form>
     </label>
   </range-element>
@@ -146,7 +146,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="1.6.1.2">
     <label>
       <form lang="en">
-        <text>Bird</text>
+        <text>पक्षी</text>
       </form>
     </label>
   </range-element>
@@ -161,7 +161,8 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 - `URLRef` एक href और एक वैकल्पिक कैप्शन/लेबल मल्टीटेक्स्ट है — जो `<media>` (ऑडियो) और `<illustration>` (फ़ोटो) दोनों के लिए उपयोग किया जाता है। यहाँ का उच्चारण द कॉम्बाइन की परंपरा का पालन करता है, जिसमें `en` रूप को `Speaker: <name>` के रूप में पढ़ा जाता है।
 - ऐप-विशिष्ट डेटा जिसमें कोई नेटिव LIFT होम राइड्स नहीं होतीं, एक `<field>` (या `<trait>`) के रूप में: FieldWorks इन्हें कस्टम फ़ील्ड्स के रूप में पढ़ता है और The Combine इन्हें संरक्षित करता है।
 - प्रत्येक प्रविष्टि को एक वास्तविक, स्थिर `guid` दें (उदाहरण के लिए `uuid.uuid4()` से, जो एक्सपोर्ट्स में पुन: उपयोग किया जाता है) — बाद में पुनः आयात करने पर यह प्रविष्टि को डुप्लिकेट करने के बजाय उसी स्थान पर अपडेट कर देता है। `sil-lift validate --require-ids` इसे लागू करता है।
-- `lex.iter_problems()` मेमोरी में मौजूद दस्तावेज़ (जिसे `save()` लिखता) को डिस्क पर लिखने से पहले सत्यापित करता है; यहाँ यह सही है। चूंकि लेक्सिकॉन में अभी तक कोई फ़ोल्डर नहीं है, इसलिए मीडिया-उपस्थिति और साथी-href जांच छोड़ दी जाती हैं — ऑडियो और फोटो फ़ाइलें तैयार होने पर सहेजे गए आउटपुट पर [`sil-lift validate`](cli.md) चलाएँ (या `--no-check-media` के साथ)।
+- उपरोक्त आउटपुट में `dateCreated`/`dateModified` स्क्रिप्ट में नहीं हैं: `save()` ने उन्हें उस क्षण की तारीख के साथ अंकित किया जब यह चला, क्योंकि पहली बार लिखी गई प्रविष्टि में अपनी कोई तारीख नहीं होती। `when=` घड़ी पढ़ने के बजाय उस क्षण को प्रदान करता है, जो जेनरेट किए गए एक्सपोर्ट को CI जॉब द्वारा डिफ करने के लिए बाइट-रिप्रोड्यूसिबल बनाता है; `stamp=False` कोई तारीख नहीं लिखता। बाकी कॉन्ट्रैक्ट के लिए [जेनरेट किए गए टाइमस्टैम्प](../fidelity.md#generated-timestamps) देखें।
+- `lex.iter_problems()` डिस्क पर कुछ भी लिखने से पहले इन-मेमोरी दस्तावेज़ की वैधता जांचता है; यहाँ यह त्रुटिरहित है। चूंकि लेक्सिकॉन में अभी तक कोई फ़ोल्डर नहीं है, इसलिए मीडिया-उपस्थिति और साथी-href जांच छोड़ दी जाती हैं — ऑडियो और फोटो फ़ाइलें तैयार होने पर सहेजे गए आउटपुट पर [`sil-lift validate`](cli.md) चलाएँ (या `--no-check-media` के साथ)।
 
 ## पैकेजिंग
 
