@@ -329,13 +329,21 @@ def test_an_href_naming_an_unrelated_file_names_the_header_range(tmp_path: Path)
     assert "header range 'etymology' href 'pictures.png'" in problems[0].message
 
 
-def test_an_unreadable_companion_is_not_reported_without_discovery(tmp_path: Path) -> None:
+def test_companion_findings_need_companion_discovery(tmp_path: Path) -> None:
+    # resolve_ranges=False puts companions out of scope for the load, so no
+    # finding about one is reported -- accurate or not. missing-media is not a
+    # companion finding and is unaffected.
     folder = tmp_path / "pkg"
     folder.mkdir(parents=True)
-    (folder / "Dict.lift").write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
+    (folder / "Dict.lift").write_bytes(_lift_with_href("gone.lift-ranges"))
     (folder / "Dict.lift-ranges").write_bytes(b"")
-    lexicon = sil_lift.load(folder / "Dict.lift", resolve_ranges=False)
-    assert [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"] == []
+    lift = folder / "Dict.lift"
+    assert {p.code for p in sil_lift.load(lift).iter_problems()} == {
+        "dangling-ranges-href",
+        "unreadable-ranges-file",
+    }
+    resolved = sil_lift.load(lift, resolve_ranges=False)
+    assert list(resolved.iter_problems()) == []
 
 
 def test_a_second_lift_named_by_an_href_is_skipped_not_fatal(tmp_path: Path) -> None:

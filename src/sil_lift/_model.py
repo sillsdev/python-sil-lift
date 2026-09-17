@@ -1059,6 +1059,13 @@ class Lexicon:
         With ``require_ids``, entries missing a ``guid`` and senses missing an
         ``id`` are reported as ``missing-id`` errors — stricter than LIFT (both
         are optional there), for workflows that re-import by a stable id.
+
+        The companion-folder checks (``ambiguous-ranges-file``,
+        ``dangling-ranges-href``, ``unreadable-ranges-file``) are reported only
+        when companion discovery ran: a lexicon loaded with
+        ``resolve_ranges=False`` put companions out of scope, so none is
+        reported for it. ``missing-media`` is unaffected — media is never
+        resolved into the model, so nothing was opted out of.
         """
         from ._validate import iter_lexicon_problems
 

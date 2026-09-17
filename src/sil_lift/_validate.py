@@ -527,7 +527,11 @@ def _semantic_problems(
     # here, not inside the file check below, which a lexicon with no path skips.
     header_ranges = {range_.id: range_named(range_.id) for range_ in lexicon.header.ranges}
 
-    if lexicon.path is not None:
+    # Only what companion discovery actually went looking for. With
+    # resolve_ranges=False the caller put companions out of scope for this
+    # load, so a finding about one is unwanted whether or not it is accurate.
+    rejected = lexicon._rejected_ranges
+    if lexicon.path is not None and rejected is not None:
         base = lexicon.path.parent
         listings: dict[Path, dict[str, list[Path]]] = {}
 
@@ -586,7 +590,7 @@ def _semantic_problems(
         # Addressed to the offending file, and naming the route load took to
         # it: a broken sidecar is fixed in the file, an href pointing at an
         # unrelated file is fixed in the header.
-        for path, rejection in (lexicon._rejected_ranges or {}).items():
+        for path, rejection in rejected.items():
             if rejection.source is None:
                 where = f"the conventional companion beside {lexicon.path.name!a}"
             else:

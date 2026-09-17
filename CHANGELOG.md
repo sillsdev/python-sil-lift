@@ -33,6 +33,14 @@ releases may contain breaking changes.
   skipped and reported, instead of costing the whole lexicon its entries.
   `RangesFile.load()` is unchanged and still raises.
 
+### Changed
+
+- The companion-folder checks (`ambiguous-ranges-file`, `dangling-ranges-href`,
+  `unreadable-ranges-file`) are reported only when companion discovery ran.
+  A lexicon loaded with `resolve_ranges=False` put companions out of scope,
+  so none is reported for it; previously the first two were, including in
+  cases a resolving load would have suppressed. `missing-media` is unaffected.
+
 ## [0.1.0] - 2026-07-TBD
 
 ### Added

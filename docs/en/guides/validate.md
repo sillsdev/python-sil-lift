@@ -51,6 +51,8 @@ All three layers work from the document serialized as it stands, so one that can
 
 A companion name matching several files loads none of them: the ranges they define go absent until all but one is renamed or removed.
 
+The three companion-folder codes — `ambiguous-ranges-file`, `dangling-ranges-href` and `unreadable-ranges-file` — are reported only when companion discovery ran. A lexicon loaded with `resolve_ranges=False` put companions out of scope, so none of them is reported for it. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
+
 ## Real-world FieldWorks (FLEx) output
 
 FieldWorks systematically writes some content that strict tooling rejects. Here is sil-lift's policy, so that real lexicons validate usefully:
