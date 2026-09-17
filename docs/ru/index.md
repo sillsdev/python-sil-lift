@@ -28,5 +28,5 @@ for entry in lex.entries:
 entry = lex.find(guid="0f5a9c3e-...")     # или lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # неизменённые записи остаются байтово идентичными; отредактированная запись сериализуется заново
+lex.save()   # отредактированная запись заново сериализована и промаркирована; остальное байт-идентично
 ```
