@@ -8,7 +8,7 @@ Tout document LIFT 0.13 bien formé se charge, même s'il contient du contenu no
 
 ## Enregistrer un document sans modification
 
-`load()` → `save()` sans modification génère une **sortie identique au niveau des octets** — pas de reformatage, pas de ré-échappement, pas de réorganisation ; les marques d'ordre des octets et les déclarations XML sont incluses. Il n'existe actuellement aucune liste de normalisation : l'identité est exacte.
+`load()` → `save()` sans modification génère une **sortie identique au niveau des octets** — pas de reformatage, pas de ré-échappement, pas de réorganisation ; les marques d'ordre des octets et les déclarations XML sont incluses. Il n'existe actuellement aucune liste de normalisation : l'identité est exacte. Les horodatages sont générés à partir du contenu ; par conséquent, un document qui n'a pas été modifié n'en comporte pas non plus.
 
 Exceptions (le programme de lecture revient à la sérialisation canonique complète, qui est sémantiquement complète mais ne préserve pas les octets) :
 
@@ -20,11 +20,32 @@ Exceptions (le programme de lecture revient à la sérialisation canonique compl
 ## Enregistrer un document modifié
 
 - **Les entrées non modifiées sont transmises telles quelles, à partir de leurs octets d'origine.** Une entrée est considérée comme modifiée si une partie quelconque de son objet modèle a changé depuis l'analyse (ce qui est détecté par l'instantané de sérialisation canonique, et non par un indicateur de modification).
-- **Les entrées modifiées sont resérialisées de manière canonique et complète** : UTF-8, indentation à 2 espaces _en dehors_ du contenu mixte (les espaces à l'intérieur de `<text>` et `<span>` ne sont jamais modifiés), un regroupement des éléments enfants documenté pour chaque élément (par exemple, entrée : unité lexicale, citation, prononciations, variantes, sens, notes, relations, étymologies, annotations, traits, champs), ordre fixe des attributs, dates au format ISO-8601 (`Z` pour l'UTC). Tous les résidus sont réémis ; leur position est rétablie dans l'index enfant d'origine, en étant ancrée à la nouvelle liste des enfants (il s'agit d'une approximation — les positions exactes en octets ne sont garanties que pour les entrées non modifiées).
+- **Les entrées modifiées sont à nouveau sérialisées de manière canonique et complète.** La forme canonique est la suivante :
+  - UTF-8.
+  - Indentation de 2 espaces _à l'extérieur_ du contenu mixte ; les espaces à l'intérieur de `<text>` et `<span>` ne sont jamais modifiés.
+  - Un regroupement d'enfants documenté par élément ; pour `<entry>` : unité lexicale, citation, prononciations, variantes, sens, notes, relations, étymologies, annotations, traits, domaines.
+  - Ordre des attributs corrigé.
+  - Dates au format ISO-8601 (`Z` pour l'UTC).
+- **Tous les résidus sont réémis.** Leur position est rétablie dans l’index enfant d’origine, en étant ancrée à la nouvelle liste des enfants — il s’agit d’une approximation, car les positions exactes en octets ne sont garanties que pour les entrées qui n’ont pas été modifiées.
 - L'ajout, la suppression ou le réordonnancement d'entrées entraîne une nouvelle sérialisation de la structure du document, mais les octets de chaque entrée inchangée sont toujours restitués à l'identique.
+- **Une entrée modifiée est marquée** d'une nouvelle valeur `dateModified`, ainsi que d'une valeur `dateCreated` si elle n'en avait pas — voir [Horodatages générés](#generated-timestamps).
 
 !!! note "&quot;Le fichier XML canonique&quot; ne fait référence à aucun autre fichier XML canonique."
     Sur cette page, on entend par « forme canonique » la forme propre à `sil-lift`, telle qu'elle est décrite dans l'un des points ci-dessus. Cela n'a aucun rapport avec le processus « Canonical XML (C14N) » du W3C. Cela n'a aucun rapport avec la classe `CanonicalXmlSettings` de `SIL.Core`.
+
+## Horodatages générés
+
+Un tampon généré est le seul élément de la sortie qui ne dépend pas de l'entrée.
+
+- **Ce qui est marqué.** Chaque entrée dont le contenu a changé depuis sa lecture, avec une nouvelle valeur `dateModified` et, si elle n'en avait pas, une valeur `dateCreated` correspondant au même moment. Une modification enregistrée après la date de chargement apparaît comme inchangée pour tous les outils qui effectuent un rapprochement sur cet attribut, y compris FieldWorks et l’importation LIFT de The Combine.
+- **Entrées uniquement.** Aucun nœud ne doit se trouver sous un `<entry>`, et l'en-tête ne doit contenir aucun élément.
+- **Ce qui est laissé tel quel.** Une entrée dont la date a été définie délibérément par l'appelant, et une entrée créée après le chargement qui comporte déjà une date.
+- **La suppression d'une date est prise en compte.** La ligne `entry.date_modified = None` appliquée à une entrée lue avec cette valeur est une opération délibérée, comme n'importe quelle autre ; l'entrée est donc renvoyée sans `dateModified`, que son contenu ait été modifié ou non. Une entrée lue sans modification est un cas à part : `None` correspond à une valeur déjà présente, impossible à distinguer d'une situation où le champ n'a jamais été modifié ; par conséquent, une modification laisse tout de même une trace.
+- **Une date impossible à analyser est remplacée.** Une date que le modèle n'a pas pu analyser est considérée comme un [résidu](#reading) plutôt que comme une date ; un horodatage vient donc la remplacer et la chaîne d'origine est supprimée — il vaut mieux qu'une entrée modifiée comporte une date réelle plutôt que `dateModified="whenever"`.
+- **L'instant.** Heure UTC à la seconde près (`AAAA-MM-JJTHH:MM:SSZ`, le format utilisé par toutes les exportations FieldWorks de l'enquête), lu sur l'horloge murale. Une seconde correspond à une seule date ; ainsi, une modification enregistrée dans la seconde qui suit la précédente porte le même horodatage.
+- **`save(when=...)`** fournit l'instant plutôt que l'heure de l'horloge, ce qui garantit la reproductibilité des résultats horodatés pour une porte de CI basée sur les différences. Il doit tenir compte du fuseau horaire et est normalisé en secondes entières UTC.
+- **`save(stamp=False)`** enregistre le modèle tel quel, résidu compris.
+- **Valider les commits avec l'écriture `.lift`.** Tout ce qui empêche cette écriture d'être validée fait remonter les dates. Une fois qu'elle a atterri, elles restent en place, même si une autre écriture échoue par la suite.
 
 ## Le format XML ne permet pas de représenter
 
