@@ -18,6 +18,21 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- `unreadable-ranges-file` (warning): a companion candidate that exists but
+  cannot be read as a `<lift-ranges>` document. Addressed to the offending
+  file, and naming the route that reached it — the conventional sibling, or
+  the header `range/@href` that pointed there.
+
+### Fixed
+
+- `Lexicon.load()` no longer raises when a companion candidate is not a ranges
+  document. A zero-byte or truncated `.lift-ranges` beside the `.lift`, a
+  second `.lift`, or any other file a header `range/@href` names is now
+  skipped and reported, instead of costing the whole lexicon its entries.
+  `RangesFile.load()` is unchanged and still raises.
+
 ## [0.1.0] - 2026-07-TBD
 
 ### Added

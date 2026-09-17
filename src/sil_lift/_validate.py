@@ -536,14 +536,14 @@ def _semantic_problems(
         # several candidate names can fold onto the same one.
         reported: set[tuple[Path, tuple[str, ...]]] = set()
         for candidate in _ranges_candidates(lexicon.path, lexicon.header.ranges):
-            matches = _folded_matches(candidate, listings)
+            matches = _folded_matches(candidate.path, listings)
             if len(matches) < 2:
                 continue
             # One of the colliding files loaded, named exactly by another candidate.
             if any(_same_file(path, loaded) for path in matches for loaded in lexicon.ranges_files):
                 continue
             names = sorted(path.name for path in matches)
-            key = (candidate.parent, tuple(names))
+            key = (candidate.path.parent, tuple(names))
             if key in reported:
                 continue
             reported.add(key)
@@ -552,7 +552,7 @@ def _semantic_problems(
             yield Problem(
                 "warning",
                 "ambiguous-ranges-file",
-                f"companion {candidate.name!a} matches {spellings}; they differ only "
+                f"companion {candidate.path.name!a} matches {spellings}; they differ only "
                 "in case or Unicode normalization, so none of them is loaded",
                 file=lexicon.path,
             )
@@ -581,6 +581,24 @@ def _semantic_problems(
                     "but no companion file was found",
                     file=lexicon.path,
                 )
+
+        # Candidates that exist but could not be read as ranges documents.
+        # Addressed to the offending file, and naming the route load took to
+        # it: a broken sidecar is fixed in the file, an href pointing at an
+        # unrelated file is fixed in the header.
+        for path, rejection in (lexicon._rejected_ranges or {}).items():
+            if rejection.source is None:
+                where = f"the conventional companion beside {lexicon.path.name!a}"
+            else:
+                named_by, href = rejection.source
+                where = f"this file, named by header range {named_by!r} href {href!r},"
+            yield Problem(
+                "warning",
+                "unreadable-ranges-file",
+                f"{where} could not be read as a ranges document, so it is "
+                f"not loaded: {rejection.reason}",
+                file=path,
+            )
 
     # Undefined range values: every grammatical-info and every trait whose
     # name matches a known range, anywhere in the entry. Empty values are

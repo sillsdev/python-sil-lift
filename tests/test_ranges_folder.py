@@ -269,18 +269,84 @@ def test_companion_resolves_when_companion_suffix_is_uppercase(tmp_path: Path) -
 
 
 @pytest.mark.parametrize("companion", ["Dict.lift-ranges", "Dict.LIFT-RANGES"])
-def test_a_companion_that_is_not_a_ranges_document_fails_the_load(
+def test_a_companion_that_is_not_a_ranges_document_is_skipped(
     tmp_path: Path, companion: str
 ) -> None:
     # A sibling match leaves no href to dangle and no collision to report, so
-    # skipping a broken companion would be silent — hence loud, however spelled.
+    # skipping a broken companion would be silent - hence the dedicated code,
+    # however the companion is spelled.
     folder = tmp_path / "pkg"
     folder.mkdir(parents=True)
     lift = (PAIR_DIR / "test20080407.lift").read_bytes()
     (folder / "Dict.lift").write_bytes(lift)
     (folder / companion).write_bytes(lift)
-    with pytest.raises(LiftParseError, match="expected <lift-ranges>"):
-        sil_lift.load(folder / "Dict.lift")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert lexicon.entries
+    assert lexicon.ranges_files == {}
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert [p.level for p in problems] == ["warning"]
+    assert problems[0].file == (folder / companion).resolve()
+    assert "the conventional companion beside 'Dict.lift'" in problems[0].message
+    assert "expected <lift-ranges>" in problems[0].message
+
+
+@pytest.mark.parametrize("payload", [b"", b"<lift-ranges><range id="])
+def test_an_empty_or_truncated_sidecar_still_loads_the_entries(
+    tmp_path: Path, payload: bytes
+) -> None:
+    # The realistic trigger: an interrupted export or a partial sync, which
+    # must not cost the lexicon its entries.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
+    (folder / "Dict.lift-ranges").write_bytes(payload)
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert lexicon.entries
+    assert [p.code for p in lexicon.iter_problems()] == ["unreadable-ranges-file"]
+
+
+def _lift_with_href(href: str) -> bytes:
+    """A minimal LIFT 0.13 document whose one header range points at ``href``."""
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<lift version="0.13"><header><ranges>'
+        f'<range id="etymology" href="{href}"/>'
+        '</ranges></header><entry id="a"/></lift>'
+    ).encode()
+
+
+def test_an_href_naming_an_unrelated_file_names_the_header_range(tmp_path: Path) -> None:
+    # Addressed to the file, but the actionable fix is the href: the png is
+    # intact and must not be touched.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("pictures.png"))
+    (folder / "pictures.png").write_bytes(bytes.fromhex("89504E470D0A1A0A") + b" not xml at all")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert len(problems) == 1
+    assert problems[0].file == (folder / "pictures.png").resolve()
+    assert "header range 'etymology' href 'pictures.png'" in problems[0].message
+
+
+def test_an_unreadable_companion_is_not_reported_without_discovery(tmp_path: Path) -> None:
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
+    (folder / "Dict.lift-ranges").write_bytes(b"")
+    lexicon = sil_lift.load(folder / "Dict.lift", resolve_ranges=False)
+    assert [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"] == []
+
+
+def test_a_second_lift_named_by_an_href_is_skipped_not_fatal(tmp_path: Path) -> None:
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("Other.lift"))
+    shutil.copy(PAIR_DIR / "test20080407.lift", folder / "Other.lift")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert len(lexicon.entries) == 1
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert "root element is <lift>" in problems[0].message
 
 
 def test_case_folded_companions_resolve_to_neither(tmp_path: Path) -> None:

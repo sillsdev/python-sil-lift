@@ -15,8 +15,9 @@ import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
+from ._errors import LiftError
 from ._extras import Extras
 from ._header import Header, Range
 from ._text import Annotation, Form, Multitext, Text, Trait
@@ -540,27 +541,48 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, list[Path]]])
     return matches[0] if len(matches) == 1 else None
 
 
-def _ranges_candidates(lift_path: Path, ranges: Iterable[Range]) -> list[Path]:
+class _Candidate(NamedTuple):
+    """A place a companion may be found, and what sent :meth:`Lexicon.load` there."""
+
+    path: Path
+    #: The header ``range`` id and ``href`` that named it, or None for the
+    #: conventional sibling, which no part of the document asserts.
+    source: tuple[str, str] | None
+
+
+class _Rejection(NamedTuple):
+    """Why a candidate that exists could not be taken as a companion."""
+
+    source: tuple[str, str] | None
+    reason: str
+
+
+def _ranges_candidates(lift_path: Path, ranges: Iterable[Range]) -> list[_Candidate]:
     """Where a companion may be found, in the order :meth:`Lexicon.load` tries.
 
     Each path once: an href shared by several ranges, or agreeing with the
-    sibling, is one candidate however many times it is written.
+    sibling, is one candidate however many times it is written. The first
+    spelling wins, so a candidate's ``source`` is the route load took to it.
     """
     base = lift_path.parent
     # with_name and with_suffix agree on every name that has an extension, but
     # with_suffix would raise on a name that has none — which parse_document
     # accepts, since it never inspects the extension.
-    candidates = [lift_path.with_name(lift_path.name + "-ranges")]
+    candidates = [_Candidate(lift_path.with_name(lift_path.name + "-ranges"), None)]
     for range_ in ranges:
         if range_.href is None:
             continue
+        source = (range_.id, range_.href)
         relative = _normalize_href(range_.href)
         if relative is not None:
-            candidates.append(base / relative)
+            candidates.append(_Candidate(base / relative, source))
         basename = range_.href.replace("\\", "/").rpartition("/")[2]
         if basename:
-            candidates.append(base / basename)
-    return list(dict.fromkeys(candidates))
+            candidates.append(_Candidate(base / basename, source))
+    seen: dict[Path, _Candidate] = {}
+    for candidate in candidates:
+        seen.setdefault(candidate.path, candidate)
+    return list(seen.values())
 
 
 def _same_file(left: Path, right: Path) -> bool:
@@ -582,6 +604,17 @@ def _same_file(left: Path, right: Path) -> bool:
         return False
 
 
+def _reason(path: Path, exc: Exception) -> str:
+    """``exc``'s message without the path it repeats.
+
+    Every rejection is reported against the file it concerns, so a parse
+    error's own ``<path>: `` prefix would print the path twice.
+    """
+    text = str(exc)
+    prefix = f"{path}: "
+    return text[len(prefix) :] if text.startswith(prefix) else text
+
+
 def _same_dir(left: Path, right: Path | None) -> bool:
     """Whether two paths denote the same directory, spelling aside.
 
@@ -601,6 +634,7 @@ class Lexicon:
     """The root handle: a parsed ``.lift`` document and its folder companions."""
 
     __slots__ = (
+        "_rejected_ranges",
         "_source",
         "_stamps",
         "_tempdir",
@@ -630,6 +664,9 @@ class Lexicon:
         self._source: _SourceInfo | None = None  # set by the reader
         self._stamps: dict[int, _EntryRecord] = {}  # stamping baselines (see stamp_entries)
         self._tempdir: tempfile.TemporaryDirectory[str] | None = None  # zip extraction, if any
+        # None until companion discovery runs, which is what lets validation
+        # tell "nothing was rejected" from "nothing was ever looked at".
+        self._rejected_ranges: dict[Path, _Rejection] | None = None
 
     @classmethod
     def load(cls, path: str | os.PathLike[str], *, resolve_ranges: bool = True) -> Lexicon:
@@ -650,6 +687,13 @@ class Lexicon:
         ambiguous and resolves to none of them, which validation reports as
         ``ambiguous-ranges-file``; the ``.lift`` is never its own companion.
 
+        Companion discovery never raises. A candidate that exists but cannot be
+        read as a ``<lift-ranges>`` document -- a zero-byte or truncated
+        sidecar, another ``.lift``, an unrelated file an href names -- is
+        skipped, so its entries still load, and validation reports it as
+        ``unreadable-ranges-file``. :meth:`RangesFile.load` is unchanged and
+        still raises.
+
         A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
         to a temporary directory (kept alive for the returned lexicon's
         lifetime) and the single contained ``.lift`` is loaded.
@@ -667,11 +711,12 @@ class Lexicon:
         return lexicon
 
     def _resolve_ranges(self) -> None:
+        self._rejected_ranges = {}
         if self.path is None:
             return
         listings: dict[Path, dict[str, list[Path]]] = {}
         for candidate in _ranges_candidates(self.path, self.header.ranges):
-            found = _existing_file(candidate, listings)
+            found = _existing_file(candidate.path, listings)
             if found is None:
                 continue
             try:
@@ -686,7 +731,14 @@ class Lexicon:
                 _same_file(resolved, other) for other in (self.path, *self.ranges_files)
             ):
                 continue
-            self.ranges_files[resolved] = RangesFile.load(found)
+            try:
+                self.ranges_files[resolved] = RangesFile.load(found)
+            except (LiftError, OSError) as exc:
+                # A candidate that exists but cannot serve as a companion is
+                # skipped, exactly as the .lift itself is above: one unusable
+                # file must not cost the entries. Recorded so validation can
+                # report it as unreadable-ranges-file.
+                self._rejected_ranges[resolved] = _Rejection(candidate.source, _reason(found, exc))
 
     def _apply_stamps(self, stamp: bool, when: datetime | None) -> _StampUndo:
         """The stamping step shared by :meth:`save` and :meth:`save_zip`.
