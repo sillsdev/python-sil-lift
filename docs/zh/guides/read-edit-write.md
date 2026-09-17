@@ -8,11 +8,11 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` 接受任何格式正确的 LIFT **0.13** 文档——包括那些不符合模式规范的实际文件。 模型未定义的任何内容（未知元素/属性、注释）都会作为 LIFT 残余信息，无损地保存在每个节点的不透明 `extra` 字段中。 其他 LIFT 版本会抛出一个名称中包含该版本号的 `LiftParseError` 异常。
+`load()` 接受任何格式正确的 LIFT **0.13** 文档——包括那些不符合模式规范的实际文件。模型未定义的任何内容（未知元素/属性、注释）都会作为 LIFT 残余信息，无损地保存在每个节点的不透明 `extra` 字段中。其他 LIFT 版本会抛出一个名称中包含该版本号的 `LiftParseError` 异常。
 
 ## 该模型
 
-每个 LIFT 元素都是一个带类型的数据类：`Entry`、`Sense`、`Example`、`Pronunciation`、`Variant`、`Relation`、`Etymology`、`Reversal` 等。 多语言文本是一个 `Multitext`，它是一个从语言代码映射到 `Text` 的 `Mapping`：
+每个 LIFT 元素都是一个带类型的数据类：`Entry`、`Sense`、`Example`、`Pronunciation`、`Variant`、`Relation`、`Etymology`、`Reversal` 等。多语言文本是一个 `Multitext`，它是一个从语言代码映射到 `Text` 的 `Mapping`：
 
 ```python
 entry = lex.find(id="abat")
@@ -23,9 +23,9 @@ entry.lexical_unit["en"] = "grove"      # 普通字符串会被强制转换
 list(entry.lexical_unit.keys())         # ["seh", "en"]
 ```
 
-`keys()`、`values()` 和 `items()` 是视图，每个语言对应一个键，而 `len()` 统计的是语言的数量，而不是表单的数量。 这两个变异器作用于整个语言，而非某个具体形式：`del entry.lexical_unit["en"]` 会移除所有英语形式，而将值赋给 `"en"` 则会保留恰好一个。
+`keys()`、`values()` 和 `items()` 是视图，每个语言对应一个键，而 `len()` 统计的是语言的数量，而不是表单的数量。这两个变异器作用于整个语言，而非某个具体形式：`del entry.lexical_unit["en"]` 会移除所有英语形式，而将值赋给 `"en"` 则会保留恰好一个。
 
-一个符合模式的文档中不会包含其他内容，但实际文件中有时会重复某种语言。 `forms` 按文件顺序存储所有表单，从第一个表单开始读取答案，并且 [`validate`](validate.md#problem-codes) 会持续报告 `duplicate-form-lang` 错误，直到你为该语言进行赋值为止。 通过映射无法创建完全不包含 `lang` 的表单，系统会报告为 `form-missing-lang`，且当其节点重新序列化时，该表单将被丢弃。
+一个符合模式的文档中不会包含其他内容，但实际文件中有时会重复某种语言。 `forms` 按文件顺序存储所有表单，从第一个表单开始读取答案，并且 [`validate`](validate.md#problem-codes) 会持续报告 `duplicate-form-lang` 错误，直到你为该语言进行赋值为止。通过映射无法创建完全不包含 `lang` 的表单，系统会报告为 `form-missing-lang`，且当其节点重新序列化时，该表单将被丢弃。
 
 `Text` 具有结构化特征——即由 `str` 和 `Span` 片段组成的有序列表——因为 `<text>` 可能包含嵌套的 `<span>` 标记。 `str(text)` 会将其转换为纯文本；这些片段保留了标记，以便进行往返转换。
 
@@ -47,7 +47,9 @@ lex.save()                # 保存回原始加载位置
 lex.save("elsewhere.lift")
 ```
 
-未修改的条目将以**字节完全一致**的方式写回；完全未修改的文档从第一个字节到最后一个字节都与原文档字节完全一致。 具体合同条款请参见[富达保证](../fidelity.md)。
+未修改的条目将以**字节完全一致**的方式写回；完全未修改的文档从第一个字节到最后一个字节都与原文档字节完全一致。具体合同条款请参见[富达保证](../fidelity.md)。
+
+您修改过的条目会以新的 `dateModified` 字段（如果原本没有，还会带有 `dateCreated` 字段）发布，因此编辑后的内容不会以加载时的日期发布——负责合并 LIFT 的工具会根据该属性来确定发生了哪些变化。 `lex.save(stamp=False)` 仅保存模型中存储的日期，不保存其他信息；`lex.save(when=...)` 则锁定特定时刻，而非读取系统时间。其余规则请参见 [生成的时间戳](../fidelity.md#generated-timestamps)。
 
 ## 从零开始构建
 
