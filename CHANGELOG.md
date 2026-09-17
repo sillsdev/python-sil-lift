@@ -18,29 +18,6 @@ releases may contain breaking changes.
 
 ## [Unreleased]
 
-### Added
-
-- `unreadable-ranges-file` (warning): a companion candidate that exists but
-  cannot be read as a `<lift-ranges>` document. Addressed to the offending
-  file, and naming how the document reaches it — the conventional sibling, or
-  the header `range/@href` that points there.
-
-### Fixed
-
-- `Lexicon.load()` no longer raises when a companion candidate is not a ranges
-  document. A zero-byte or truncated `.lift-ranges` beside the `.lift`, a
-  second `.lift`, or any other file a header `range/@href` names is now
-  skipped and reported, instead of costing the whole lexicon its entries.
-  `RangesFile.load()` is unchanged and still raises.
-
-### Changed
-
-- The companion-folder checks (`ambiguous-ranges-file`, `dangling-ranges-href`,
-  `unreadable-ranges-file`) are reported only when companion discovery ran.
-  A lexicon loaded with `resolve_ranges=False` put companions out of scope,
-  so none is reported for it; previously the first two were, including in
-  cases a resolving load would have suppressed. `missing-media` is unaffected.
-
 ## [0.1.0] - 2026-07-TBD
 
 ### Added
@@ -94,7 +71,7 @@ releases may contain breaking changes.
   file, entry, and line it concerns. RELAX NG layer with two documented
   departures from strict validation (invalid `file://` hrefs downgraded to
   `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and eleven semantic checks, one `Problem`
+  ranges schema over companions; and twelve semantic checks, one `Problem`
   code each (with missing-id opt-in via `require_ids`). Every code is
   described in `docs/en/guides/validate.md`.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by

@@ -24,7 +24,7 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 
 1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard — a byte-identical copy committed into this package).
 2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion, addressed to the companion rather than the `.lift`.
-3. **Semantic checks** the grammar cannot express — eleven of them, one code each.
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## Problem codes
 
