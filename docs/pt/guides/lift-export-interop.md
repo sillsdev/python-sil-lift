@@ -14,6 +14,7 @@ O LIFT é normalmente transferido como um único ficheiro `.zip` — tanto o Fie
   - A extração está limitada a 10 GiB e 100 000 elementos; um pacote que exceda qualquer um desses limites é rejeitado com um erro `LiftParseError`, tal como acontece com um pacote cujos caminhos dos elementos estejam fora do diretório de extração.
 - **Escreva:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` compacta o ficheiro `.lift`, os seus `.lift-ranges` e todos os outros ficheiros da pasta de origem (multimédia, `WritingSystems/`, `consent/`, ...) num ficheiro zip.
   - O `wrap_folder` tem, por predefinição, uma pasta de nível superior com o nome do ficheiro zip (conforme a convenção de importação do FieldWorks/Combine); passe `False` para obter um arquivo simples.
+  - As entradas cujo conteúdo tenha sido alterado desde o carregamento recebem uma nova marcação `dateModified` ao serem enviadas, exatamente como no `save()`: um pacote é a base a partir da qual uma ferramenta de importação faz a reconciliação; por isso, uma data desatualizada nesse contexto faz com que um léxico atualizado pareça inalterado. O `stamp=False` e o `when=` funcionam da mesma forma aqui.
 
 Os ficheiros `.lift` e `.lift-ranges` mantêm a sua fidelidade ao nível do byte dentro do pacote; o próprio ficheiro zip não é reproduzível ao nível do byte.
 
