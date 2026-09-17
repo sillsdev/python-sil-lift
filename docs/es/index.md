@@ -19,7 +19,7 @@ Requiere Python 3.11 o superior. La única dependencia de ejecución es lxml.
 ```python
 import sil_lift
 
-lex = sil_lift.load("thesaurus.lift")     # también rastrea los términos asociados a los rangos .lift
+lex = sil_lift.load("thesaurus.lift")     # también rastrea los términos asociados de los rangos .lift
 
 for entry in lex.entries:
     if "en" not in entry.gloss_langs():
@@ -28,5 +28,5 @@ for entry in lex.entries:
 entry = lex.find(guid="0f5a9c3e-...")     # o lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # las entradas no modificadas son idénticas a nivel de bytes; la entrada editada se vuelve a serializar
+lex.save()   # la entrada editada se vuelve a serializar y se le asigna un nuevo sello; el resto es idéntico byte a byte
 ```
