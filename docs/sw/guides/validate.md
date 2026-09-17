@@ -46,7 +46,7 @@ Kila ugunduzi huambatana na mojawapo ya hizi, bila kujali ni safu gani iliyouzal
 | Thamani-ya-wigo-isiyoainishwa  | Onyo     | Thamani ya sifa ya taarifa ya kisarufi au yenye funguo za wigo ambayo wigo haitaorodhesha              |
 | URL si RFC                     | Onyo     | href ambayo si URI halali — `file://C:/...` ya FLEx                                                    |
 
-Tabaka zote tatu hufanya kazi kulingana na kile `save()` ingeandika, hivyo hati ambayo haiwezi kuserealizishwa kabisa huripotiwa kama kosa moja la `lone-surrogate` badala yake — angalia [Dhamana za Uaminifu](../fidelity.md#content-xml-cannot-represent).
+Tabaka zote tatu hufanya kazi kwa hati iliyoseriwa kama ilivyo, hivyo ile ambayo haiwezi kuseriwa kabisa huripotiwa kama kosa moja la `lone-surrogate` badala yake — angalia [Dhamana za Uaminifu](../fidelity.md#content-xml-cannot-represent). Uthibitishaji ni wa kusoma tu: unaripoti hati kama ilivyo, kabla ya kulewa alama ya `dateModified` inayofanywa na uhifadhi. Hakuna kinachotengenezwa kinachoweza kuwa matokeo ya utafutaji, kwa hivyo uthibitishe kisha uhifadhi ni njia sahihi.
 
 Jina la kiashiria linalolingana na faili kadhaa halipaki yoyote kati yao: vipimo wanavyovibainisha havionekani hadi faili zote isipokuwa moja ziitwe tena au ziondolewe.
 
