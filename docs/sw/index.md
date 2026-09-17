@@ -26,7 +26,7 @@ for entry in lex.entries:
         print(entry.id, str(entry.lexical_unit.get("seh") or ""))
 
 entry = lex.find(guid="0f5a9c3e-...")     # au lex.find(id="hoofd_a1b2")
-entry.senses[0].definition["en"] = "head (anatomy)"
+entry.senses[0].definition["en"] = "head (anatomia)"
 
-lex.save()   # entries zisizoguswa ni sawa kwa baiti; entry iliyohaririwa imehifadhiwa tena
+lex.save()   # kipengee kilichohaririwa kimewekwa tena kwenye mfululizo na kupigwa muhuri tena; vingine vimefanana byte kwa byte
 ```
