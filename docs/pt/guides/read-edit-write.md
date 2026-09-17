@@ -49,6 +49,8 @@ lex.save("elsewhere.lift")
 
 As entradas que não foram modificadas são gravadas de volta **identicamente, ao nível do byte**; um documento que não tenha sido modificado de todo é idêntico, ao nível do byte, desde o primeiro byte até ao último. Consulte [Garantias da Fidelity](../fidelity.md) para conhecer o contrato na íntegra.
 
+Os registos que alteraste são enviados com um novo `dateModified` (e um `dateCreated`, caso não tivessem nenhum), pelo que uma edição não é enviada com a data com que foi carregada — as ferramentas que fazem a fusão do LIFT determinam o que mudou a partir desse atributo. `lex.save(stamp=False)` grava as datas que o modelo contém e nada mais; `lex.save(when=...)` fixa o momento em vez de ler o relógio. Consulte [Carimbos de data/hora gerados](../fidelity.md#generated-timestamps) para conhecer o resto das regras.
+
 ## Construir do zero
 
 ```python
