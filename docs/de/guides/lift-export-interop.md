@@ -14,6 +14,7 @@ LIFT wird in der Regel als einzelne `.zip`-Datei weitergegeben – sowohl FieldW
   - Die Extraktion ist auf 10 GiB und 100.000 Elemente begrenzt; ein Paket, das eine dieser Grenzen überschreitet, wird mit einem `LiftParseError` abgelehnt, ebenso wie eines, dessen Elementpfade über das Extraktionsverzeichnis hinausgehen.
 - **Schreiben Sie:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packt die `.lift`-Datei, deren `.lift-ranges` sowie alle anderen Dateien im Quellordner (media, `WritingSystems/`, `consent/`, ...) zusammen. in eine ZIP-Datei.
   - `wrap_folder` ist standardmäßig auf einen Ordner auf oberster Ebene eingestellt, der nach der ZIP-Datei benannt ist (gemäß der Importkonvention von FieldWorks/Combine); übergeben Sie `False`, um ein flaches Archiv zu erhalten.
+  - Einträge, deren Inhalt sich seit dem Laden geändert hat, werden beim Verlassen mit einem aktuellen `dateModified`-Zeitstempel versehen, genau wie bei `save()`: Ein Paket dient einem importierenden Tool als Grundlage für den Abgleich; ein veraltetes Datum dort führt daher dazu, dass ein aktualisiertes Lexikon unverändert erscheint. `stamp=False` und `when=` funktionieren hier auf die gleiche Weise.
 
 Die Dateien `.lift` und `.lift-ranges` behalten ihre Byte-Genauigkeit innerhalb des Pakets bei; der ZIP-Container selbst ist nicht byte-reproduzierbar.
 
