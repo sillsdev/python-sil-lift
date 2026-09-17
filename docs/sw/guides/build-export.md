@@ -46,13 +46,13 @@ sense.fields.append(scientific)
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# Vichwa vya maneno vilivyodhibitiwa ambavyo kipengee kinavyorejelea, katika .lift-ranges.
+# Vyao vya maneno vilivyodhibitiwa ambavyo kipengee kinavyorejelea, katika .lift-ranges.
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Ndege"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Thibitisha kile save() itaandika, kabla ya kugusa diski.
+# Thibitisha hati kama ilivyo, kabla ya kugusa diski.
 problems = list(lex.iter_problems())
 print(f"uthibitishaji: {len(problems)} problem(s)")
 
@@ -79,45 +79,45 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
     <range id="semantic-domain-ddp4" href="birds.lift-ranges"/>
   </ranges>
 </header>
-<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d">
+<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d" dateCreated="2026-09-02T19:19:17Z" dateModified="2026-09-02T19:19:17Z">
   <lexical-unit>
     <form lang="seh">
-      <text>nkhuku</text>
+      <text>kuku</text>
     </form>
     <form lang="pt">
-      <text>galinha</text>
+      <text>kuku</text>
     </form>
   </lexical-unit>
   <pronunciation>
     <form lang="en">
-      <text>Speaker: Ana</text>
+      <text>Spika: Ana</text>
     </form>
     <media href="audio/nkhuku.wav"/>
   </pronunciation>
   <sense id="kanga_s1">
     <grammatical-info value="Noun"/>
     <gloss lang="en">
-      <text>chicken</text>
+      <text>kuku</text>
     </gloss>
     <definition>
       <form lang="en">
-        <text>a domestic fowl kept for its eggs and meat</text>
+        <text>kuku wa kufuga anayelishwa kwa mayai na nyama yake</text>
       </form>
     </definition>
     <example>
       <form lang="seh">
-        <text>Ndinafuna nkhuku.</text>
+        <text>Nataka kuku.</text>
       </form>
       <translation>
         <form lang="en">
-          <text>I want a chicken.</text>
+          <text>Nataka kuku.</text>
         </form>
       </translation>
     </example>
     <illustration href="pictures/hen.jpg">
       <label>
         <form lang="en">
-          <text>A hen</text>
+          <text>Kuku jike</text>
         </form>
       </label>
     </illustration>
@@ -137,7 +137,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="Noun">
     <label>
       <form lang="en">
-        <text>noun</text>
+        <text>nomino</text>
       </form>
     </label>
   </range-element>
@@ -146,7 +146,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="1.6.1.2">
     <label>
       <form lang="en">
-        <text>Bird</text>
+        <text>Ndege</text>
       </form>
     </label>
   </range-element>
@@ -161,7 +161,8 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 - URLRef ni href pamoja na maandishi mengi ya kichwa/lebo ya hiari — hutumika kwa `<media>` (sauti) na `<illustration>` (picha). Matamshi hapa yanafuata kanuni ya The Combine ya aina ya 'en', kama inavyosomwa na msemaji: <name>
 - Data maalum kwa programu bila safari za nyumbani za LIFT za asili kama `<field>` (au `<trait>`): FieldWorks husoma hizi kama viwanja maalum na The Combine huzihifadhi.
 - Panga kila kipengee na `guid` halisi, thabiti (kwa mfano kutoka `uuid.uuid4()`), inayotumika tena katika usafirishaji wa data — kuingiza tena baadaye husasisha kipengee mahali pake badala ya kuunda nakala yake. `sil-lift validate --require-ids` inahakikisha hili.
-- `lex.iter_problems()` inathibitisha hati iliyopo kwenye kumbukumbu (kile ambacho `save()` ingeandika) kabla chochote haijawekwa kwenye diski; hapa iko safi. Kwa sababu kamusi bado haina folda, ukaguzi wa media-presence na companion-href umeachwa — endesha [`sil-lift validate`](cli.md) kwenye matokeo yaliyohifadhiwa (au kwa kutumia `--no-check-media`) mara tu faili za sauti na picha zitakapokuwa zimewekwa.
+- `dateCreated`/`dateModified` katika matokeo hapo juu hayapo kwenye skripti: `save()` iliweka alama hizo kwa wakati skripti ilipokuwa ikiendeshwa, kwa kuwa kumbukumbu iliyotengenezwa kwa mara ya kwanza haina tarehe yake mwenyewe. `when=` hutoa wakati huo badala ya kusoma saa, jambo linalofanya faili la nje lililotengenezwa liwe linaloweza kuzalishwa tena kwa kila baiti kwa ajili ya kazi ya CI kulinganisha; `stamp=False` haandiki tarehe yoyote kabisa. Tazama [Alama za muda zilizotengenezwa](../fidelity.md#generated-timestamps) kwa sehemu iliyobaki ya mkataba.
+- `lex.iter_problems()` inathibitisha hati iliyopo kwenye kumbukumbu kabla ya chochote kuhifadhiwa kwenye diski; hapa iko sawa. Kwa sababu kamusi bado haina folda, ukaguzi wa media-presence na companion-href umeachwa — endesha [`sil-lift validate`](cli.md) kwenye matokeo yaliyohifadhiwa (au kwa kutumia `--no-check-media`) mara tu faili za sauti na picha zitakapokuwa zimewekwa.
 
 ## Ufungashaji
 
