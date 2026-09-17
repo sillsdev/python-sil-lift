@@ -24,4 +24,5 @@ Notas:
 
 - O resultado gerado pelo escritor é exatamente o que o serializador canónico de documento completo produziria para o mesmo conteúdo — os dois modos nunca divergem.
 - O modo de transmissão contínua não reutiliza bytes da fonte: a saída é sempre canónica. Os resíduos LIFT ao nível da raiz — comentários entre entradas e atributos fora do esquema em `<lift>` — não são transportados; as entradas e o cabeçalho estão completos, incluindo os resíduos.
+- Também não gera carimbos de data/hora, como faz o [`Lexicon.save()`](../fidelity.md#saving-an-edited-document). Uma entrada é registada com as datas que contém: um pass de streaming nunca vê o documento tal como ele era, pelo que não consegue identificar quais as entradas que alterou. Defina manualmente `entry.date_modified` nos registos que esta passagem reescreve.
 - Se ocorrer uma exceção no corpo de um bloco `open_writer`, o ficheiro fica visivelmente incompleto (sem o comando de fecho `</lift>`) — um léxico parcialmente escrito não deve parecer completo.
