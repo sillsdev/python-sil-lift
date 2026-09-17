@@ -587,21 +587,35 @@ def _semantic_problems(
                 )
 
         # Candidates that exist but could not be read as ranges documents.
-        # Addressed to the offending file, and naming the route load took to
-        # it: a broken sidecar is fixed in the file, an href pointing at an
-        # unrelated file is fixed in the header.
-        for path, rejection in rejected.items():
-            if rejection.source is None:
+        # Walked rather than read straight off the record: the header and the
+        # folder can both have moved since discovery, and a rejection whose
+        # file is gone, or that nothing names any more, would contradict the
+        # checks above. Only the parser's reason is necessarily historical.
+        seen: set[Path] = set()
+        for candidate in _ranges_candidates(lexicon.path, lexicon.header.ranges):
+            found = _existing_file(candidate.path, listings)
+            if found is None:
+                continue
+            try:
+                resolved = found.resolve()
+            except OSError:
+                continue
+            reason = rejected.get(resolved)
+            if reason is None or resolved in seen:
+                continue
+            seen.add(resolved)
+            # A broken sidecar is fixed in the file; an href pointing at an
+            # unrelated file is fixed in the header. Naming the route says which.
+            if candidate.source is None:
                 where = f"the conventional companion beside {lexicon.path.name!a}"
             else:
-                named_by, href = rejection.source
+                named_by, href = candidate.source
                 where = f"this file, named by header range {named_by!r} href {href!r},"
             yield Problem(
                 "warning",
                 "unreadable-ranges-file",
-                f"{where} could not be read as a ranges document, so it is "
-                f"not loaded: {rejection.reason}",
-                file=path,
+                f"{where} could not be read as a ranges document, so it is not loaded: {reason}",
+                file=resolved,
             )
 
     # Undefined range values: every grammatical-info and every trait whose

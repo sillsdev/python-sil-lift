@@ -22,8 +22,8 @@ releases may contain breaking changes.
 
 - `unreadable-ranges-file` (warning): a companion candidate that exists but
   cannot be read as a `<lift-ranges>` document. Addressed to the offending
-  file, and naming the route that reached it — the conventional sibling, or
-  the header `range/@href` that pointed there.
+  file, and naming how the document reaches it — the conventional sibling, or
+  the header `range/@href` that points there.
 
 ### Fixed
 

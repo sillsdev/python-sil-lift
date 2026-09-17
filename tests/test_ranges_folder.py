@@ -333,6 +333,44 @@ def test_an_href_naming_an_unrelated_file_names_the_header_range(tmp_path: Path)
     assert "header range 'etymology' href 'pictures.png'" in problems[0].message
 
 
+def test_a_rejection_is_dropped_once_its_file_is_gone(tmp_path: Path) -> None:
+    # The record is discovery-time; the checks beside it read the folder as it
+    # stands, so a replayed rejection would contradict dangling-ranges-href.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("bad.lift-ranges"))
+    (folder / "bad.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert [p.code for p in lexicon.iter_problems()] == ["unreadable-ranges-file"]
+    (folder / "bad.lift-ranges").unlink()
+    assert [p.code for p in lexicon.iter_problems()] == ["dangling-ranges-href"]
+
+
+def test_a_rejection_is_dropped_once_the_href_moves(tmp_path: Path) -> None:
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("bad.lift-ranges"))
+    (folder / "bad.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    lexicon.header.ranges[0].href = "elsewhere.lift-ranges"
+    # Nothing in the document names bad.lift-ranges any more, so nothing may
+    # report it -- least of all under the href it no longer carries.
+    assert [p.code for p in lexicon.iter_problems()] == ["dangling-ranges-href"]
+
+
+def test_two_candidate_spellings_of_one_rejected_file_report_once(tmp_path: Path) -> None:
+    # Candidates dedup on spelling, so a .. segment survives as a second route
+    # to the sibling's own file. The first route is the one load took.
+    folder = tmp_path / "pkg"
+    (folder / "sub").mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("sub/../Dict.lift-ranges"))
+    (folder / "Dict.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert len(problems) == 1
+    assert "the conventional companion beside 'Dict.lift'" in problems[0].message
+
+
 def test_companion_findings_need_companion_discovery(tmp_path: Path) -> None:
     # resolve_ranges=False puts companions out of scope for the load, so no
     # finding about one is reported -- accurate or not. missing-media is not a

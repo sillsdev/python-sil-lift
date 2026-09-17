@@ -550,13 +550,6 @@ class _Candidate(NamedTuple):
     source: tuple[str, str] | None
 
 
-class _Rejection(NamedTuple):
-    """Why a candidate that exists could not be taken as a companion."""
-
-    source: tuple[str, str] | None
-    reason: str
-
-
 def _ranges_candidates(lift_path: Path, ranges: Iterable[Range]) -> list[_Candidate]:
     """Where a companion may be found, in the order :meth:`Lexicon.load` tries.
 
@@ -666,7 +659,7 @@ class Lexicon:
         self._tempdir: tempfile.TemporaryDirectory[str] | None = None  # zip extraction, if any
         # None until companion discovery runs, which is what lets validation
         # tell "nothing was rejected" from "nothing was ever looked at".
-        self._rejected_ranges: dict[Path, _Rejection] | None = None
+        self._rejected_ranges: dict[Path, str] | None = None
 
     @classmethod
     def load(cls, path: str | os.PathLike[str], *, resolve_ranges: bool = True) -> Lexicon:
@@ -711,7 +704,8 @@ class Lexicon:
         return lexicon
 
     def _resolve_ranges(self) -> None:
-        self._rejected_ranges = {}
+        rejected: dict[Path, str] = {}
+        self._rejected_ranges = rejected
         if self.path is None:
             return
         listings: dict[Path, dict[str, list[Path]]] = {}
@@ -726,19 +720,20 @@ class Lexicon:
             # Identity, not content, settles the .lift: it is the document being
             # loaded, so a header href folding onto it names no companion. Two
             # spellings of one companion, which resolve() leaves distinct on
-            # macOS, would otherwise load and write it twice.
-            if resolved in self.ranges_files or any(
-                _same_file(resolved, other) for other in (self.path, *self.ranges_files)
+            # macOS, would otherwise load and write it twice -- and a rejected
+            # one, parse and report it twice.
+            if resolved in self.ranges_files or resolved in rejected:
+                continue
+            if any(
+                _same_file(resolved, other) for other in (self.path, *self.ranges_files, *rejected)
             ):
                 continue
             try:
                 self.ranges_files[resolved] = RangesFile.load(found)
             except (LiftError, OSError) as exc:
-                # A candidate that exists but cannot serve as a companion is
-                # skipped, exactly as the .lift itself is above: one unusable
-                # file must not cost the entries. Recorded so validation can
-                # report it as unreadable-ranges-file.
-                self._rejected_ranges[resolved] = _Rejection(candidate.source, _reason(found, exc))
+                # One unusable file must not cost the entries: skipped like
+                # the .lift, and recorded for unreadable-ranges-file to report.
+                rejected[resolved] = _reason(found, exc)
 
     def _apply_stamps(self, stamp: bool, when: datetime | None) -> _StampUndo:
         """The stamping step shared by :meth:`save` and :meth:`save_zip`.
