@@ -71,7 +71,7 @@ releases may contain breaking changes.
   file, entry, and line it concerns. RELAX NG layer with two documented
   departures from strict validation (invalid `file://` hrefs downgraded to
   `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and eleven semantic checks, one `Problem`
+  ranges schema over companions; and twelve semantic checks, one `Problem`
   code each (with missing-id opt-in via `require_ids`). Every code is
   described in `docs/en/guides/validate.md`.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
