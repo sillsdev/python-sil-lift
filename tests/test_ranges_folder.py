@@ -256,6 +256,21 @@ def _case_sensitive(folder: Path) -> bool:
     return sensitive
 
 
+def _keeps_candidate_case(folder: Path) -> bool:
+    """Whether the filesystem folds case but resolve() keeps the spelling given.
+
+    True on macOS, where one file reached under two spellings resolves to two
+    distinct paths. Windows folds and canonicalizes, so both spellings resolve
+    alike; Linux does not fold, so only the real one is ever reached.
+    """
+    probe = folder / "ResolveProbe"
+    probe.write_bytes(b"")
+    other = folder / "RESOLVEPROBE"
+    keeps = other.is_file() and other.resolve().name == "RESOLVEPROBE"
+    probe.unlink()
+    return keeps
+
+
 def test_companion_resolves_when_lift_suffix_is_uppercase(tmp_path: Path) -> None:
     lift = _write_case_variant_pair(tmp_path / "pkg", "Dict.LIFT", "Dict.lift-ranges")
     lexicon = sil_lift.load(lift)
@@ -344,6 +359,23 @@ def test_a_rejection_is_dropped_once_its_file_is_gone(tmp_path: Path) -> None:
     assert [p.code for p in lexicon.iter_problems()] == ["unreadable-ranges-file"]
     (folder / "bad.lift-ranges").unlink()
     assert [p.code for p in lexicon.iter_problems()] == ["dangling-ranges-href"]
+
+
+def test_a_case_only_href_edit_still_reaches_the_rejected_file(tmp_path: Path) -> None:
+    if not _keeps_candidate_case(tmp_path):
+        pytest.skip("needs a filesystem that folds case but resolves to the spelling given")
+    # The rejection is keyed by the spelling discovery resolved, so a candidate
+    # reaching the same file under another one matches only by identity.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("bad.lift-ranges"))
+    (folder / "bad.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert [p.code for p in lexicon.iter_problems()] == ["unreadable-ranges-file"]
+    lexicon.header.ranges[0].href = "BAD.lift-ranges"
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert len(problems) == 1
+    assert "href 'BAD.lift-ranges'" in problems[0].message
 
 
 def test_a_rejection_is_dropped_once_the_href_moves(tmp_path: Path) -> None:

@@ -600,10 +600,19 @@ def _semantic_problems(
                 resolved = found.resolve()
             except OSError:
                 continue
-            reason = rejected.get(resolved)
-            if reason is None or resolved in seen:
+            # Exact spelling, then identity, the way _resolve_ranges keys
+            # these: a candidate reaching a rejected file under another
+            # spelling yields a path no == will match -- see _same_file.
+            # Dedup on the key that matched, so two spellings report once.
+            recorded = (
+                resolved
+                if resolved in rejected
+                else next((other for other in rejected if _same_file(resolved, other)), None)
+            )
+            if recorded is None or recorded in seen:
                 continue
-            seen.add(resolved)
+            seen.add(recorded)
+            reason = rejected[recorded]
             # A broken sidecar is fixed in the file; an href pointing at an
             # unrelated file is fixed in the header. Naming the route says which.
             if candidate.source is None:
