@@ -285,7 +285,10 @@ def test_a_companion_that_is_not_a_ranges_document_is_skipped(
     assert lexicon.ranges_files == {}
     problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
     assert [p.level for p in problems] == ["warning"]
-    assert problems[0].file == (folder / companion).resolve()
+    # resolve() canonicalizes case on Windows but not on macOS, so the recorded
+    # path can carry the candidate's spelling rather than the file's own.
+    assert problems[0].file is not None
+    assert problems[0].file.samefile(folder / companion)
     assert "the conventional companion beside 'Dict.lift'" in problems[0].message
     assert "expected <lift-ranges>" in problems[0].message
 
@@ -325,7 +328,8 @@ def test_an_href_naming_an_unrelated_file_names_the_header_range(tmp_path: Path)
     lexicon = sil_lift.load(folder / "Dict.lift")
     problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
     assert len(problems) == 1
-    assert problems[0].file == (folder / "pictures.png").resolve()
+    assert problems[0].file is not None
+    assert problems[0].file.samefile(folder / "pictures.png")
     assert "header range 'etymology' href 'pictures.png'" in problems[0].message
 
 
