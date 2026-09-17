@@ -19,7 +19,7 @@ pip install sil-lift   # المكتبة + الأمر sil-lift
 ```python
 import sil_lift
 
-lex = sil_lift.load("thesaurus.lift")     # يتتبع أيضًا المرادفات ذات النطاقات .lift
+lex = sil_lift.load("thesaurus.lift")     # يتتبع أيضًا المرادفات ذات الـ .lift-ranges
 
 for entry in lex.entries:
     if "en" not in entry.gloss_langs():
@@ -28,5 +28,5 @@ for entry in lex.entries:
 entry = lex.find(guid="0f5a9c3e-...")     # أو lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # المدخلات التي لم يتم تعديلها متطابقة من حيث البايتات؛ أما المدخلات التي تم تعديلها فقد أعيد تسلسلها
+lex.save()   # تم إعادة تسلسل المدخل المعدل وإعادة ختمه؛ أما الباقي فهو مطابق تمامًا من حيث البايتات
 ```
