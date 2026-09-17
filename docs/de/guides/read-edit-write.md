@@ -49,6 +49,8 @@ lex.save("elsewhere.lift")
 
 Einträge, die Sie nicht geändert haben, werden **byte-identisch** zurückgeschrieben; ein Dokument, das Sie überhaupt nicht geändert haben, ist vom ersten bis zum letzten Byte byte-identisch. Den genauen Vertragsinhalt finden Sie unter [Fidelity-Garantien](../fidelity.md).
 
+Die von Ihnen geänderten Einträge werden mit einem neuen `dateModified` (und einem `dateCreated`, falls noch kein Datum vorhanden war) ausgegeben, sodass eine Bearbeitung nicht unter dem Datum erfolgt, mit dem sie geladen wurde – die Tools, die LIFT zusammenführen, entscheiden anhand dieses Attributs, was sich geändert hat. `lex.save(stamp=False)` schreibt lediglich die im Modell gespeicherten Datumsangaben und sonst nichts; `lex.save(when=...)` legt den Zeitpunkt fest, anstatt die Uhrzeit abzulesen. Die übrigen Regeln finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
+
 ## Von Grund auf neu aufbauen
 
 ```python
