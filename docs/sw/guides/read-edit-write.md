@@ -49,6 +49,8 @@ lex.save("elsewhere.lift")
 
 Maingizo ambayo hukuyabadilisha yamerudishwa **sawa kwa baiti**; hati ambayo hukuyabadilisha kabisa ni sawa kwa baiti kuanzia baiti ya kwanza hadi ya mwisho. Tazama [Dhamana za Fidelity](../fidelity.md) kwa mkataba sahihi.
 
+Maingizo uliyoyabadilisha yanatoka na `dateModified` mpya (na `dateCreated` ikiwa haikuwa na moja), hivyo uhariri hauwasilishwi chini ya tarehe iliyopakiwa nayo — zana zinazochanganya LIFT zinabaini kile kilichobadilika kutoka kwa sifa hiyo. `lex.save(stamp=False)` huandika tarehe ambazo mfano unazoshikilia na hakuna zaidi; `lex.save(when=...)` hushikilia wakati badala ya kusoma saa. Tazama [Generated timestamps](../fidelity.md#generated-timestamps) kwa sheria zilizobaki.
+
 ## Kujenga kutoka mwanzo
 
 ```python
