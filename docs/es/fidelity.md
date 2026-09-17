@@ -8,7 +8,7 @@ Cualquier documento LIFT 0.13 bien formado se carga, incluso si el contenido no 
 
 ## Guardar un documento sin modificaciones
 
-`load()` → `save()` sin modificaciones genera una **salida idéntica a nivel de bytes**: sin reformateo, sin reescapado, sin reordenación, incluyendo las marcas de orden de bytes y las declaraciones XML. Actualmente no hay ninguna lista de normalización: la identidad es exacta.
+`load()` → `save()` sin modificaciones genera una **salida idéntica a nivel de bytes**: sin reformateo, sin reescapado, sin reordenación, incluyendo las marcas de orden de bytes y las declaraciones XML. Actualmente no hay ninguna lista de normalización: la identidad es exacta. Las marcas de tiempo se generan a partir del contenido, por lo que un documento que no haya sufrido modificaciones tampoco tiene ninguna.
 
 Excepciones (el escritor recurre a la serialización canónica completa, que es semánticamente completa pero no conserva los bytes):
 
@@ -20,11 +20,32 @@ Excepciones (el escritor recurre a la serialización canónica completa, que es 
 ## Guardar un documento editado
 
 - **Las entradas no modificadas se emiten tal cual, a partir de sus bytes originales.** Una entrada se considera modificada si alguna parte de su objeto de modelo ha cambiado desde el análisis (lo cual se detecta mediante una instantánea de serialización canónica, no mediante un indicador de cambios).
-- **Las entradas modificadas se vuelven a serializar de forma canónica y completa**: UTF-8, sangría de 2 espacios _fuera_ del contenido mixto (los espacios en blanco dentro de `<text>` y `<span>` nunca se modifican), una agrupación de elementos secundarios documentada por cada elemento (p. ej., entrada: unidad léxica, cita, pronunciaciones, variantes, acepciones, notas, relaciones, etimologías, anotaciones, rasgos, campos), orden fijo de los atributos, fechas en formato ISO-8601 (`Z` para UTC). Todos los residuos se vuelven a emitir; su posición se restablece en el índice secundario original, vinculada a la nueva lista secundaria (se trata de una aproximación: las posiciones exactas en bytes solo se garantizan para las entradas que no se han modificado).
+- **Las entradas modificadas se vuelven a serializar de forma canónica y completa.** La forma canónica es:
+  - UTF-8.
+  - Sangría de 2 espacios _fuera_ del contenido mixto; los espacios en blanco dentro de `<text>` y `<span>` nunca se modifican.
+  - Un conjunto documentado de elementos secundarios por elemento; para `<entry>`: unidad léxica, cita, pronunciaciones, variantes, acepciones, notas, relaciones, etimologías, anotaciones, rasgos, campos.
+  - Se ha corregido el orden de los atributos.
+  - Fechas en formato ISO-8601 (`Z` para UTC).
+- **Todos los residuos se vuelven a emitir.** Su posición se restablece en el índice secundario original, ajustada a la nueva lista secundaria —una aproximación, ya que las posiciones exactas en bytes solo están garantizadas para las entradas que no se han modificado—.
 - Al añadir, eliminar o reordenar entradas, se vuelve a serializar la estructura del documento, pero se siguen emitiendo tal cual los bytes de cada entrada que no haya sufrido cambios.
+- **A cada entrada modificada se le asigna** un nuevo valor de `dateModified` y, si no tenía ninguno, también un valor de `dateCreated`; véase [Marcas de tiempo generadas](#generated-timestamps).
 
 !!! note "&quot;El XML canónico&quot; que aparece aquí no está relacionado con ningún otro XML canónico."
     En esta página, por «forma canónica» se entiende la forma documentada propia de «sil-lift», descrita en uno de los puntos anteriores. No guarda relación alguna con el proceso «Canonical XML (C14N)» del W3C. No tiene nada que ver con la clase `CanonicalXmlSettings` de `SIL.Core`.
+
+## Marcas de tiempo generadas
+
+Un sello generado es el único elemento de la salida que no depende de la entrada.
+
+- **Lo que se marca.** Cada entrada cuyo contenido haya cambiado desde que se leyó, con un nuevo valor de `dateModified` y, si no tenía ninguno, un valor de `dateCreated` correspondiente al mismo momento. Una modificación enviada antes de su fecha de carga parece no haber sido modificada para todo lo que se reconcilia en ese atributo, incluidos FieldWorks y la importación LIFT de The Combine.
+- **Solo entradas.** No debe haber ningún nodo por debajo de un `<entry>`, ni nada en el encabezado.
+- **Lo que se deja tal cual.** Una entrada cuya fecha ha fijado deliberadamente quien realiza la llamada, y una entrada creada tras la carga que ya lleva una.
+- **Se respeta la eliminación de una fecha.** `entry.date_modified = None` en una entrada leída con este valor es un valor deliberado como cualquier otro, por lo que la entrada se elimina sin `dateModified`, independientemente de si su contenido se ha movido o no. Una entrada que se lee sin ese valor es un caso distinto: `None` ya está ahí, y no se distingue de no haber modificado nunca el campo, por lo que una edición sigue marcándolo.
+- **Se sustituye una fecha que no se puede analizar.** Una fecha que el modelo no ha podido analizar se considera un [residuo](#reading) en lugar de una fecha, por lo que un sello la sobrescribe y la cadena original se descarta; es mejor que una entrada editada contenga una fecha real que `dateModified="whenever"`.
+- **El momento.** UTC con precisión de segundos (`YYYY-MM-DDTHH:MM:SSZ`, el formato que utiliza toda exportación de FieldWorks analizada), leído del reloj de pared. Cada segundo corresponde a una fecha, por lo que una modificación guardada en el plazo de un segundo respecto a la anterior lleva el mismo sello.
+- **`save(when=...)`** proporciona el momento en lugar de la hora del reloj, lo que garantiza que la salida con marca de tiempo sea reproducible para una puerta de CI basada en diferencias. Debe tener en cuenta la zona horaria y está normalizado a segundos enteros en UTC.
+- **`save(stamp=False)`** guarda el modelo tal y como está, incluido el residuo.
+- **Confirmar cambios con la escritura `.lift`.** Cualquier cosa que impida que esa escritura se aplique hace que las fechas vuelvan a ser las anteriores. Una vez que llega a su destino, se mantienen en pie, aunque una escritura complementaria falle después de ella.
 
 ## El XML de contenido no puede representar
 
