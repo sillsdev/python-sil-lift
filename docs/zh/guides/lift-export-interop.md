@@ -1,8 +1,8 @@
 # 生成符合规范的 LIFT
 
-本指南适用于任何编写 LIFT _导出器_ 的开发者——即使用任何编程语言编写、将其他应用程序的数据模型转换为 LIFT 0.13 格式的代码。 在该工作中，`sil-lift` 承担着双重作用：一是作为符合性检查机制，既验证输出是否符合模式规范，又处理模式无法表达的语义；二是作为输出必须遵循的形状和文本规则的参考标准。
+本指南适用于任何编写 LIFT _导出器_ 的开发者——即使用任何编程语言编写、将其他应用程序的数据模型转换为 LIFT 0.13 格式的代码。在该工作中，`sil-lift` 承担着双重作用：一是作为符合性检查机制，既验证输出是否符合模式规范，又处理模式无法表达的语义；二是作为输出必须遵循的形状和文本规则的参考标准。
 
-编写 LIFT 要比解析它容易得多：导出器只会输出其自身模型生成的子集结构，而无需处理完整规范中的可选项。 难点在于细节——`.lift-ranges` 伴生组件、针对各书写系统的文本、稳定的标识符以及 XML 转义——而下文中的检查项正是针对这些细节的。
+编写 LIFT 要比解析它容易得多：导出器只会输出其自身模型生成的子集结构，而无需处理完整规范中的可选项。难点在于细节——`.lift-ranges` 伴生组件、针对各书写系统的文本、稳定的标识符以及 XML 转义——而下文中的检查项正是针对这些细节的。
 
 ## 压缩包
 
@@ -12,14 +12,15 @@ LIFT 通常以单个 `.zip` 文件的形式进行传输——FieldWorks 和 The 
   - `validate`、`stats`、`check-media` 和 `export` 命令行命令也支持 `.zip` 路径，因此下面的门控脚本可直接对该包进行处理。
   - `stats` 和 `export` 流，并仅提取 `.lift` 文件而非整个包——这样在媒体资源密集的场景下仍能保持低开销，且提取限制仅适用于 `.lift` 文件本身，而不涉及其余内容。
   - 提取操作的上限为 10 GiB 和 100,000 个成员；超过任一限制的包将因 `LiftParseError` 而被拒绝，成员路径超出提取目录范围的包同样会被拒绝。
-- **编写：** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` 会将 `.lift`、其 `.lift-ranges` 以及源文件夹中的所有其他文件（media、`WritingSystems/`、`consent/` 等）打包在一起 打包成zip文件。
+- **编写：** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` 会将 `.lift`、其 `.lift-ranges` 以及源文件夹中的所有其他文件（media、`WritingSystems/`、`consent/` 等）打包在一起打包成zip文件。
   - `wrap_folder` 的默认行为是创建一个以压缩包命名的顶级文件夹（遵循 FieldWorks/Combine 的导入规范）；若要生成扁平化归档，请传入 `False`。
+  - 对于自加载以来内容发生变化的条目，在输出时会标记一个新的 `dateModified`，这与 `save()` 中的处理完全一致：包是导入工具进行数据同步的依据，因此如果该处的日期过时，就会导致已更新的词汇表看起来似乎未被修改过。此处的 `stamp=False` 和 `when=` 工作原理相同。
 
 `.lift` 和 `.lift-ranges` 在包内部保持字节级精确性；而 zip 容器本身无法实现字节级还原。
 
 ## 将输出作为符合性检查点进行验证
 
-将 `sil-lift validate` 指向生成的 `.lift` 文件。 它运行 RELAX NG（同时针对 `.lift` 及其配套的 `.lift-ranges`），并执行语法无法表达的语义检查： 悬空的 `relation`/`variant` 引用、重复的 GUID、范围元素父元素的完整性、在所属范围内未定义的性状和语法信息值，以及解析后未找到对应伴侣的 `range/@href` 引用。
+将 `sil-lift validate` 指向生成的 `.lift` 文件。它运行 RELAX NG（同时针对 `.lift` 及其配套的 `.lift-ranges`），并执行语法无法表达的语义检查： 悬空的 `relation`/`variant` 引用、重复的 GUID、范围元素父元素的完整性、在所属范围内未定义的性状和语法信息值，以及解析后未找到对应伴侣的 `range/@href` 引用。
 
 对于持续集成（CI），只要出现任何问题就应报错，并输出机器可读的检测结果：
 
@@ -73,7 +74,7 @@ docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 </header>
 ```
 
-该手册收录了各系列产品的完整定义。 这些值是 `<range-element>`；`parent` 构建层次结构；`label` / `abbrev` / `description` 是多文本：
+该手册收录了各系列产品的完整定义。这些值是 `<range-element>`；`parent` 构建层次结构；`label` / `abbrev` / `description` 是多文本：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -92,7 +93,7 @@ docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 </lift-ranges>
 ```
 
-随后，条目通过 ID 引用该值：词类的 ID 为 `<grammatical-info value="Noun"/>`，语义领域的 ID 为 `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`。 当某个值未在其范围内定义时，`sil-lift validate` 会发出警告（`undefined-range-value`）；当 `parent` 不是同级 ID 时，会报错（`range-parent`）——因此请仅输出数据实际使用的范围。 这些比较是基于NFC规范化的，因此一个标识符及其对应的值或引用该标识符的`parent`在Unicode规范化方面可能存在差异——这种差异会触发`normalization-mismatch`警告而非错误，但若可能，请采用一种一致的规范化方式：比较原始字符串的消费者无法解析这些引用。 另请参阅 [频段与传输介质](folder-media.md)。
+随后，条目通过 ID 引用该值：词类的 ID 为 `<grammatical-info value="Noun"/>`，语义领域的 ID 为 `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`。当某个值未在其范围内定义时，`sil-lift validate` 会发出警告（`undefined-range-value`）；当 `parent` 不是同级 ID 时，会报错（`range-parent`）——因此请仅输出数据实际使用的范围。这些比较是基于NFC规范化的，因此一个标识符及其对应的值或引用该标识符的`parent`在Unicode规范化方面可能存在差异——这种差异会触发`normalization-mismatch`警告而非错误，但若可能，请采用一种一致的规范化方式：比较原始字符串的消费者无法解析这些引用。另请参阅 [频段与传输介质](folder-media.md)。
 
 如果你使用 Python 构建导出文件，`Lexicon.add_ranges_file()`、`RangesFile.add_range()` 和 `Range.add_element()` 会自动为你构建关联对象并添加头文件引用； `open_writer(..., ranges=...)` 则在流式路径上执行相同操作。
 
@@ -107,6 +108,6 @@ LIFT 中的每条人类语言字符串都是一个 _多文本_：每个书写系
 </lexical-unit>
 ```
 
-一个按语言代码对字符串进行索引的模型（`MultiString`、`Record<code, string>` 或 `dict[str, str]`）与该模型之间存在一对一映射：每个键对应一个条目，即一个 `<form lang="…">`。 在单个多文本中，每种语言最多允许出现一个形式——否则，`sil-lift` 会发出 `duplicate-form-lang` 警告。
+一个按语言代码对字符串进行索引的模型（`MultiString`、`Record<code, string>` 或 `dict[str, str]`）与该模型之间存在一对一映射：每个键对应一个条目，即一个 `<form lang="…">`。在单个多文本中，每种语言最多允许出现一个形式——否则，`sil-lift` 会发出 `duplicate-form-lang` 警告。
 
-XML转义是唯一真正需要严格确保正确性的部分。 在元素文本中，`&`、`<`, and `>` 必须进行转义（`&amp;`、`&lt;`、`&gt;`）；在属性值中，引号字符也必须进行转义。 `sil-lift` 的编写者严格遵循这些规则，绝不会修改 `<text>` 内的空白字符——它不会在此处添加任何缩进，因为那样会破坏词法数据。 如果你希望生成与源数据完全一致的输出，请复用真正的 XML 序列化器的转义处理（而不是那种会遗漏 `&` 的自制替换方案），并将 `<text>` 内容按字节原样保留，与源数据保持完全一致。
+XML转义是唯一真正需要严格确保正确性的部分。在元素文本中，`&`、`<`, and `>` 必须进行转义（`&amp;`、`&lt;`、`&gt;`）；在属性值中，引号字符也必须进行转义。 `sil-lift` 的编写者严格遵循这些规则，绝不会修改 `<text>` 内的空白字符——它不会在此处添加任何缩进，因为那样会破坏词法数据。如果你希望生成与源数据完全一致的输出，请复用真正的 XML 序列化器的转义处理（而不是那种会遗漏 `&` 的自制替换方案），并将 `<text>` 内容按字节原样保留，与源数据保持完全一致。
