@@ -12,7 +12,7 @@
 pip install sil-lift   # ライブラリ + sil-lift コマンド
 ```
 
-Python 3.11 以降が必要です。 実行時の依存関係は lxml のみです。
+Python 3.11 以降が必要です。実行時の依存関係は lxml のみです。
 
 ## 30秒のツアー
 
@@ -28,5 +28,5 @@ for entry in lex.entries:
 entry = lex.find(guid="0f5a9c3e-...")     # または lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # 変更のないエントリはバイト単位で同一のまま。編集されたエントリは再シリアル化される
+lex.save()   # 編集したエントリを再シリアライズし、再スタンプ。それ以外の部分はバイト単位で同一
 ```
