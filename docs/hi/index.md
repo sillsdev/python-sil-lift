@@ -26,7 +26,7 @@ for entry in lex.entries:
         print(entry.id, str(entry.lexical_unit.get("seh") or ""))
 
 entry = lex.find(guid="0f5a9c3e-...")     # या lex.find(id="hoofd_a1b2")
-entry.senses[0].definition["en"] = "head (शरीर रचना)"
+entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # बिना छुए प्रविष्टियाँ बाइट-समान; संपादित प्रविष्टि पुनः सीरियलाइज़्ड
+lex.save()   # संपादित प्रविष्टि पुनः सीरियलाइज़ और पुनः स्टैम्प की गई; बाकी बाइट-समान
 ```
