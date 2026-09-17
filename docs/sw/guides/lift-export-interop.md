@@ -14,6 +14,7 @@ LIFT kawaida huhamishwa kama faili moja ya `.zip` — FieldWorks na The Combine 
   - Utoaji umepunguzwa hadi 10 GiB na wanachama 100,000; kifurushi kinachovuka mojawapo ya mipaka hiyo kinakataliwa kwa `LiftParseError`, vivyo hivyo kifurushi ambacho njia za wanachama zake zinatoka nje ya saraka ya uondoaji.
 - **Andika:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` hufunga `.lift`, `.lift-ranges` zake, na kila faili nyingine katika folda ya chanzo (media, `WritingSystems/`, `consent/`, ...) katika zipu
   - `wrap_folder` kwa chaguo-msingi huunda folda ya ngazi ya juu inayopewa jina la faili la zip (utaratibu wa kuingiza wa FieldWorks/Combine); toa `False` ili kupata hifadhi tambarare.
+  - Maingizo ambayo yamebadilika yaliyomo tangu kupakia yanapigwa muhuri na `dateModified` mpya wanapotoka, sawa kabisa na kwenye `save()`: kifurushi ni kile ambacho zana ya kuingiza inakubaliana nacho, hivyo tarehe iliyopitwa na wakati hapo ndiyo inafanya kamusi iliyosasishwa ionekane haijaguswa. `stamp=False` na `when=` hufanya kazi kwa njia ileile hapa.
 
 `.lift` na `.lift-ranges` huhifadhi uaminifu wa baiti ndani ya kifurushi; chombo cha zip chenyewe hakiruhusu kurejesha baiti kikamilifu.
 
