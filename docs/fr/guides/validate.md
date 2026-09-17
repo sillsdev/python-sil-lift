@@ -46,7 +46,7 @@ Chaque résultat comporte l'un de ces éléments, quelle que soit la couche à l
 | `valeur hors plage`           | avertissement | une valeur de caractère liée à une information grammaticale ou à une plage que cette plage ne mentionne pas       |
 | `uri-not-rfc`                 | avertissement | un lien `href` qui n'est pas un URI valide — `file://C:/...` dans FLEx                                            |
 
-Ces trois couches s'appuient sur ce que la fonction `save()` écrirait ; ainsi, un document qui ne peut absolument pas être sérialisé est signalé par une seule erreur de type `lone-surrogate` — voir [Garanties de fidélité](../fidelity.md#content-xml-cannot-represent).
+Ces trois couches fonctionnent à partir du document tel qu'il est sérialisé ; ainsi, un document qui ne peut pas être sérialisé du tout est signalé par une seule erreur de type « lone-surrogate » — voir [Garanties de fidélité](../fidelity.md#content-xml-cannot-represent). La validation est en lecture seule : elle reflète l'état actuel du document, tel qu'il était avant l'horodatage `dateModified` associé à une sauvegarde. Rien de ce qui est généré ne constitue jamais un résultat, c'est pourquoi la méthode « valider puis enregistrer » est judicieuse.
 
 Un nom de compagnon correspondant à plusieurs fichiers n'en charge aucun : les plages qu'ils définissent disparaissent jusqu'à ce que tous, sauf un, soient renommés ou supprimés.
 
