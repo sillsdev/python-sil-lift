@@ -19,7 +19,7 @@ Nécessite Python 3.11 ou une version ultérieure. La seule dépendance d'exécu
 ```python
 import sil_lift
 
-lex = sil_lift.load("thesaurus.lift")     # suit également les entrées associées aux plages .lift
+lex = sil_lift.load("thesaurus.lift")     # suit également les entrées associées aux fichiers .lift-ranges
 
 for entry in lex.entries:
     if "en" not in entry.gloss_langs():
@@ -28,5 +28,5 @@ for entry in lex.entries:
 entry = lex.find(guid="0f5a9c3e-...")     # ou lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # les entrées non modifiées restent identiques au niveau des octets ; l'entrée modifiée est resérialisée
+lex.save()   # l'entrée modifiée est resérialisée et réhorodatée ; le reste est identique au niveau des octets
 ```
