@@ -46,7 +46,7 @@ Cada resultado incluye uno de estos elementos, independientemente de la capa en 
 | `valor-de-rango-indefinido`      | advertencia | un valor de rasgo con clave gramatical o de rango que no figura en la lista del rango                                            |
 | `uri-not-rfc`                    | advertencia | un enlace `href` que no es un URI válido — `file://C:/...` de FLEx                                                               |
 
-Las tres capas se basan en lo que escribiría `save()`, por lo que un documento que no se pueda serializar en absoluto se notifica como un único error `lone-surrogate`; véanse las [Garantías de fidelidad](../fidelity.md#content-xml-cannot-represent).
+Las tres capas funcionan a partir del documento tal y como está serializado, por lo que, si un documento no se puede serializar en absoluto, se notifica como un único error `lone-surrogate`; véase [Garantías de fidelidad](../fidelity.md#content-xml-cannot-represent). La validación es de solo lectura: muestra el documento tal y como está, antes de que la marca `dateModified` refleje el momento en que se guardó. Nada de lo que se genera constituye en sí mismo un resultado, por lo que la estrategia de «validar primero y guardar después» es acertada.
 
 Un nombre de acompañante que coincide con varios archivos no carga ninguno de ellos: los rangos que definen desaparecen hasta que todos, excepto uno, se renombren o se eliminen.
 
