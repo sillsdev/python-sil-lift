@@ -24,7 +24,7 @@ entry.pronunciations.append(pron)
 sense = sil_lift.Sense(id="kanga_s1")
 sense.grammatical_info = sil_lift.GrammaticalInfo(value="Noun")
 sense.glosses.append(sil_lift.Form(lang="en", text=sil_lift.Text(["chicken"])))
-sense.definition["en"] = "ein Hausgeflügel, das wegen seiner Eier und seines Fleisches gehalten wird"
+sense.definition["en"] = "a domestic fowl kept for its eggs and meat"
 
 example = sil_lift.Example()
 example.forms["seh"] = "Ndinafuna nkhuku."
@@ -52,9 +52,9 @@ ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# Überprüfe, was save() schreiben würde, bevor die Datei auf die Festplatte geschrieben wird.
+# Das Dokument in seiner aktuellen Form validieren, bevor es auf die Festplatte geschrieben wird.
 problems = list(lex.iter_problems())
-print(f"validation: {len(problems)} Problem(e)")
+print(f"Validierung: {len(problems)} Problem(e)")
 
 out = Path("export")
 out.mkdir(exist_ok=True)
@@ -79,45 +79,45 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
     <range id="semantic-domain-ddp4" href="birds.lift-ranges"/>
   </ranges>
 </header>
-<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d">
+<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d" dateCreated="2026-09-02T19:19:17Z" dateModified="2026-09-02T19:19:17Z">
   <lexical-unit>
     <form lang="seh">
       <text>nkhuku</text>
     </form>
     <form lang="pt">
-      <text>galinha</text>
+      <text>Huhn</text>
     </form>
   </lexical-unit>
   <pronunciation>
     <form lang="en">
-      <text>Speaker: Ana</text>
+      <text>Sprecherin: Ana</text>
     </form>
     <media href="audio/nkhuku.wav"/>
   </pronunciation>
   <sense id="kanga_s1">
     <grammatical-info value="Noun"/>
     <gloss lang="en">
-      <text>chicken</text>
+      <text>Huhn</text>
     </gloss>
     <definition>
       <form lang="en">
-        <text>a domestic fowl kept for its eggs and meat</text>
+        <text>ein Hausgeflügel, das wegen seiner Eier und seines Fleisches gehalten wird</text>
       </form>
     </definition>
     <example>
       <form lang="seh">
-        <text>Ndinafuna nkhuku.</text>
+        <text>Ich möchte ein Huhn.</text>
       </form>
       <translation>
         <form lang="en">
-          <text>I want a chicken.</text>
+          <text>Ich möchte ein Huhn.</text>
         </form>
       </translation>
     </example>
     <illustration href="pictures/hen.jpg">
       <label>
         <form lang="en">
-          <text>A hen</text>
+          <text>Eine Henne</text>
         </form>
       </label>
     </illustration>
@@ -137,7 +137,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="Noun">
     <label>
       <form lang="en">
-        <text>noun</text>
+        <text>Substantiv</text>
       </form>
     </label>
   </range-element>
@@ -146,7 +146,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="1.6.1.2">
     <label>
       <form lang="en">
-        <text>Bird</text>
+        <text>Vogel</text>
       </form>
     </label>
   </range-element>
@@ -161,7 +161,8 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 - Ein `URLRef` besteht aus einem `href` sowie einem optionalen Multitext für eine Beschriftung oder Bezeichnung – er wird sowohl für `<media>` (Audio) als auch für `<illustration>` (Fotos) verwendet. Die Aussprache folgt hier der Konvention von „The Combine“, wonach die „en“-Form wie folgt ausgesprochen wird: „Sprecher: <name> “.
 - App-spezifische Daten ohne native LIFT-Heimfahrten als „<field> “ (oder „<trait> “): FieldWorks interpretiert diese als benutzerdefinierte Felder, und The Combine behält sie bei.
 - Weisen Sie jedem Eintrag eine echte, stabile `guid` zu (z. B. aus `uuid.uuid4()`, die bei allen Exporten wiederverwendet wird) – bei einem späteren Reimport wird der Eintrag an Ort und Stelle aktualisiert, anstatt ihn zu duplizieren. `sil-lift validate --require-ids` sorgt dafür, dass dies eingehalten wird.
-- `lex.iter_problems()` überprüft das Dokument im Arbeitsspeicher (das, was `save()` schreiben würde), bevor Daten auf die Festplatte geschrieben werden; hier ist es fehlerfrei. Da das Lexikon noch keinen Ordner hat, werden die Überprüfungen auf Medienpräsenz und Companion-Href übersprungen – führen Sie [`sil-lift validate`](cli.md) auf der gespeicherten Ausgabe aus (oder mit `--no-check-media`), sobald die Audio- und Fotodateien vorhanden sind.
+- Die Angaben `dateCreated`/`dateModified` in der obigen Ausgabe sind nicht im Skript enthalten: `save()` hat sie mit dem Zeitpunkt seiner Ausführung versehen, da ein zum ersten Mal geschriebener Eintrag kein eigenes Datum enthält. `when=` gibt diesen Zeitpunkt an, anstatt die Uhrzeit auszulesen – dadurch ist ein generierter Export für einen CI-Job zum Abgleich byteweise reproduzierbar; `stamp=False` schreibt überhaupt keine Datumsangaben. Den Rest des Vertrags finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
+- `lex.iter_problems()` überprüft das Dokument im Arbeitsspeicher, bevor Daten auf die Festplatte geschrieben werden; hier ist es fehlerfrei. Da das Lexikon noch keinen Ordner hat, werden die Überprüfungen auf Medienpräsenz und Companion-Href übersprungen – führen Sie [`sil-lift validate`](cli.md) auf der gespeicherten Ausgabe aus (oder mit `--no-check-media`), sobald die Audio- und Fotodateien vorhanden sind.
 
 ## Verpackung
 
