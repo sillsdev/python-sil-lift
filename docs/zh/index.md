@@ -12,7 +12,7 @@
 pip install sil-lift   # 安装库及 sil-lift 命令
 ```
 
-需要 Python 3.11 及以上版本。 唯一的运行时依赖项是 lxml。
+需要 Python 3.11 及以上版本。唯一的运行时依赖项是 lxml。
 
 ## 30秒导览
 
@@ -28,5 +28,5 @@ for entry in lex.entries:
 entry = lex.find(guid="0f5a9c3e-...")     # 或 lex.find(id="hoofd_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # 未修改的条目字节内容相同；已编辑的条目将重新序列化
+lex.save()   # 编辑后的词条被重新序列化并重新加盖时间戳；其余部分字节内容完全相同
 ```
