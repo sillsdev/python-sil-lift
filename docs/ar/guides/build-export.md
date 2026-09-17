@@ -11,13 +11,13 @@ import sil_lift
 
 lex = sil_lift.Lexicon(producer="my-exporter")
 
-# إدخال واحد، تم إنشاؤه من النموذج المصدر.
+# مدخلة واحدة، تم إنشاؤها من النموذج المصدر.
 entry = sil_lift.Entry(id="kanga", guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d")
 entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
 
 pron = sil_lift.Pronunciation()
-pron.forms["en"] = "المتحدث: آنا"  # اتفاقية تسمية المتحدث في "The Combine"
+pron.forms["en"] = "المتحدث: آنا"  # اصطلاح تسمية المتحدث في "The Combine"
 pron.media.append(sil_lift.URLRef(href="audio/nkhuku.wav"))
 entry.pronunciations.append(pron)
 
@@ -46,13 +46,13 @@ sense.fields.append(scientific)
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# المفردات المراقبة التي يشير إليها الإدخال، في ملف .lift-ranges مصاحب.
+# المفردات المراقبة التي يشير إليها المدخل، في ملف .lift-ranges.
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# التحقق من صحة ما ستكتبه save()، قبل الكتابة على القرص.
+# التحقق من صحة المستند كما هو، قبل كتابته على القرص.
 problems = list(lex.iter_problems())
 print(f"التحقق من الصحة: {len(problems)} مشكلة (مشاكل)")
 
@@ -79,7 +79,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
     <range id="semantic-domain-ddp4" href="birds.lift-ranges"/>
   </ranges>
 </header>
-<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d">
+<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d" dateCreated="2026-09-02T19:19:17Z" dateModified="2026-09-02T19:19:17Z">
   <lexical-unit>
     <form lang="seh">
       <text>nkhuku</text>
@@ -90,34 +90,34 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   </lexical-unit>
   <pronunciation>
     <form lang="en">
-      <text>Speaker: Ana</text>
+      <text>المتحدثة: آنا</text>
     </form>
     <media href="audio/nkhuku.wav"/>
   </pronunciation>
   <sense id="kanga_s1">
     <grammatical-info value="Noun"/>
     <gloss lang="en">
-      <text>chicken</text>
+      <text>دجاجة</text>
     </gloss>
     <definition>
       <form lang="en">
-        <text>a domestic fowl kept for its eggs and meat</text>
+        <text>طائر داجن يُربى من أجل بيضه ولحمه</text>
       </form>
     </definition>
     <example>
       <form lang="seh">
-        <text>Ndinafuna nkhuku.</text>
+        <text>أريد دجاجة.</text>
       </form>
       <translation>
         <form lang="en">
-          <text>I want a chicken.</text>
+          <text>أريد دجاجة.</text>
         </form>
       </translation>
     </example>
     <illustration href="pictures/hen.jpg">
       <label>
         <form lang="en">
-          <text>A hen</text>
+          <text>دجاجة</text>
         </form>
       </label>
     </illustration>
@@ -137,7 +137,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="Noun">
     <label>
       <form lang="en">
-        <text>noun</text>
+        <text>اسم</text>
       </form>
     </label>
   </range-element>
@@ -146,7 +146,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="1.6.1.2">
     <label>
       <form lang="en">
-        <text>Bird</text>
+        <text>طائر</text>
       </form>
     </label>
   </range-element>
@@ -161,7 +161,8 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 - `URLRef` هو رابط href مصحوب بنص متعدد اختياري للتعليق أو التسمية — ويُستخدم لكل من `<media>` (الصوت) و`<illustration>` (الصور). يتبع النطق هنا قاعدة «ذا كومباين» الخاصة بالصيغة «en» التي تُقرأ على النحو التالي: «المتحدث: <name> ».
 - البيانات الخاصة بالتطبيق التي لا تحتوي على رحلات LIFT محلية كـ «<field> » (أو «<trait> »): يقرأ تطبيق FieldWorks هذه البيانات كحقول مخصصة، ويحتفظ تطبيق The Combine بها.
 - قم بتعيين `guid` حقيقي وثابت لكل إدخال (على سبيل المثال، من `uuid.uuid4()`، مع إعادة استخدامه عبر عمليات التصدير) — حيث تؤدي عملية إعادة الاستيراد لاحقًا إلى تحديث الإدخال في مكانه بدلاً من تكراره. يضمن الأمر `sil-lift validate --require-ids` تطبيق ذلك.
-- تقوم الدالة `lex.iter_problems()` بالتحقق من صحة المستند الموجود في الذاكرة (ما ستقوم الدالة `save()` بكتابته) قبل أن يتم تسجيل أي شيء على القرص؛ وهو هنا خالٍ من الأخطاء. نظرًا لعدم وجود مجلد للمعجم حتى الآن، يتم تخطي فحوصات وجود الوسائط ورابط الملف المصاحب — قم بتشغيل [`sil-lift validate`](cli.md) على المخرجات المحفوظة (أو باستخدام الخيار `--no-check-media`) بمجرد توفر ملفات الصوت والصور.
+- لا توجد قيمتي `dateCreated`/`dateModified` الواردتان في الناتج أعلاه في النص البرمجي: فقد قامت دالة `save()` بتسجيلهما بالتاريخ والوقت اللذين تم فيهما تشغيل الدالة، لأن أي إدخال يتم كتابته لأول مرة لا يحمل تاريخًا خاصًا به. يحدد `when=` تلك اللحظة بدلاً من قراءة الساعة، وهو ما يجعل ملف التصدير الذي تم إنشاؤه قابلاً للتكرار على مستوى البايت حتى تتمكن مهمة التكامل المستمر (CI) من مقارنة الفروق؛ أما `stamp=False` فلا يكتب أي تواريخ على الإطلاق. انظر [الطوابع الزمنية التي تم إنشاؤها](../fidelity.md#generated-timestamps) للاطلاع على بقية بنود العقد.
+- تقوم الدالة `lex.iter_problems()` بالتحقق من صحة المستند الموجود في الذاكرة قبل أن يتم تخزين أي شيء على القرص؛ وهو خالٍ من الأخطاء هنا. نظرًا لعدم وجود مجلد للمعجم حتى الآن، يتم تخطي فحوصات وجود الوسائط ورابط الملف المصاحب — قم بتشغيل [`sil-lift validate`](cli.md) على المخرجات المحفوظة (أو باستخدام الخيار `--no-check-media`) بمجرد توفر ملفات الصوت والصور.
 
 ## التغليف
 
