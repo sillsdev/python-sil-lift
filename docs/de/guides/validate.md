@@ -46,7 +46,7 @@ Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Eben
 | `Wert außerhalb des zulässigen Bereichs` | Warnung | ein grammatikalischer oder bereichsbezogener Merkmalswert, der in dem Bereich nicht aufgeführt ist                          |
 | `uri-not-rfc`                            | Warnung | Ein href, der keine gültige URI ist – FLExs `file://C:/...`                                                                 |
 
-Alle drei Ebenen stützen sich auf das, was `save()` schreiben würde; daher wird ein Dokument, das überhaupt nicht serialisiert werden kann, stattdessen als einzelner `lone-surrogate`-Fehler gemeldet – siehe [Genauigkeitsgarantien](../fidelity.md#content-xml-cannot-represent).
+Alle drei Ebenen arbeiten mit dem Dokument in seiner serialisierten Form, sodass ein Dokument, das überhaupt nicht serialisiert werden kann, stattdessen als einzelner `lone-surrogate`-Fehler gemeldet wird – siehe [Genauigkeitsgarantien](../fidelity.md#content-xml-cannot-represent). Die Validierung ist schreibgeschützt: Sie gibt den aktuellen Stand des Dokuments wieder, wie er vor dem `dateModified`-Zeitstempel einer Speicherung war. Nichts, was generiert wird, ist jemals ein Ergebnis, daher ist „zuerst validieren, dann speichern“ sinnvoll.
 
 Ein Begleitname, der mehreren Dateien entspricht, lädt keine davon: Die von ihnen definierten Bereiche sind nicht vorhanden, bis alle bis auf eine umbenannt oder entfernt wurden.
 
