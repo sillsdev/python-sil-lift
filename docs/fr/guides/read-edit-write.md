@@ -49,6 +49,8 @@ lex.save("elsewhere.lift")
 
 Les entrées que vous n'avez pas modifiées sont réécrites **à l'octet près** ; un document que vous n'avez pas du tout modifié est identique à l'octet près, du premier au dernier octet. Pour consulter le contrat dans son intégralité, voir [Garanties Fidelity](../fidelity.md).
 
+Les entrées que vous avez modifiées sont envoyées avec une nouvelle valeur `dateModified` (et une valeur `dateCreated` si elles n'en avaient pas) ; ainsi, une modification n'est pas transmise avec la date à laquelle elle a été chargée — ce sont les outils qui fusionnent LIFT qui déterminent ce qui a changé à partir de cet attribut. `lex.save(stamp=False)` enregistre uniquement les dates contenues dans le modèle, sans rien d'autre ; `lex.save(when=...)` fixe un instant précis au lieu de se baser sur l'heure. Consultez la page [Horodatages générés](../fidelity.md#generated-timestamps) pour connaître les autres règles.
+
 ## Construire à partir de zéro
 
 ```python
