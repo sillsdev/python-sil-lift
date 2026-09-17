@@ -24,4 +24,5 @@ Anmerkungen:
 
 - Die Ausgabe des Writers entspricht genau dem, was der kanonische Serializer für das gesamte Dokument bei denselben Inhalten erzeugen würde – die beiden Modi weichen nie voneinander ab.
 - Im Streaming-Modus werden keine Quellbytes wiederverwendet: Die Ausgabe ist immer kanonisch. LIFT-Reste auf Root-Ebene – Kommentare zwischen Einträgen und schemenfremde Attribute unter `<lift>` – werden nicht übernommen; Einträge und der Header sind vollständig, einschließlich der Reste.
+- Außerdem erzeugt es keine Zeitstempel, wie es [`Lexicon.save()`](../fidelity.md#saving-an-edited-document) tut. Ein Eintrag wird mit den darin enthaltenen Datumsangaben geschrieben: Ein Streaming-Pass sieht das Dokument nie in seiner ursprünglichen Form, sodass er nicht erkennen kann, welche Einträge Sie geändert haben. Setzen Sie `entry.date_modified` selbst bei den Einträgen, die bei diesem Durchlauf überschrieben werden.
 - Wenn im Hauptteil eines `open_writer`-Blocks ein Fehler ausgelöst wird, bleibt die Datei sichtbar unvollständig (kein abschließendes `</lift>`) – ein nur zur Hälfte geschriebenes Lexikon darf nicht vollständig erscheinen.
