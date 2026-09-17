@@ -1,6 +1,6 @@
 # 実践例：LIFTエクスポートをゼロから作成する
 
-他のアプリケーションのデータをLIFTとしてエクスポートする場合――これは[準拠したLIFTの生成](lift-export-interop.md)で説明されている作業です――`sil-lift`を使用すれば、手動でXMLを生成する代わりに、ドキュメントをオブジェクト単位で構築してシリアライズすることができます。 ここでは、実際の辞書に含まれる要素（複数の表記体系、発音、例文付きの語義、イラスト、意味領域の特徴、およびアプリケーション固有のフィールド）を用いて項目を構築し、管理語彙を `.lift-ranges` コンパニオンに書き出し、検証を行い、保存するスクリプトの手順を解説します。
+他のアプリケーションのデータをLIFTとしてエクスポートする場合――これは[準拠したLIFTの生成](lift-export-interop.md)で説明されている作業です――`sil-lift`を使用すれば、手動でXMLを生成する代わりに、ドキュメントをオブジェクト単位で構築してシリアライズすることができます。ここでは、実際の辞書に含まれる要素（複数の表記体系、発音、例文付きの語義、イラスト、意味領域の特徴、およびアプリケーション固有のフィールド）を用いて項目を構築し、管理語彙を `.lift-ranges` コンパニオンに書き出し、検証を行い、保存するスクリプトの手順を解説します。
 
 ## 脚本
 
@@ -11,7 +11,7 @@ import sil_lift
 
 lex = sil_lift.Lexicon(producer="my-exporter")
 
-# ソースモデルから構築された1つのエントリ。
+# ソースモデルから構築された 1 つのエントリ。
 entry = sil_lift.Entry(id="kanga", guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d")
 entry.lexical_unit["seh"] = "nkhuku"
 entry.lexical_unit["pt"] = "galinha"
@@ -46,13 +46,13 @@ sense.fields.append(scientific)
 entry.senses.append(sense)
 lex.entries.append(entry)
 
-# エントリが参照する統制語彙（付随する .lift-ranges 内に記述）。
+# 対応する .lift-ranges ファイル内にある、そのエントリが参照する統制語彙。
 ranges = sil_lift.RangesFile()
 ranges.add_range("grammatical-info").add_element("Noun").label["en"] = "noun"
 ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2").label["en"] = "Bird"
 lex.add_ranges_file(ranges, href="birds.lift-ranges")
 
-# ディスクに書き込む前に、save() が書き込む内容を検証します。
+# ディスクに書き込む前に、ドキュメントを現状のまま検証します。
 problems = list(lex.iter_problems())
 print(f"validation: {len(problems)} 個の問題")
 
@@ -79,7 +79,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
     <range id="semantic-domain-ddp4" href="birds.lift-ranges"/>
   </ranges>
 </header>
-<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d">
+<entry id="kanga" guid="6b9e7c2a-3f4d-4a1b-8c5e-2d9f0a1b2c3d" dateCreated="2026-09-02T19:19:17Z" dateModified="2026-09-02T19:19:17Z">
   <lexical-unit>
     <form lang="seh">
       <text>nkhuku</text>
@@ -90,7 +90,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   </lexical-unit>
   <pronunciation>
     <form lang="en">
-      <text>Speaker: Ana</text>
+      <text>話者：アナ</text>
     </form>
     <media href="audio/nkhuku.wav"/>
   </pronunciation>
@@ -101,7 +101,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
     </gloss>
     <definition>
       <form lang="en">
-        <text>a domestic fowl kept for its eggs and meat</text>
+        <text>卵や肉を得るために飼育される家禽</text>
       </form>
     </definition>
     <example>
@@ -110,14 +110,14 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
       </form>
       <translation>
         <form lang="en">
-          <text>I want a chicken.</text>
+          <text>鶏が欲しい。</text>
         </form>
       </translation>
     </example>
     <illustration href="pictures/hen.jpg">
       <label>
         <form lang="en">
-          <text>A hen</text>
+          <text>雌鶏</text>
         </form>
       </label>
     </illustration>
@@ -137,7 +137,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="Noun">
     <label>
       <form lang="en">
-        <text>noun</text>
+        <text>名詞</text>
       </form>
     </label>
   </range-element>
@@ -146,7 +146,7 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
   <range-element id="1.6.1.2">
     <label>
       <form lang="en">
-        <text>Bird</text>
+        <text>鳥</text>
       </form>
     </label>
   </range-element>
@@ -156,12 +156,13 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 
 ## APIに関する注意事項
 
-- マルチテキストフィールド（`lexical_unit`、`definition`、`Form`/`URLRef`のラベル、`Field`の内容など） マッピングインターフェースを通じて、各文字体系ごとに1つの文字列を取り込みます。`entry.lexical_unit["seh"] = "nkhuku"` とすると、`<form lang="seh">` が追加されます。 言語コードをキーとする文字列を含むソースモデルは、これにそのまま対応します。
+- マルチテキストフィールド（`lexical_unit`、`definition`、`Form`/`URLRef`のラベル、`Field`の内容など）マッピングインターフェースを通じて、各文字体系ごとに1つの文字列を取り込みます。`entry.lexical_unit["seh"] = "nkhuku"` とすると、`<form lang="seh">` が追加されます。言語コードをキーとする文字列を含むソースモデルは、これにそのまま対応します。
 - `RangesFile.add_range()` / `Range.add_element()` によって制御語彙が構築され、`Lexicon.add_ranges_file(ranges, href=...)` によってコンパニオンが紐付けられ、ヘッダー `<range href>` の参照が追加されます。これにより、エントリの `<grammatical-info value="Noun">` および `<trait name="semantic-domain-ddp4" value="1.6.1.2">` は、定義した範囲に対して解決されるようになります。
-- `URLRef` とは、href にオプションのキャプションやラベルなどのマルチテキストを加えたもので、`<media>`（音声）と `<illustration>`（写真）の両方で使用されます。 ここでの発音は、The Combine の慣例に従い、`en` 形式で「<name> 」と読みます。
+- `URLRef` とは、href にオプションのキャプションやラベルなどのマルチテキストを加えたもので、`<media>`（音声）と `<illustration>`（写真）の両方で使用されます。ここでの発音は、The Combine の慣例に従い、`en` 形式で「<name> 」と読みます。
 - ネイティブのLIFTホームライドが含まれないアプリ固有のデータは、`<field>`（または`<trait>`）として指定されます。FieldWorksはこれらをカスタムフィールドとして読み取り、The Combineはそれらを保持します。
 - すべてのエントリに、実際の安定した `guid`（例：`uuid.uuid4()` から生成し、エクスポート間で再利用）を割り当ててください。そうすれば、後で再インポートした際に、エントリが複製されることなく、その場で更新されます。 `sil-lift validate --require-ids` はこのルールを強制します。
-- `lex.iter_problems()` は、データがディスクに書き込まれる前に、メモリ内のドキュメント（`save()` が書き込む内容）の整合性を検証します。ここでは、そのドキュメントに問題はありません。 この辞書にはまだフォルダが存在しないため、media-presence および companion-href のチェックはスキップされます。音声ファイルと写真ファイルが所定の場所に配置されたら、保存された出力に対して [`sil-lift validate`](cli.md) を実行してください（または `--no-check-media` オプションを指定して実行してください）。
+- 上記の出力にある `dateCreated`/`dateModified` はスクリプト内には存在しません。初めて書き込まれたエントリには独自の日付情報が含まれていないため、`save()` 関数が実行された時点の日付がこれらに付与されたのです。 `when=` を指定すると、時計を読み取る代わりにその時点の時刻が設定されます。これにより、生成されたエクスポートファイルは、CIジョブでの差分比較においてバイト単位で再現可能になります。`stamp=False` を指定すると、日付情報は一切書き込まれません。契約書の残りの部分については、[生成されたタイムスタンプ](../fidelity.md#generated-timestamps) をご覧ください。
+- `lex.iter_problems()` は、データがディスクに書き込まれる前にメモリ内のドキュメントを検証します。ここでは、ドキュメントに問題はありません。この辞書にはまだフォルダが存在しないため、media-presence および companion-href のチェックはスキップされます。音声ファイルと写真ファイルが所定の場所に配置されたら、保存された出力に対して [`sil-lift validate`](cli.md) を実行してください（または `--no-check-media` オプションを指定して実行してください）。
 
 ## パッケージ
 
