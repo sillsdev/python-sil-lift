@@ -51,7 +51,7 @@ All three layers work from the document serialized as it stands, so one that can
 
 A companion name matching several files loads none of them: the ranges they define go absent until all but one is renamed or removed.
 
-The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href` and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## Real-world FieldWorks (FLEx) output
 

@@ -530,6 +530,10 @@ def _semantic_problems(
     # Only what companion discovery actually went looking for. With
     # resolve_ranges=False the caller put companions out of scope for this
     # load, so a finding about one is unwanted whether or not it is accurate.
+    # add_ranges_file attaches a companion without reading the folder, so it
+    # does not reinstate these: the checks below re-derive from a folder this
+    # load never looked at, where a sibling that supplies a header range went
+    # unloaded and so reads as a dangling href.
     rejected = lexicon._rejected_ranges
     if lexicon.path is not None and rejected is not None:
         base = lexicon.path.parent

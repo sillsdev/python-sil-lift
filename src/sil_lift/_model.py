@@ -1056,11 +1056,13 @@ class Lexicon:
         are optional there), for workflows that re-import by a stable id.
 
         The companion-folder checks (``ambiguous-ranges-file``,
-        ``dangling-ranges-href``, ``unreadable-ranges-file``) are reported only
-        when companion discovery ran: a lexicon loaded with
+        ``dangling-ranges-href``, and ``unreadable-ranges-file``) are reported
+        only when companion discovery ran: a lexicon loaded with
         ``resolve_ranges=False`` put companions out of scope, so none is
-        reported for it. ``missing-media`` is unaffected — media is never
-        resolved into the model, so nothing was opted out of.
+        reported for it, and attaching one afterwards with
+        :meth:`add_ranges_file` does not reinstate them. ``missing-media`` is
+        unaffected: media is never resolved into the model, so nothing was
+        opted out of.
         """
         from ._validate import iter_lexicon_problems
 
@@ -1094,6 +1096,10 @@ class Lexicon:
         (or call again to reference ranges added later).
 
         Returns the attached (or newly created) :class:`RangesFile`.
+
+        Attaching a companion does not read the folder, so it does not put one
+        back in scope for the companion-folder checks: under
+        ``resolve_ranges=False`` those stay silent (see :meth:`iter_problems`).
         """
         if ranges_file is None:
             ranges_file = RangesFile()

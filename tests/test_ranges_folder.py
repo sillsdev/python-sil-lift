@@ -420,6 +420,21 @@ def test_companion_findings_need_companion_discovery(tmp_path: Path) -> None:
     assert list(resolved.iter_problems()) == []
 
 
+def test_attaching_a_companion_does_not_reopen_companion_findings(tmp_path: Path) -> None:
+    # add_ranges_file attaches a companion and writes its header href, but it
+    # reads nothing from the folder, so the folder stays out of scope. Running
+    # the checks over what a non-resolving load holds would misreport it.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("gone.lift-ranges"))
+    (folder / "Dict.lift-ranges").write_bytes(b"")
+    lexicon = sil_lift.load(folder / "Dict.lift", resolve_ranges=False)
+    ranges = RangesFile()
+    ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2")
+    lexicon.add_ranges_file(ranges, href="Other.lift-ranges")
+    assert list(lexicon.iter_problems()) == []
+
+
 def test_a_second_lift_named_by_an_href_is_skipped_not_fatal(tmp_path: Path) -> None:
     folder = tmp_path / "pkg"
     folder.mkdir(parents=True)
@@ -461,16 +476,16 @@ def test_an_exactly_named_companion_ignores_the_variant_beside_it(tmp_path: Path
     assert [p for p in lexicon.iter_problems() if p.code == "ambiguous-ranges-file"] == []
 
 
-# One stem in the four spellings a filesystem that folds case still keeps
-# apart: each accent composed or decomposed, independently.
-_COMPOSED = "Ñandú"
-_N_SPLIT = "Ñandú"
-_U_SPLIT = "Ñandú"
-_BOTH_SPLIT = "Ñandú"
+# One stem (Ñandú) in the four spellings a filesystem that folds case still
+# keeps apart: each accent composed or decomposed, independently.
+_COMPOSED = "\N{LATIN CAPITAL LETTER N WITH TILDE}and\N{LATIN SMALL LETTER U WITH ACUTE}"
+_N_SPLIT = "N\N{COMBINING TILDE}and\N{LATIN SMALL LETTER U WITH ACUTE}"
+_U_SPLIT = "\N{LATIN CAPITAL LETTER N WITH TILDE}andu\N{COMBINING ACUTE ACCENT}"
+_BOTH_SPLIT = "N\N{COMBINING TILDE}andu\N{COMBINING ACUTE ACCENT}"
 
 
 def _normalization_sensitive(folder: Path) -> bool:
-    probe = folder / "NormProbé"
+    probe = folder / "NormProbe\N{COMBINING ACUTE ACCENT}"
     probe.mkdir()
     sensitive = not (folder / unicodedata.normalize("NFC", probe.name)).exists()
     probe.rmdir()
