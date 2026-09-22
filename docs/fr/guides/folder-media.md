@@ -31,6 +31,8 @@ Plusieurs candidats sont testés, et chaque fichier distinct parmi ceux-ci est c
 
 Les noms qui ne diffèrent que par la casse ou la normalisation Unicode sont toujours considérés comme identiques — `Dict.LIFT` trouve `Dict.lift-ranges` — sauf si plusieurs fichiers correspondent à un même nom, auquel cas aucun d’entre eux n’est chargé et une erreur [`ambiguous-ranges-file`](validate.md#problem-codes) est signalée.
 
+Un fichier candidat qui ne peut pas être lu en tant que document `<lift-ranges>` (par exemple, un fichier de zéro octet issu d'une exportation interrompue) est ignoré plutôt que de provoquer l'échec du chargement, et est signalé comme [`unreadable-ranges-file`](validate.md#problem-codes). En revanche, le chargement direct à l'aide de `RangesFile.load()` provoque une exception.
+
 Transmettez `resolve_ranges=False` à la fonction `load()` pour ignorer la recherche de composants associés.
 
 ## Médias
