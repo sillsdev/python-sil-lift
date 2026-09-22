@@ -31,6 +31,8 @@ Wagombea kadhaa wanajaribiwa, na kila faili tofauti miongoni mwao inapakia.
 
 Majina yanayotofautiana tu kwa herufi kubwa/ndogo au kwa usawazishaji wa Unicode bado yanalingana — `Dict.LIFT` hupata `Dict.lift-ranges` — isipokuwa faili kadhaa zinapolingana na jina moja, ambalo halipaki yoyote kati yao na linaripotiwa kama [`ambiguous-ranges-file`](validate.md#problem-codes).
 
+Nyaraka inayoshindwa kusomwa kama hati ya `<lift-ranges>` (kwa mfano, faili yenye baiti sifuri kutokana na usafirishaji uliokatizwa) inapita badala ya kusababisha kushindwa kwa upakiaji, na inaripotiwa kama [`unreadable-ranges-file`](validate.md#problem-codes). Kupakia moja moja kwa `RangesFile.load()` kunasababisha badala yake.
+
 Pitisha `resolve_ranges=False` kwenye `load()` ili kupuuza ugunduzi wa vifaa viendani.
 
 ## Vyombo vya habari
