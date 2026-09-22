@@ -24,11 +24,11 @@ problems = list(lex.iter_problems())
 
 1. LIFT 0.13 व्याकरण के विरुद्ध RELAX NG (lift-standard से विक्रेता — इस पैकेज में प्रतिबद्ध एक बाइट-समान प्रति)।
 2. **रेंज स्कीमा** — इस प्रोजेक्ट का `lift-ranges-0.13.rng` — हर ट्रैक किए गए `.lift-ranges` साथी पर, `.lift` के बजाय साथी को संबोधित किया गया।
-3. **सेमांटिक जाँचें** जिन्हें व्याकरण व्यक्त नहीं कर सकता — दस, प्रत्येक एक कोड।
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## समस्या कोड
 
-प्रत्येक निष्कर्ष इनमें से एक लेयर से आता है, जिसने भी इसे उत्पन्न किया हो — `schema` और `uri-not-rfc` स्कीमा लेयर से आते हैं, बाकी ग्यारह सेमांटिक जांचें हैं। स्ट्रिंग्स एक समर्थित इंटरफ़ेस हैं; `--strict` प्रत्येक चेतावनी को त्रुटि में बदल देता है।
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. स्ट्रिंग्स एक समर्थित इंटरफ़ेस हैं; `--strict` प्रत्येक चेतावनी को त्रुटि में बदल देता है।
 
 | कोड                        | स्तर    | जो यह चिह्नित करता है                                                                                    |
 | -------------------------- | ------- | -------------------------------------------------------------------------------------------------------- |
@@ -44,11 +44,14 @@ problems = list(lex.iter_problems())
 | दायरा-माता-पिता            | त्रुटि  | कोई `range-element/@parent` भाई-बहन आईडी परिभाषित नहीं करता                                              |
 | योजना                      | त्रुटि  | एक RELAX NG व्याकरण उल्लंघन, `.lift` में या एक साथी में                                                  |
 | अपरिभाषित-श्रेणी-मूल्य     | चेतावनी | एक व्याकरण संबंधी-जानकारी या सीमा-कुंजीबद्ध गुण मान जिसकी सीमा सूचीबद्ध नहीं करती                        |
+| `unreadable-ranges-file`   | चेतावनी | a companion candidate that exists but is not a readable ranges document                                  |
 | यूआरआई-आरएफसी नहीं         | चेतावनी | एक href जो एक मान्य URI नहीं है — FLEx का `file://C:/...`                                                |
 
 तीनों परतें दस्तावेज़ को जैसा है वैसा ही सीरियलाइज़ किए गए रूप में काम करती हैं, इसलिए जिसे बिल्कुल भी सीरियलाइज़ नहीं किया जा सकता, उसे एकल `lone-surrogate` त्रुटि के रूप में रिपोर्ट किया जाता है — देखें [Fidelity guarantees](../fidelity.md#content-xml-cannot-represent)। प्रमाणीकरण केवल-पठन है: यह दस्तावेज़ को जैसा है वैसा ही रिपोर्ट करता है, इससे पहले कि कोई सहेजने की क्रिया `dateModified` स्टैम्प लगाकर उसे बदल दे। जो कुछ भी उत्पन्न होता है वह कभी भी खोज नहीं होता, इसलिए वैधता जांचने के बाद सहेजना उचित है।
 
 कई फ़ाइलों से मेल खाने वाला एक साथी नाम उनमें से किसी को भी लोड नहीं करता: वे जो रेंज परिभाषित करते हैं, तब तक अनुपस्थित रहती हैं जब तक कि एक को छोड़कर बाकी सभी का नाम बदल या हटा नहीं दिया जाता।
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## वास्तविक-विश्व फील्डवर्क्स (FLEx) आउटपुट
 
