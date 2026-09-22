@@ -24,11 +24,11 @@ problems = list(lex.iter_problems())
 
 1. **RELAX NG** в соответствии с грамматикой LIFT 0.13 (включенной из пакета lift-standard — это байт-идентичная копия, добавленная в данный пакет).
 2. **Схема диапазонов** — в данном проекте это файл `lift-ranges-0.13.rng` — охватывает каждый отслеживаемый компаньон `.lift-ranges`; она адресована именно компаньону, а не `.lift`.
-3. **Семантические проверки**, которые невозможно выразить с помощью грамматики — десять штук, по одному коду на каждую.
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## Коды неисправностей
 
-Каждое обнаружение сопровождается одним из этих флагов, в зависимости от того, на каком уровне оно было выявлено — флаги `schema` и `uri-not-rfc` относятся к уровням схем, а остальные одиннадцать — к семантическим проверкам. Строки являются поддерживаемым интерфейсом; опция `--strict` преобразует каждое предупреждение в ошибку.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. Строки являются поддерживаемым интерфейсом; опция `--strict` преобразует каждое предупреждение в ошибку.
 
 | код                                  | уровень        | что именно выявляет                                                                                               |
 | ------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -44,11 +44,14 @@ problems = list(lex.iter_problems())
 | `range-parent`                       | ошибка         | `range-element/@parent` не имеет идентификатора соседнего элемента                                                |
 | `схема`                              | ошибка         | нарушение грамматики RELAX NG в файле `.lift` или в сопутствующем модуле                                          |
 | `значение с недопустимым диапазоном` | предупреждение | значение признака, определяемое по грамматической информации или диапазону, которое не указано в данном диапазоне |
+| `unreadable-ranges-file`             | предупреждение | a companion candidate that exists but is not a readable ranges document                                           |
 | `uri-not-rfc`                        | предупреждение | атрибут href, не являющийся допустимым URI — `file://C:/...` в FLEx                                               |
 
 Все три уровня работают с документом в том виде, в котором он сериализован, поэтому если документ вообще не поддается сериализации, об этом сообщается в виде одной ошибки `lone-surrogate` — см. [Гарантии точности](../fidelity.md#content-xml-cannot-represent). Проверка доступна только для чтения: она отображает документ в том виде, в каком он находится на данный момент, до того, как будет проставлена метка `dateModified` при сохранении. Ничто из сгенерированного никогда не является результатом, поэтому подход «проверить, а затем сохранить» является правильным.
 
 Если имя-компаньон совпадает с несколькими файлами, ни один из них не загружается: определяемые ими диапазоны становятся недоступными до тех пор, пока все файлы, кроме одного, не будут переименованы или удалены.
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## Реальные результаты работы FieldWorks (FLEx)
 
