@@ -24,11 +24,11 @@ Chaque `Problème` comporte un `niveau` (`"erreur"`/`"avertissement"`), un `code
 
 1. **RELAX NG** par rapport à la grammaire LIFT 0.13 (fournie par lift-standard — une copie identique au niveau des octets intégrée à ce paquet).
 2. **Schéma des plages** — le fichier `lift-ranges-0.13.rng` de ce projet — s’applique à chaque compagnon `.lift-ranges` suivi ; il s’adresse au compagnon plutôt qu’au fichier `.lift`.
-3. **Contrôles sémantiques** que la grammaire ne permet pas d'exprimer — dix au total, un code par contrôle.
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## Codes d'erreur
 
-Chaque résultat comporte l'un de ces éléments, quelle que soit la couche à l'origine de celui-ci : « `schema` » et « `uri-not-rfc` » proviennent des couches de schéma, tandis que les onze autres correspondent à des vérifications sémantiques. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur.
 
 | code                          | niveau        | ce qu'il signale                                                                                                  |
 | ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -44,11 +44,14 @@ Chaque résultat comporte l'un de ces éléments, quelle que soit la couche à l
 | `range-parent`                | erreur        | un élément `range-element/@parent` sans identifiant de frère n'est pas défini                                     |
 | `schéma`                      | erreur        | une violation de la grammaire RELAX NG, dans le fichier `.lift` ou dans un fichier compagnon                      |
 | `valeur hors plage`           | avertissement | une valeur de caractère liée à une information grammaticale ou à une plage que cette plage ne mentionne pas       |
+| `unreadable-ranges-file`      | avertissement | a companion candidate that exists but is not a readable ranges document                                           |
 | `uri-not-rfc`                 | avertissement | un lien `href` qui n'est pas un URI valide — `file://C:/...` dans FLEx                                            |
 
 Ces trois couches fonctionnent à partir du document tel qu'il est sérialisé ; ainsi, un document qui ne peut pas être sérialisé du tout est signalé par une seule erreur de type « lone-surrogate » — voir [Garanties de fidélité](../fidelity.md#content-xml-cannot-represent). La validation est en lecture seule : elle reflète l'état actuel du document, tel qu'il était avant l'horodatage `dateModified` associé à une sauvegarde. Rien de ce qui est généré ne constitue jamais un résultat, c'est pourquoi la méthode « valider puis enregistrer » est judicieuse.
 
 Un nom de compagnon correspondant à plusieurs fichiers n'en charge aucun : les plages qu'ils définissent disparaissent jusqu'à ce que tous, sauf un, soient renommés ou supprimés.
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## Résultats concrets de FieldWorks (FLEx)
 
