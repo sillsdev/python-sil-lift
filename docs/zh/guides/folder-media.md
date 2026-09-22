@@ -12,7 +12,7 @@ lex.all_ranges()                            # 合并后的 {id: Range} 视图
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-`lex.save()` 会将 `.lift` 以及所有被追踪的伴生类一起写入。 对 `RangesFile` 进行的修改将保存回该文件；未修改的范围将保留其精确的字节数据。 独立使用：
+`lex.save()` 会将 `.lift` 以及所有被追踪的伴生类一起写入。对 `RangesFile` 进行的修改将保存回该文件；未修改的范围将保留其精确的字节数据。独立使用：
 
 ```python
 ranges = sil_lift.RangesFile.load("dictionary.lift-ranges")
@@ -31,6 +31,8 @@ ranges.save()
 
 仅在大小写或 Unicode 规范化方面存在差异的名称仍会被视为匹配——`Dict.LIFT` 会找到 `Dict.lift-ranges`——除非有多个文件匹配同一个名称，这种情况下将不会加载任何文件，并报告为 [`ambiguous-ranges-file`](validate.md#problem-codes)。
 
+无法作为 `<lift-ranges>` 文档读取的候选项（例如，因导出中断而产生的零字节文件）将被跳过，而非导致加载失败，并报告为 [`unreadable-ranges-file`](validate.md#problem-codes)。如果直接使用 `RangesFile.load()` 加载，则会引发异常。
+
 向 `load()` 传递 `resolve_ranges=False` 参数，以跳过伴侣节点发现。
 
 ## 媒体
@@ -42,7 +44,7 @@ for ref in lex.media_refs():        # 所有<media> 和<illustration>
 lex.missing_media()                 # 文件不存在的引用
 ```
 
-解析遵循常规布局：对相对 href 进行原样检查（反斜杠已规范化——WeSay 写的是 `pictures\photo with space.png`），并检查其是否位于 `audio/`（用于发音媒体）或 `pictures/`（用于插图）目录下。 无法验证远程/绝对 href，因此会跳过这些链接。
+解析遵循常规布局：对相对 href 进行原样检查（反斜杠已规范化——WeSay 写的是 `pictures\photo with space.png`），并检查其是否位于 `audio/`（用于发音媒体）或 `pictures/`（用于插图）目录下。无法验证远程/绝对 href，因此会跳过这些链接。
 
 ## 其他文件夹内容
 
