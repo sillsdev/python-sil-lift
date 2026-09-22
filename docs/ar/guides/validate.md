@@ -24,11 +24,11 @@ problems = list(lex.iter_problems())
 
 1. **RELAX NG** وفقًا لقواعد النحو LIFT 0.13 (مأخوذة من lift-standard — وهي نسخة مطابقة تمامًا من حيث البايتات تم تضمينها في هذه الحزمة).
 2. **مخطط النطاقات** — ملف `lift-ranges-0.13.rng` الخاص بهذا المشروع — يشمل كل مرفق `.lift-ranges` يتم تتبعه، ويُوجه إلى المرفق بدلاً من `.lift`.
-3. **التحققات الدلالية** التي لا يمكن للنحو التعبير عنها — عشرة منها، كل واحدة منها برمز خاص بها.
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## رموز المشكلات
 
-كل نتيجة تحتوي على واحدة من هذه العناصر، بغض النظر عن الطبقة التي أنتجتها — حيث تأتي `schema` و`uri-not-rfc` من طبقات المخطط، أما العناصر الإحدى عشرة الأخرى فهي عمليات تدقيق دلالية. تُعد الأوتار واجهة مدعومة؛ ويؤدي الخيار `--strict` إلى رفع مستوى كل تحذير إلى خطأ.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. تُعد الأوتار واجهة مدعومة؛ ويؤدي الخيار `--strict` إلى رفع مستوى كل تحذير إلى خطأ.
 
 | الرمز                    | المستوى | ما الذي يشير إليه                                                                                               |
 | ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------- |
@@ -44,11 +44,14 @@ problems = list(lex.iter_problems())
 | `range-parent`           | خطأ     | لم يتم تعريف معرّف «range-element/@parent» لأي عنصر متجاور                                         |
 | `المخطط`                 | خطأ     | انتهاك لقواعد RELAX NG، في ملف `.lift` أو في ملف مرافق                                                          |
 | `قيمة نطاق غير محددة`    | تحذير   | قيمة سمة مرتبطة بمعلومات نحوية أو بمفتاح نطاق لا يرد ذكرها في النطاق                                            |
+| `unreadable-ranges-file` | تحذير   | a companion candidate that exists but is not a readable ranges document                                         |
 | `uri-not-rfc`            | تحذير   | رابط href لا يمثل عنوان URI صالحًا — `file://C:/...` في FLEx                                                    |
 
 تعمل الطبقات الثلاث جميعها على المستند الذي تم تسلسله كما هو، لذا فإن أي مستند لا يمكن تسلسله على الإطلاق يتم الإبلاغ عنه كخطأ واحد من نوع `lone-surrogate` بدلاً من ذلك — انظر [ضمانات الدقة](../fidelity.md#content-xml-cannot-represent). التحقق من الصحة هو عملية للقراءة فقط: فهو يعرض المستند كما هو، قبل أن يتم توقيعه بختم `dateModified` عند الحفظ. لا يُعتبر أي شيء يتم إنشاؤه «نتيجة» في حد ذاته، لذا فإن اتباع نهج «التحقق أولاً ثم الحفظ» هو نهج سليم.
 
 عندما يتطابق اسم المرافق مع عدة ملفات، لا يتم تحميل أي منها: حيث تختفي النطاقات التي يحددها هذه الملفات إلى أن يتم إعادة تسمية جميع الملفات باستثناء واحد منها أو إزالتها.
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## نتائج برنامج FieldWorks (FLEx) في الواقع الميداني
 
