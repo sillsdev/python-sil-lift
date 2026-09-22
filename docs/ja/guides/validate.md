@@ -24,31 +24,34 @@ problems = list(lex.iter_problems())
 
 1. **RELAX NG** による LIFT 0.13 文法との照合（lift-standard からベンダー提供されたもの — 本パッケージにコミットされたバイト単位で同一のコピー）。
 2. **Rangesスキーマ** — 本プロジェクトの `lift-ranges-0.13.rng` — は、追跡対象となっているすべての `.lift-ranges` コンパニオンに対して適用され、`.lift` ではなくコンパニオンを宛先としています。
-3. **文法では表現できないセマンティックチェック** — 計10項目、それぞれ1つのコード。
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## 問題コード
 
-各検出結果には、それがどのレイヤーで生成されたかに関わらず、これらのいずれかが含まれます。`schema` と `uri-not-rfc` はスキーマ・レイヤーに由来し、残りの11個はセマンティックチェックによるものです。文字列はサポートされているインターフェースです。`--strict` を指定すると、すべての警告がエラーとして扱われます。
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. 文字列はサポートされているインターフェースです。`--strict` を指定すると、すべての警告がエラーとして扱われます。
 
-| コード                     | レベル | 何がフラグとして表示されるか                                           |
-| ----------------------- | --- | -------------------------------------------------------- |
-| `ambiguous-ranges-file` | 警告  | ケースフォールディングおよびNFCの条件下で、1つのコンパニオン名に対応する複数のファイル            |
-| `dangling-ranges-href`  | 警告  | ヘッダー `range/@href` が、対応するファイルが見つからない状態になっている             |
-| `dangling-ref`          | エラー | エントリや意味に一致する `relation/@ref` または `variant/@ref` がない      |
-| `duplicate-form-lang`   | 警告  | 1つのマルチテキスト内に、同じ言語を使用する2つのフォーム                            |
-| `duplicate-guid`        | エラー | エントリ間で、あるいは1つのドキュメント内の範囲／範囲要素間で再利用されるGUID                |
-| `form-missing-lang`     | エラー | `<form>` または `<gloss>`。ただし、スキーマで必須とされる `lang` は含まれていません。 |
-| `missing-id`            | エラー | `require_ids` によるオプトイン：GUID のないエントリ、ID のないセンス            |
-| `missing-media`         | 警告  | 参照先の音声ファイルまたは画像ファイルがディスク上にありません                          |
-| `正規化の不一致`               | 警告  | NFCでのみ、そのIDを参照するIDに到達する名前                                |
-| `range-parent`          | エラー | `range-element/@parent` には、兄弟要素の ID が定義されていない            |
-| `スキーマ`                  | エラー | `.lift` ファイルまたはコンパニオン内で、RELAX NG 文法違反が発生しています            |
-| `未定義の範囲値`               | 警告  | 文法情報または範囲キー付き形質値のうち、その範囲にリストされていないもの                     |
-| `uri-not-rfc`           | 警告  | 有効なURIではないhref — FLExの `file://C:/...`                   |
+| コード                      | レベル | 何がフラグとして表示されるか                                                          |
+| ------------------------ | --- | ----------------------------------------------------------------------- |
+| `ambiguous-ranges-file`  | 警告  | ケースフォールディングおよびNFCの条件下で、1つのコンパニオン名に対応する複数のファイル                           |
+| `dangling-ranges-href`   | 警告  | ヘッダー `range/@href` が、対応するファイルが見つからない状態になっている                            |
+| `dangling-ref`           | エラー | エントリや意味に一致する `relation/@ref` または `variant/@ref` がない                     |
+| `duplicate-form-lang`    | 警告  | 1つのマルチテキスト内に、同じ言語を使用する2つのフォーム                                           |
+| `duplicate-guid`         | エラー | エントリ間で、あるいは1つのドキュメント内の範囲／範囲要素間で再利用されるGUID                               |
+| `form-missing-lang`      | エラー | `<form>` または `<gloss>`。ただし、スキーマで必須とされる `lang` は含まれていません。                |
+| `missing-id`             | エラー | `require_ids` によるオプトイン：GUID のないエントリ、ID のないセンス                           |
+| `missing-media`          | 警告  | 参照先の音声ファイルまたは画像ファイルがディスク上にありません                                         |
+| `正規化の不一致`                | 警告  | NFCでのみ、そのIDを参照するIDに到達する名前                                               |
+| `range-parent`           | エラー | `range-element/@parent` には、兄弟要素の ID が定義されていない                           |
+| `スキーマ`                   | エラー | `.lift` ファイルまたはコンパニオン内で、RELAX NG 文法違反が発生しています                           |
+| `未定義の範囲値`                | 警告  | 文法情報または範囲キー付き形質値のうち、その範囲にリストされていないもの                                    |
+| `unreadable-ranges-file` | 警告  | a companion candidate that exists but is not a readable ranges document |
+| `uri-not-rfc`            | 警告  | 有効なURIではないhref — FLExの `file://C:/...`                                  |
 
 3つのレイヤーはすべて、そのままシリアライズされたドキュメントに基づいて動作するため、まったくシリアライズできないドキュメントについては、代わりに単一の `lone-surrogate` エラーとして報告されます。詳細は[正確性の保証](../fidelity.md#content-xml-cannot-represent)を参照してください。検証結果は読み取り専用です。これは、保存時に付与される `dateModified` スタンプが記録される前の、その時点でのドキュメントの状態を報告するものです。生成されたものは決して結果とはみなされないため、「検証してから保存する」という方法は妥当である。
 
 複数のファイルに一致するコンパニオン名は、それらのファイルを一切読み込みません。1つを除いてすべてが名前変更または削除されるまで、それらが定義する範囲は存在しなくなります。
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## 実環境におけるFieldWorks（FLEx）の出力結果
 
