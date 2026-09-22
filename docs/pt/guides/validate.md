@@ -24,11 +24,11 @@ Cada `Problema` contém um `nível` (`"erro"`/`"aviso"`), um `código` fixo, uma
 
 1. **RELAX NG** em relação à gramática LIFT 0.13 (fornecida pelo lift-standard — uma cópia byte a byte incorporada neste pacote).
 2. **Esquema de intervalos** — o ficheiro `lift-ranges-0.13.rng` deste projeto — para cada companheiro `.lift-ranges` monitorizado, dirigido ao companheiro em vez de ao `.lift`.
-3. **Verificações semânticas** que a gramática não consegue expressar — dez no total, uma por código.
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## Códigos de problema
 
-Cada resultado inclui um destes, independentemente da camada que o tenha gerado — `schema` e `uri-not-rfc` provêm das camadas de esquema, enquanto os outros onze são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
 
 | código                              | nível | o que assinala                                                                                                                      |
 | ----------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -44,11 +44,14 @@ Cada resultado inclui um destes, independentemente da camada que o tenha gerado 
 | `range-parent`                      | erro  | um `range-element/@parent` sem identificação de elemento irmão definida                                                             |
 | `esquema`                           | erro  | uma violação da gramática RELAX NG, no ficheiro `.lift` ou num ficheiro complementar                                                |
 | `valor-fora-do-intervalo`           | aviso | um valor de característica com chave gramatical ou de intervalo que não conste do intervalo                                         |
+| `unreadable-ranges-file`            | aviso | a companion candidate that exists but is not a readable ranges document                                                             |
 | `uri-não-rfc`                       | aviso | um atributo `href` que não é um URI válido — `file://C:/...` do FLEx                                                                |
 
 As três camadas funcionam a partir do documento serializado tal como está; por isso, um documento que não possa ser serializado de todo é sinalizado como um único erro `lone-surrogate` — ver [Garantias de fidelidade](../fidelity.md#content-xml-cannot-represent). A validação é de só leitura: apresenta o documento tal como se encontra, antes do carimbo `dateModified` que acompanha um registo de gravação. Nada do que é gerado constitui, por si só, uma conclusão; por isso, a abordagem «validar e depois guardar» é acertada.
 
 Um nome de acompanhante que corresponde a vários ficheiros não carrega nenhum deles: os intervalos que definem ficam ausentes até que todos, exceto um, sejam renomeados ou removidos.
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## Resultados do FieldWorks (FLEx) em condições reais
 
