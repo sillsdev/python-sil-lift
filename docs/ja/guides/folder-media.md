@@ -12,7 +12,7 @@ lex.all_ranges()                            # マージされた {id: Range} ビ
 lex.all_ranges()["grammatical-info"].elements
 ```
 
-`lex.save()` は、`.lift` と追跡対象のすべてのコンパニオンをまとめて書き込みます。 `RangesFile` への編集内容は、そのファイルに保存されます。変更されていない範囲については、バイト単位でそのまま保持されます。 単体での使用：
+`lex.save()` は、`.lift` と追跡対象のすべてのコンパニオンをまとめて書き込みます。 `RangesFile` への編集内容は、そのファイルに保存されます。変更されていない範囲については、バイト単位でそのまま保持されます。単体での使用：
 
 ```python
 ranges = sil_lift.RangesFile.load("dictionary.lift-ranges")
@@ -31,6 +31,8 @@ ranges.save()
 
 大文字小文字やUnicodeの正規化のみが異なる名前でも一致します（`Dict.LIFT` は `Dict.lift-ranges` を検出します）。ただし、1つの名前に対して複数のファイルが一致する場合は、いずれのファイルも読み込まれず、[`ambiguous-ranges-file`](validate.md#problem-codes) として報告されます。
 
+`<lift-ranges>` ドキュメントとして読み取れない候補（例：エクスポートが中断されたために生成されたゼロバイトのファイルなど）は、読み込みに失敗するのではなくスキップされ、[`unreadable-ranges-file`](validate.md#problem-codes) として報告されます。 `RangesFile.load()` で直接読み込むと、代わりに例外が発生します。
+
 `load()` に `resolve_ranges=False` を渡すと、コンパニオンの検出をスキップできます。
 
 ## メディア
@@ -42,7 +44,7 @@ for ref in lex.media_refs():        # すべての<media> および<illustration
 lex.missing_media()                 # ファイルが存在しない参照
 ```
 
-解決方法は従来のレイアウトに従います。相対的な href は指定されたままの形式でチェックされ（バックスラッシュは正規化されます — WeSay は `pictures\photo with space.png` と記述します）、`audio/`（発音用メディアの場合）または `pictures/`（イラストの場合）の下に配置されます。 リモートまたは絶対パスの href は検証できないため、スキップされます。
+解決方法は従来のレイアウトに従います。相対的な href は指定されたままの形式でチェックされ（バックスラッシュは正規化されます — WeSay は `pictures\photo with space.png` と記述します）、`audio/`（発音用メディアの場合）または `pictures/`（イラストの場合）の下に配置されます。リモートまたは絶対パスの href は検証できないため、スキップされます。
 
 ## その他のフォルダ内の内容
 
