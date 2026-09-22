@@ -47,6 +47,7 @@ from ._model import (
     Lexicon,
     _existing_file,
     _folded_matches,
+    _href_components,
     _normalize_href,
     _ranges_candidates,
     _same_file,
@@ -55,9 +56,10 @@ from ._text import Form, Multitext, Trait
 
 if TYPE_CHECKING:
     import os
-    from collections.abc import Collection, Iterator
+    from collections.abc import Collection, Iterable, Iterator
 
     from ._header import Range
+    from ._model import MediaResolution
 
 __all__ = ["Problem", "iter_problems", "validate_file"]
 
@@ -319,6 +321,35 @@ def _form_shape_problems(
                 guid=guid,
                 line=line,
             )
+
+
+def media_mismatch_groups(
+    resolutions: Iterable[MediaResolution],
+) -> tuple[list[tuple[str, str]], list[tuple[MediaResolution, str, str]]]:
+    """Media spelling mismatches split into folder findings and file findings.
+
+    A folder the hrefs misspell is one rename however many references cross it,
+    so it is reported once and carries no entry; a misspelled filename is one
+    rename each, addressed to the entry that wrote it. Without the split, a
+    folder authored as ``Pictures\\`` would report once per media reference in
+    the document.
+
+    Shared with the CLI's ``check-media``, which groups the same way.
+    """
+    directories: dict[tuple[str, str], None] = {}
+    files: list[tuple[MediaResolution, str, str]] = []
+    for resolution in resolutions:
+        if resolution.status != "mismatch" or resolution.found is None:
+            continue
+        components = _href_components(resolution.ref.href, resolution.found)
+        for index, (written, on_disk) in enumerate(components):
+            if written == on_disk:
+                continue
+            if index == len(components) - 1:
+                files.append((resolution, written, on_disk))
+            else:
+                directories[(written, on_disk)] = None
+    return list(directories), files
 
 
 def _semantic_problems(
@@ -673,13 +704,38 @@ def _semantic_problems(
             file=ranges_paths.get(range_id) or file,
         )
 
-    # Missing media files.
-    for media_ref in lexicon.missing_media():
+    # Media files that are absent, or here under another spelling.
+    resolutions = lexicon.check_media()
+    for resolution in resolutions:
+        if resolution.status != "missing":
+            continue
         yield Problem(
             "warning",
             "missing-media",
-            f"{media_ref.kind} file not found: {media_ref.href!r}",
+            f"{resolution.ref.kind} file not found: {resolution.ref.href!r}",
             file=file,
-            entry_id=media_ref.entry_id,
-            guid=media_ref.entry_guid,
+            entry_id=resolution.ref.entry_id,
+            guid=resolution.ref.entry_guid,
+        )
+    directories, files = media_mismatch_groups(resolutions)
+    # The two spellings can render identically, so name them by code point.
+    for written, on_disk in directories:
+        yield Problem(
+            "warning",
+            "media-href-mismatch",
+            f"media hrefs name folder {written!a}, which is {on_disk!a} on disk; they "
+            "match only under case folding or Unicode normalization, so a "
+            "case-sensitive host will not find any file under it",
+            file=file,
+        )
+    for resolution, written, on_disk in files:
+        yield Problem(
+            "warning",
+            "media-href-mismatch",
+            f"{resolution.ref.kind} href names {written!a}, which is {on_disk!a} on disk; "
+            "they match only under case folding or Unicode normalization, so a "
+            "case-sensitive host will not find it",
+            file=file,
+            entry_id=resolution.ref.entry_id,
+            guid=resolution.ref.entry_guid,
         )

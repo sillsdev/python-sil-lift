@@ -167,7 +167,7 @@ def test_header_range_id_reaches_a_companion_id_in_another_normalization() -> No
 
 
 def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Path) -> None:
-    path = NEGATIVE_DIR / "nfd-range-ids.lift"
+    path = NEGATIVE_DIR / "nfd-range-ids" / "nfd-range-ids.lift"
     problems = problems_for(path)
     assert codes(problems) == {("error", "range-parent"), ("warning", "normalization-mismatch")}
     (dangling,) = [p for p in problems if p.code == "range-parent"]
@@ -184,7 +184,7 @@ def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Pat
     # Normalization belongs to the comparison only: the mixed forms survive.
     sil_lift.Lexicon.load(path).save(tmp_path / path.name)
     for name in (path.name, "nfd-range-ids.lift-ranges"):
-        assert (tmp_path / name).read_bytes() == (NEGATIVE_DIR / name).read_bytes(), name
+        assert (tmp_path / name).read_bytes() == (path.parent / name).read_bytes(), name
 
 
 def test_one_id_referenced_in_two_spellings_still_warns_once() -> None:
@@ -340,6 +340,30 @@ def test_missing_media_folder_fixture() -> None:
     hrefs = {p.message for p in problems}
     assert any("none.wav" in m for m in hrefs)
     assert any("gone.png" in m for m in hrefs)
+
+
+def test_media_href_mismatch_folder_fixture() -> None:
+    # No skipif: the whole point of resolving against the directory listing is
+    # that a case-folding host reaches the same verdict as a case-sensitive one.
+    problems = problems_for(NEGATIVE_DIR / "media-href-mismatch" / "media-href-mismatch.lift")
+    assert not [p for p in problems if p.code == "missing-media"], "every file is present"
+    mismatches = [p for p in problems if p.code == "media-href-mismatch"]
+    assert all(p.level == "warning" for p in mismatches)
+    # The misspelled folder is one rename, so it reports once and names no
+    # entry; the misspelled filename is addressed to the entry that wrote it.
+    folder = [p for p in mismatches if p.entry_id is None]
+    assert len(folder) == 1
+    assert "'Pictures'" in folder[0].message and "'pictures'" in folder[0].message
+    files = [p for p in mismatches if p.entry_id is not None]
+    assert [(p.entry_id, "'SDD.PNG'" in p.message) for p in files] == [("one", True)]
+
+
+def test_media_href_mismatch_leaves_the_conventional_subfolder_alone() -> None:
+    # Entry "three" writes a bare "word.wav" that only resolves because the
+    # guessed audio/ folds onto the on-disk Audio/. That component is sil-lift's
+    # own, so its spelling is nobody's defect and must never be reported.
+    lexicon = sil_lift.load(NEGATIVE_DIR / "media-href-mismatch" / "media-href-mismatch.lift")
+    assert [r.ref.entry_id for r in lexicon.check_media()] == ["one", "two"]
 
 
 def test_flex_uri_quirks_warn_but_never_error() -> None:

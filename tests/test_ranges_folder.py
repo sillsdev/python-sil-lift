@@ -199,31 +199,87 @@ def test_ranges_schema_is_loadable_and_spec_faithful() -> None:
     )
 
 
-def test_media_refs_and_missing_media_on_moma_folder() -> None:
+def test_media_refs_and_check_media_on_moma_folder() -> None:
     lexicon = sil_lift.load(CORPUS_DIR / "folder" / "Moma" / "Moma.lift")
     refs = list(lexicon.media_refs())
     assert {r.href for r in refs} == {"pictures\\cultural law.png", "pictures\\sdd.png"}
     assert all(r.kind == "illustration" for r in refs)
     assert all(r.entry_id for r in refs)
-    assert lexicon.missing_media() == []
+    # Every href spells its file exactly, so nothing is reported at all.
+    assert lexicon.check_media() == []
 
 
-def test_missing_media_on_all_flex_fields() -> None:
+def test_check_media_on_all_flex_fields() -> None:
     # The corpus deliberately omits the upstream filler media (PROVENANCE.md),
     # so these references must be reported missing.
     lexicon = sil_lift.load(CORPUS_DIR / "flex" / "AllFLExFields" / "AllFLExFields.lift")
-    missing = {(r.kind, r.href) for r in lexicon.missing_media()}
+    missing = {(r.ref.kind, r.ref.href) for r in lexicon.check_media() if r.status == "missing"}
     assert ("media", "Kalimba.mp3") in missing
     assert ("illustration", "Desert.jpg") in missing
 
 
-def test_missing_media_flags_broken_ref(tmp_path: Path) -> None:
+def test_check_media_flags_broken_ref(tmp_path: Path) -> None:
     src = CORPUS_DIR / "folder" / "Moma"
     shutil.copytree(src, tmp_path / "Moma")
     lexicon = sil_lift.load(tmp_path / "Moma" / "Moma.lift")
     (tmp_path / "Moma" / "pictures" / "sdd.png").unlink()
-    missing = lexicon.missing_media()
-    assert [r.href for r in missing] == ["pictures\\sdd.png"]
+    assert [(r.ref.href, r.status) for r in lexicon.check_media()] == [
+        ("pictures\\sdd.png", "missing")
+    ]
+
+
+def _write_lift_with_illustration(folder: Path, href: str) -> Path:
+    """A minimal loadable .lift whose one sense illustrates ``href``."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "media.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        f'<sense id="s1"><illustration href="{href}"/></sense>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_check_media_reports_a_normalization_only_match(tmp_path: Path) -> None:
+    # Not a corpus fixture: every checkout filesystem preserves case in a
+    # filename, but HFS+ rewrites normalization, so a committed NFD/NFC pair
+    # has a premise the checkout itself could alter.
+    name_nfc = unicodedata.normalize("NFC", "café.png")
+    name_nfd = unicodedata.normalize("NFD", "café.png")
+    assert name_nfc != name_nfd
+    (tmp_path / "pictures").mkdir()
+    (tmp_path / "pictures" / name_nfd).write_bytes(b"")
+    path = _write_lift_with_illustration(tmp_path, f"pictures/{name_nfc}")
+    resolutions = sil_lift.load(path).check_media()
+    assert [r.status for r in resolutions] == ["mismatch"]
+    assert resolutions[0].found is not None
+    assert resolutions[0].found.name == name_nfd
+
+
+def test_check_media_reports_a_href_that_several_files_fold_onto(tmp_path: Path) -> None:
+    if not _case_sensitive(tmp_path):
+        pytest.skip("needs a case-sensitive filesystem to hold both spellings")
+    (tmp_path / "pictures").mkdir()
+    for name in ("SDD.PNG", "sdd.png"):
+        (tmp_path / "pictures" / name).write_bytes(b"")
+    # Matching neither exactly is what makes it ambiguous; it is still one
+    # defect with one fix, so it reports as an ordinary mismatch.
+    path = _write_lift_with_illustration(tmp_path, "pictures/Sdd.png")
+    assert [r.status for r in sil_lift.load(path).check_media()] == ["mismatch"]
+
+
+def test_check_media_resolves_an_exactly_spelled_href_above_the_folder(tmp_path: Path) -> None:
+    # ".." names no directory to search, so it is probed as written rather than
+    # folded -- and must keep resolving.
+    (tmp_path / "shared").mkdir()
+    (tmp_path / "shared" / "one.png").write_bytes(b"")
+    path = _write_lift_with_illustration(tmp_path / "lex", "../shared/one.png")
+    assert sil_lift.load(path).check_media() == []
 
 
 def _write_case_variant_pair(folder: Path, lift_name: str, ranges_name: str) -> Path:

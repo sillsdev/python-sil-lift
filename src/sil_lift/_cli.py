@@ -25,9 +25,9 @@ from typing import TYPE_CHECKING
 
 from ._canonical import canonicalize
 from ._errors import LiftError
-from ._model import Lexicon, _normalize_href
+from ._model import Lexicon, _fold, _folded_entries, _normalize_href
 from ._stream import open_reader
-from ._validate import iter_problems
+from ._validate import iter_problems, media_mismatch_groups
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -38,6 +38,9 @@ if TYPE_CHECKING:
     from ._validate import Problem
 
 __all__ = ["main"]
+
+#: What --no-check-media suppresses: everything the filesystem media check says.
+_MEDIA_CODES = frozenset({"missing-media", "media-href-mismatch"})
 
 
 def _problem_json(problem: Problem) -> dict[str, object]:
@@ -68,7 +71,7 @@ def _collect_problems(args: argparse.Namespace) -> list[Problem]:
     return [
         problem
         for problem in problems
-        if not (args.no_check_media and problem.code == "missing-media")
+        if not (args.no_check_media and problem.code in _MEDIA_CODES)
     ]
 
 
@@ -153,26 +156,42 @@ def _cmd_sort(args: argparse.Namespace) -> int:
 
 def _cmd_check_media(args: argparse.Namespace) -> int:
     lexicon = Lexicon.load(args.path)
-    missing = lexicon.missing_media()
-    for ref in missing:
-        owner = ref.entry_id or ref.entry_guid or "?"
-        print(f"missing  {ref.kind:12s} {ref.href!r} (entry {owner})")
+    resolutions = lexicon.check_media()
+    missing = [item for item in resolutions if item.status == "missing"]
+    for item in missing:
+        owner = item.ref.entry_id or item.ref.entry_guid or "?"
+        print(f"missing  {item.ref.kind:12s} {item.ref.href!r} (entry {owner})")
+    directories, files = media_mismatch_groups(resolutions)
+    # Spellings differing only in normalization render identically.
+    for written, on_disk in directories:
+        print(f"mismatch {'folder':12s} {written!a} is {on_disk!a} on disk")
+    for item, written, on_disk in files:
+        owner = item.ref.entry_id or item.ref.entry_guid or "?"
+        print(f"mismatch {item.ref.kind:12s} {written!a} is {on_disk!a} on disk (entry {owner})")
 
-    referenced: set[Path] = set()
+    referenced: set[str] = set()
     base = lexicon.path.parent if lexicon.path is not None else Path(args.path).parent
     for ref in lexicon.media_refs():
         relative = _normalize_href(ref.href)
         if relative is None:  # remote/absolute hrefs can't confirm a local file
             continue
-        referenced.add((base / relative).resolve())
         subfolder = "audio" if ref.kind == "media" else "pictures"
-        referenced.add((base / subfolder / relative).resolve())
+        referenced.add(_folded_key(relative))
+        referenced.add(_folded_key(Path(subfolder) / relative))
+    # Folded, not resolved: a href reaches its file under the same folding
+    # check_media() uses, so a file it names inexactly is in use, not orphaned.
+    listings: dict[Path, dict[str, list[Path]]] = {}
+    media_folders = [
+        path
+        for name in ("audio", "pictures")
+        for path in _folded_entries(base, listings).get(name, ())
+        if path.is_dir()
+    ]
     orphans = [
         file
-        for folder in ("audio", "pictures")
-        if (base / folder).is_dir()
-        for file in sorted((base / folder).rglob("*"))
-        if file.is_file() and file.resolve() not in referenced
+        for folder in media_folders
+        for file in sorted(folder.rglob("*"))
+        if file.is_file() and _folded_key(file.relative_to(base)) not in referenced
     ]
     for file in orphans:
         print(f"orphaned {file.relative_to(base)} (no media/illustration references it)")
@@ -181,8 +200,14 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
             "note: WeSay-style audio writing systems reference files from form "
             "text, which this check does not follow"
         )
-    print(f"{len(missing)} missing, {len(orphans)} orphaned")
-    return 1 if missing else 0
+    mismatched = len(directories) + len(files)
+    print(f"{len(missing)} missing, {mismatched} mismatched, {len(orphans)} orphaned")
+    return 1 if missing or mismatched else 0
+
+
+def _folded_key(relative: Path) -> str:
+    """A relative path reduced to what a case-folding filesystem treats as one path."""
+    return "/".join(_fold(part) for part in relative.parts)
 
 
 def _leaf_senses(entry: Entry) -> list[Sense]:
@@ -340,7 +365,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     validate.add_argument(
         "--no-check-media",
         action="store_true",
-        help="skip the filesystem media-presence check (suppresses missing-media findings)",
+        help=(
+            "skip the filesystem media-presence check "
+            "(suppresses missing-media and media-href-mismatch findings)"
+        ),
     )
     validate.add_argument(
         "--require-ids",
