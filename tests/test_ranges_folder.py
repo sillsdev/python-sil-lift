@@ -256,6 +256,21 @@ def _case_sensitive(folder: Path) -> bool:
     return sensitive
 
 
+def _keeps_candidate_case(folder: Path) -> bool:
+    """Whether the filesystem folds case but resolve() keeps the spelling given.
+
+    True on macOS, where one file reached under two spellings resolves to two
+    distinct paths. Windows folds and canonicalizes, so both spellings resolve
+    alike; Linux does not fold, so only the real one is ever reached.
+    """
+    probe = folder / "ResolveProbe"
+    probe.write_bytes(b"")
+    other = folder / "RESOLVEPROBE"
+    keeps = other.is_file() and other.resolve().name == "RESOLVEPROBE"
+    probe.unlink()
+    return keeps
+
+
 def test_companion_resolves_when_lift_suffix_is_uppercase(tmp_path: Path) -> None:
     lift = _write_case_variant_pair(tmp_path / "pkg", "Dict.LIFT", "Dict.lift-ranges")
     lexicon = sil_lift.load(lift)
@@ -269,18 +284,166 @@ def test_companion_resolves_when_companion_suffix_is_uppercase(tmp_path: Path) -
 
 
 @pytest.mark.parametrize("companion", ["Dict.lift-ranges", "Dict.LIFT-RANGES"])
-def test_a_companion_that_is_not_a_ranges_document_fails_the_load(
+def test_a_companion_that_is_not_a_ranges_document_is_skipped(
     tmp_path: Path, companion: str
 ) -> None:
     # A sibling match leaves no href to dangle and no collision to report, so
-    # skipping a broken companion would be silent — hence loud, however spelled.
+    # skipping a broken companion would be silent - hence the dedicated code,
+    # however the companion is spelled.
     folder = tmp_path / "pkg"
     folder.mkdir(parents=True)
     lift = (PAIR_DIR / "test20080407.lift").read_bytes()
     (folder / "Dict.lift").write_bytes(lift)
     (folder / companion).write_bytes(lift)
-    with pytest.raises(LiftParseError, match="expected <lift-ranges>"):
-        sil_lift.load(folder / "Dict.lift")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert lexicon.entries
+    assert lexicon.ranges_files == {}
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert [p.level for p in problems] == ["warning"]
+    # resolve() canonicalizes case on Windows but not on macOS, so the recorded
+    # path can carry the candidate's spelling rather than the file's own.
+    assert problems[0].file is not None
+    assert problems[0].file.samefile(folder / companion)
+    assert "the conventional companion beside 'Dict.lift'" in problems[0].message
+    assert "expected <lift-ranges>" in problems[0].message
+
+
+@pytest.mark.parametrize("payload", [b"", b"<lift-ranges><range id="])
+def test_an_empty_or_truncated_sidecar_still_loads_the_entries(
+    tmp_path: Path, payload: bytes
+) -> None:
+    # The realistic trigger: an interrupted export or a partial sync, which
+    # must not cost the lexicon its entries.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
+    (folder / "Dict.lift-ranges").write_bytes(payload)
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert lexicon.entries
+    assert [p.code for p in lexicon.iter_problems()] == ["unreadable-ranges-file"]
+
+
+def _lift_with_href(href: str) -> bytes:
+    """A minimal LIFT 0.13 document whose one header range points at ``href``."""
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<lift version="0.13"><header><ranges>'
+        f'<range id="etymology" href="{href}"/>'
+        '</ranges></header><entry id="a"/></lift>'
+    ).encode()
+
+
+def test_an_href_naming_an_unrelated_file_names_the_header_range(tmp_path: Path) -> None:
+    # Addressed to the file, but the actionable fix is the href: the png is
+    # intact and must not be touched.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("pictures.png"))
+    (folder / "pictures.png").write_bytes(bytes.fromhex("89504E470D0A1A0A") + b" not xml at all")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert len(problems) == 1
+    assert problems[0].file is not None
+    assert problems[0].file.samefile(folder / "pictures.png")
+    assert "header range 'etymology' href 'pictures.png'" in problems[0].message
+
+
+def test_a_rejection_is_dropped_once_its_file_is_gone(tmp_path: Path) -> None:
+    # The record is discovery-time; the checks beside it read the folder as it
+    # stands, so a replayed rejection would contradict dangling-ranges-href.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("bad.lift-ranges"))
+    (folder / "bad.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert [p.code for p in lexicon.iter_problems()] == ["unreadable-ranges-file"]
+    (folder / "bad.lift-ranges").unlink()
+    assert [p.code for p in lexicon.iter_problems()] == ["dangling-ranges-href"]
+
+
+def test_a_case_only_href_edit_still_reaches_the_rejected_file(tmp_path: Path) -> None:
+    if not _keeps_candidate_case(tmp_path):
+        pytest.skip("needs a filesystem that folds case but resolves to the spelling given")
+    # The rejection is keyed by the spelling discovery resolved, so a candidate
+    # reaching the same file under another one matches only by identity.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("bad.lift-ranges"))
+    (folder / "bad.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert [p.code for p in lexicon.iter_problems()] == ["unreadable-ranges-file"]
+    lexicon.header.ranges[0].href = "BAD.lift-ranges"
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert len(problems) == 1
+    assert "href 'BAD.lift-ranges'" in problems[0].message
+
+
+def test_a_rejection_is_dropped_once_the_href_moves(tmp_path: Path) -> None:
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("bad.lift-ranges"))
+    (folder / "bad.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    lexicon.header.ranges[0].href = "elsewhere.lift-ranges"
+    # Nothing in the document names bad.lift-ranges any more, so nothing may
+    # report it -- least of all under the href it no longer carries.
+    assert [p.code for p in lexicon.iter_problems()] == ["dangling-ranges-href"]
+
+
+def test_two_candidate_spellings_of_one_rejected_file_report_once(tmp_path: Path) -> None:
+    # Candidates dedup on spelling, so a .. segment survives as a second route
+    # to the sibling's own file. The first route is the one load took.
+    folder = tmp_path / "pkg"
+    (folder / "sub").mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("sub/../Dict.lift-ranges"))
+    (folder / "Dict.lift-ranges").write_bytes(b"<nope>")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert len(problems) == 1
+    assert "the conventional companion beside 'Dict.lift'" in problems[0].message
+
+
+def test_companion_findings_need_companion_discovery(tmp_path: Path) -> None:
+    # resolve_ranges=False puts companions out of scope for the load, so no
+    # finding about one is reported -- accurate or not. missing-media is not a
+    # companion finding and is unaffected.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("gone.lift-ranges"))
+    (folder / "Dict.lift-ranges").write_bytes(b"")
+    lift = folder / "Dict.lift"
+    assert {p.code for p in sil_lift.load(lift).iter_problems()} == {
+        "dangling-ranges-href",
+        "unreadable-ranges-file",
+    }
+    resolved = sil_lift.load(lift, resolve_ranges=False)
+    assert list(resolved.iter_problems()) == []
+
+
+def test_attaching_a_companion_does_not_reopen_companion_findings(tmp_path: Path) -> None:
+    # add_ranges_file attaches a companion and writes its header href, but it
+    # reads nothing from the folder, so the folder stays out of scope. Running
+    # the checks over what a non-resolving load holds would misreport it.
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("gone.lift-ranges"))
+    (folder / "Dict.lift-ranges").write_bytes(b"")
+    lexicon = sil_lift.load(folder / "Dict.lift", resolve_ranges=False)
+    ranges = RangesFile()
+    ranges.add_range("semantic-domain-ddp4").add_element("1.6.1.2")
+    lexicon.add_ranges_file(ranges, href="Other.lift-ranges")
+    assert list(lexicon.iter_problems()) == []
+
+
+def test_a_second_lift_named_by_an_href_is_skipped_not_fatal(tmp_path: Path) -> None:
+    folder = tmp_path / "pkg"
+    folder.mkdir(parents=True)
+    (folder / "Dict.lift").write_bytes(_lift_with_href("Other.lift"))
+    shutil.copy(PAIR_DIR / "test20080407.lift", folder / "Other.lift")
+    lexicon = sil_lift.load(folder / "Dict.lift")
+    assert len(lexicon.entries) == 1
+    problems = [p for p in lexicon.iter_problems() if p.code == "unreadable-ranges-file"]
+    assert "root element is <lift>" in problems[0].message
 
 
 def test_case_folded_companions_resolve_to_neither(tmp_path: Path) -> None:
@@ -313,16 +476,16 @@ def test_an_exactly_named_companion_ignores_the_variant_beside_it(tmp_path: Path
     assert [p for p in lexicon.iter_problems() if p.code == "ambiguous-ranges-file"] == []
 
 
-# One stem in the four spellings a filesystem that folds case still keeps
-# apart: each accent composed or decomposed, independently.
-_COMPOSED = "Ñandú"
-_N_SPLIT = "Ñandú"
-_U_SPLIT = "Ñandú"
-_BOTH_SPLIT = "Ñandú"
+# One stem (Ñandú) in the four spellings a filesystem that folds case still
+# keeps apart: each accent composed or decomposed, independently.
+_COMPOSED = "\N{LATIN CAPITAL LETTER N WITH TILDE}and\N{LATIN SMALL LETTER U WITH ACUTE}"
+_N_SPLIT = "N\N{COMBINING TILDE}and\N{LATIN SMALL LETTER U WITH ACUTE}"
+_U_SPLIT = "\N{LATIN CAPITAL LETTER N WITH TILDE}andu\N{COMBINING ACUTE ACCENT}"
+_BOTH_SPLIT = "N\N{COMBINING TILDE}andu\N{COMBINING ACUTE ACCENT}"
 
 
 def _normalization_sensitive(folder: Path) -> bool:
-    probe = folder / "NormProbé"
+    probe = folder / "NormProbe\N{COMBINING ACUTE ACCENT}"
     probe.mkdir()
     sensitive = not (folder / unicodedata.normalize("NFC", probe.name)).exists()
     probe.rmdir()

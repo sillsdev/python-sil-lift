@@ -24,11 +24,11 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 
 1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard — a byte-identical copy committed into this package).
 2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion, addressed to the companion rather than the `.lift`.
-3. **Semantic checks** the grammar cannot express — ten of them, one code each.
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## Problem codes
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other eleven are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
 
 | code                     | level   | what it flags                                                              |
 | ------------------------ | ------- | -------------------------------------------------------------------------- |
@@ -44,11 +44,14 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `range-parent`           | error   | a `range-element/@parent` no sibling id defines                            |
 | `schema`                 | error   | a RELAX NG grammar violation, in the `.lift` or in a companion             |
 | `undefined-range-value`  | warning | a grammatical-info or range-keyed trait value the range does not list      |
+| `unreadable-ranges-file` | warning | a companion candidate that exists but is not a readable ranges document    |
 | `uri-not-rfc`            | warning | an href that is not a valid URI — FLEx's `file://C:/...`                   |
 
 All three layers work from the document serialized as it stands, so one that cannot be serialized at all is reported as a single `lone-surrogate` error instead — see [Fidelity guarantees](../fidelity.md#content-xml-cannot-represent). Validation is read-only: it reports the document as it stands, before the `dateModified` stamping a save does. Nothing generated is ever a finding, so validate-then-save is sound.
 
 A companion name matching several files loads none of them: the ranges they define go absent until all but one is renamed or removed.
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## Real-world FieldWorks (FLEx) output
 

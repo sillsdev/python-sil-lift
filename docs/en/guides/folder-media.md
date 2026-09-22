@@ -31,6 +31,8 @@ Several candidates are tried, and every distinct file among them is loaded.
 
 Names that differ only in case or Unicode normalization still match — `Dict.LIFT` finds `Dict.lift-ranges` — unless several files match one name, which loads none of them and is reported as [`ambiguous-ranges-file`](validate.md#problem-codes).
 
+A candidate that cannot be read as a `<lift-ranges>` document (e.g., a zero-byte file from an interrupted export) is skipped rather than failing the load, and is reported as [`unreadable-ranges-file`](validate.md#problem-codes). Loading one directly with `RangesFile.load()` raises instead.
+
 Pass `resolve_ranges=False` to `load()` to skip companion discovery.
 
 ## Media
