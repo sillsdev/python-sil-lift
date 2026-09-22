@@ -24,11 +24,11 @@ Jedes `Problem` enthält einen `Level` (`„error“`/`„warning“`), einen st
 
 1. **RELAX NG** gemäß der LIFT 0.13-Grammatik (aus „lift-standard“ übernommen – eine byteweise identische Kopie, die in dieses Paket integriert wurde).
 2. **Ranges-Schema** – in diesem Projekt `lift-ranges-0.13.rng` – für jeden erfassten `.lift-ranges`-Companion, wobei die Adressierung an den Companion statt an `.lift` erfolgt.
-3. **Semantische Prüfungen**, die die Grammatik nicht ausdrücken kann – zehn an der Zahl, jeweils ein Code.
+3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
 
 ## Fehlercodes
 
-Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Ebene er entstanden ist – `schema` und `uri-not-rfc` stammen aus den Schema-Ebenen, die übrigen elf sind semantische Prüfungen. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler.
 
 | Code                                     | Ebene   | Was es markiert                                                                                                             |
 | ---------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -44,11 +44,14 @@ Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Eben
 | `range-parent`                           | Fehler  | Ein `range-element/@parent` ohne definierte ID für ein Geschwisterelement                                                   |
 | `Schema`                                 | Fehler  | ein Verstoß gegen die RELAX NG-Grammatik, entweder in der `.lift`-Datei oder in einem Companion                             |
 | `Wert außerhalb des zulässigen Bereichs` | Warnung | ein grammatikalischer oder bereichsbezogener Merkmalswert, der in dem Bereich nicht aufgeführt ist                          |
+| `unreadable-ranges-file`                 | Warnung | a companion candidate that exists but is not a readable ranges document                                                     |
 | `uri-not-rfc`                            | Warnung | Ein href, der keine gültige URI ist – FLExs `file://C:/...`                                                                 |
 
 Alle drei Ebenen arbeiten mit dem Dokument in seiner serialisierten Form, sodass ein Dokument, das überhaupt nicht serialisiert werden kann, stattdessen als einzelner `lone-surrogate`-Fehler gemeldet wird – siehe [Genauigkeitsgarantien](../fidelity.md#content-xml-cannot-represent). Die Validierung ist schreibgeschützt: Sie gibt den aktuellen Stand des Dokuments wieder, wie er vor dem `dateModified`-Zeitstempel einer Speicherung war. Nichts, was generiert wird, ist jemals ein Ergebnis, daher ist „zuerst validieren, dann speichern“ sinnvoll.
 
 Ein Begleitname, der mehreren Dateien entspricht, lädt keine davon: Die von ihnen definierten Bereiche sind nicht vorhanden, bis alle bis auf eine umbenannt oder entfernt wurden.
+
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
 
 ## Praktische FieldWorks (FLEx)-Ergebnisse
 
