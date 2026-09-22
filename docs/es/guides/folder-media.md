@@ -31,6 +31,8 @@ Se prueban varios candidatos y se carga cada uno de los archivos distintos que h
 
 Los nombres que solo difieren en mayúsculas y minúsculas o en la normalización Unicode siguen coincidiendo —`Dict.LIFT` encuentra `Dict.lift-ranges`—, a menos que varios archivos coincidan con un mismo nombre, en cuyo caso no se carga ninguno de ellos y se muestra el mensaje [`ambiguous-ranges-file`](validate.md#problem-codes).
 
+Un candidato que no se pueda leer como un documento `<lift-ranges>` (por ejemplo, un archivo de cero bytes procedente de una exportación interrumpida) se omite, en lugar de provocar un error en la carga, y se notifica como [`unreadable-ranges-file`](validate.md#problem-codes). Sin embargo, al cargar uno directamente con `RangesFile.load()`, se produce un error.
+
 Pasa `resolve_ranges=False` a `load()` para omitir la detección de componentes complementarios.
 
 ## Medios de comunicación
