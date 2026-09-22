@@ -31,6 +31,8 @@ Es werden mehrere Kandidaten getestet, und jede einzelne Datei unter ihnen wird 
 
 Namen, die sich lediglich in der Groß-/Kleinschreibung oder der Unicode-Normalisierung unterscheiden, werden weiterhin als übereinstimmend erkannt – `Dict.LIFT` findet `Dict.lift-ranges` –, es sei denn, mehrere Dateien entsprechen einem Namen; in diesem Fall wird keine davon geladen und dies wird als [`ambiguous-ranges-file`](validate.md#problem-codes) gemeldet.
 
+Ein Kandidat, der nicht als `<lift-ranges>`-Dokument gelesen werden kann (z. B. eine Null-Byte-Datei aus einem unterbrochenen Export), wird übersprungen, anstatt den Ladevorgang abzubrechen, und als [`unreadable-ranges-file`](validate.md#problem-codes) gemeldet. Wird eine Datei direkt mit `RangesFile.load()` geladen, wird stattdessen ein Fehler ausgelöst.
+
 Übergeben Sie `resolve_ranges=False` an `load()`, um die Erkennung von Begleitkomponenten zu überspringen.
 
 ## Medien
