@@ -24,11 +24,11 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 
 1. **RELAX NG** against the LIFT 0.13 grammar (vendored from lift-standard — a byte-identical copy committed into this package).
 2. **Ranges schema** — this project's `lift-ranges-0.13.rng` — over every tracked `.lift-ranges` companion, addressed to the companion rather than the `.lift`.
-3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
+3. **Semantic checks** the grammar cannot express — thirteen of them, one code each.
 
 ## Problem codes
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other thirteen are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
 
 | code                     | level   | what it flags                                                              |
 | ------------------------ | ------- | -------------------------------------------------------------------------- |
@@ -38,6 +38,7 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `duplicate-form-lang`    | warning | two forms in one multitext sharing a language                              |
 | `duplicate-guid`         | error   | a guid reused among entries, or among one document's ranges/range-elements |
 | `form-missing-lang`      | error   | a `<form>` or `<gloss>` without the `lang` the schema requires             |
+| `media-href-mismatch`    | warning | a media href that reaches its file only under case folding or NFC          |
 | `missing-id`             | error   | opt-in via `require_ids`: an entry without a guid, a sense without an id   |
 | `missing-media`          | warning | a referenced audio or picture file not on disk                             |
 | `normalization-mismatch` | warning | a name that reaches the id it refers to only under NFC                     |
@@ -51,7 +52,14 @@ All three layers work from the document serialized as it stands, so one that can
 
 A companion name matching several files loads none of them: the ranges they define go absent until all but one is renamed or removed.
 
-The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
+The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` and `media-href-mismatch` are unaffected: media is never resolved into the model, so nothing was opted out of.
+
+`missing-media` and `media-href-mismatch` divide the media check between them: the first means no file answered the href under any spelling, the second that one did but the href does not name it exactly. The second is the portability finding — the file is here, and a case-sensitive host serving this folder will not find it.
+
+Two rules govern what `media-href-mismatch` reports:
+
+- A misspelled *folder* is one rename however many references cross it, so it is reported once and carries no entry. A misspelled *filename* is reported per reference, addressed to the entry that wrote it.
+- The conventional `audio/`/`pictures/` subfolder is sil-lift's own guess rather than something the document wrote, so a folder spelling it another way resolves without being reported.
 
 ## Real-world FieldWorks (FLEx) output
 

@@ -40,6 +40,7 @@ __all__ = [
     "GrammaticalInfo",
     "Lexicon",
     "MediaRef",
+    "MediaResolution",
     "Note",
     "Pronunciation",
     "RangesChanges",
@@ -273,6 +274,21 @@ class MediaRef:
     entry_id: str | None
     entry_guid: str | None
     sense_id: str | None = None  # set for illustrations (they live on senses)
+
+
+@dataclass(slots=True)
+class MediaResolution:
+    """A media reference that did not resolve cleanly against the LIFT folder.
+
+    ``missing`` means no file answered the href under any spelling;
+    ``mismatch`` means one did, but only under case folding or NFC, and
+    ``found`` is the file it named. A href that names its file exactly is not
+    reported at all -- see :meth:`Lexicon.check_media`.
+    """
+
+    ref: MediaRef
+    status: Literal["missing", "mismatch"]
+    found: Path | None = None
 
 
 @dataclass(slots=True)
@@ -539,6 +555,92 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, list[Path]]])
     """
     matches = _folded_matches(candidate, listings)
     return matches[0] if len(matches) == 1 else None
+
+
+def _folded_entries(
+    folder: Path, listings: dict[Path, dict[str, list[Path]]]
+) -> dict[str, list[Path]]:
+    """Everything in ``folder``, keyed by folded name; one read per folder.
+
+    Unlike :func:`_folded_matches` this never probes an exact spelling first,
+    because an exact probe on a case-folding filesystem answers for a name it
+    cannot report: ``SDD.PNG`` stats true against an on-disk ``sdd.png`` and
+    the real spelling is never seen. Listing is also the cheaper half of the
+    trade, since a document's media probes the same few folders over and over.
+    """
+    if folder not in listings:
+        entries: dict[str, list[Path]] = {}
+        try:
+            for path in folder.iterdir():
+                entries.setdefault(_fold(path.name), []).append(path)
+        except OSError:
+            pass  # missing or unreadable folder: nothing resolves out of it
+        listings[folder] = entries
+    return listings[folder]
+
+
+def _media_matches(
+    base: Path, relative: Path, listings: dict[Path, dict[str, list[Path]]]
+) -> list[Path]:
+    """Every file under ``base`` that ``relative`` names, folding each component.
+
+    Component by component, because a folder spelled another way hides
+    everything under it: a Windows-authored ``Pictures\\`` read on a
+    case-sensitive filesystem would otherwise take every href across it with
+    it.
+
+    A href reaching outside the folder (``..``) is probed as written and not
+    folded: which directory to search would be a guess.
+    """
+    parts = relative.parts
+    if not parts:
+        return []
+    if not _foldable(parts):
+        candidate = base / relative
+        try:
+            return [candidate] if candidate.is_file() else []
+        except OSError:
+            return []
+    current = [base]
+    for part in parts[:-1]:
+        current = [
+            match
+            for folder in current
+            for match in _folded_entries(folder, listings).get(_fold(part), ())
+            if match.is_dir()
+        ]
+        if not current:
+            return []
+    return [
+        match
+        for folder in current
+        for match in _folded_entries(folder, listings).get(_fold(parts[-1]), ())
+        if match.is_file()
+    ]
+
+
+def _foldable(parts: tuple[str, ...]) -> bool:
+    """Whether every component of a relative path names something to look up."""
+    return not any(part in (".", "..") for part in parts)
+
+
+def _href_components(href: str, found: Path) -> list[tuple[str, str]]:
+    """The href's own components paired with the on-disk names they reached.
+
+    Only what the href wrote: the conventional ``audio/``/``pictures/``
+    subfolder is sil-lift's guess, so its spelling is nobody's defect and it is
+    left out of the comparison.
+    """
+    relative = _normalize_href(href)
+    if relative is None or not _foldable(relative.parts):
+        return []
+    written = relative.parts
+    return list(zip(written, found.parts[-len(written) :], strict=True))
+
+
+def _spelled_exactly(href: str, found: Path) -> bool:
+    """Whether ``href`` names ``found`` byte for byte, not merely under folding."""
+    return all(written == on_disk for written, on_disk in _href_components(href, found))
 
 
 class _Candidate(NamedTuple):
@@ -1060,9 +1162,9 @@ class Lexicon:
         only when companion discovery ran: a lexicon loaded with
         ``resolve_ranges=False`` put companions out of scope, so none is
         reported for it, and attaching one afterwards with
-        :meth:`add_ranges_file` does not reinstate them. ``missing-media`` is
-        unaffected: media is never resolved into the model, so nothing was
-        opted out of.
+        :meth:`add_ranges_file` does not reinstate them. ``missing-media`` and
+        ``media-href-mismatch`` are unaffected: media is never resolved into
+        the model, so nothing was opted out of.
         """
         from ._validate import iter_lexicon_problems
 
@@ -1126,26 +1228,38 @@ class Lexicon:
                         illustration.href, "illustration", entry.id, entry.guid, sense.id
                     )
 
-    def missing_media(self) -> list[MediaRef]:
-        """Media references whose files don't exist in the LIFT folder layout.
+    def check_media(self) -> list[MediaResolution]:
+        """Media references that don't resolve cleanly in the LIFT folder layout.
 
         A relative href is checked as given (backslashes normalized) and under
         the conventional subfolder (``audio/`` for media, ``pictures/`` for
         illustrations). Remote/absolute hrefs can't be checked and are skipped.
+
+        A reference whose href names its file exactly is not reported. One that
+        reaches a file only under case folding or NFC is a ``mismatch``: the
+        file is here, but a case-sensitive host serving this folder will not
+        find it. One that reaches nothing is ``missing``.
         """
         if self.path is None:
             return []
         base = self.path.parent
         subfolder = {"media": "audio", "illustration": "pictures"}
-        missing = []
+        listings: dict[Path, dict[str, list[Path]]] = {}
+        unresolved = []
         for ref in self.media_refs():
             relative = _normalize_href(ref.href)
             if relative is None:
                 continue
-            candidates = [base / relative, base / subfolder[ref.kind] / relative]
-            if not any(candidate.is_file() for candidate in candidates):
-                missing.append(ref)
-        return missing
+            matches = [
+                match
+                for candidate in (relative, Path(subfolder[ref.kind]) / relative)
+                for match in _media_matches(base, candidate, listings)
+            ]
+            if not matches:
+                unresolved.append(MediaResolution(ref, "missing"))
+            elif not any(_spelled_exactly(ref.href, match) for match in matches):
+                unresolved.append(MediaResolution(ref, "mismatch", matches[0]))
+        return unresolved
 
     def find(self, *, id: str | None = None, guid: str | None = None) -> Entry | None:
         """The first entry matching the given id and/or guid, or None.

@@ -8,12 +8,21 @@ sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--r
 sil-lift stats PATH [--format {text,json}]
                                            entry/sense/language counts (streaming; any size)
 sil-lift sort PATH [-o OUT]               canonically sorted, diff-ready copy (default: in place)
-sil-lift check-media PATH                 missing and orphaned media report; exit 1 if missing
+sil-lift check-media PATH                 missing, misspelled, and orphaned media report; exit 1 if missing or misspelled
 sil-lift export PATH [-o OUT] [--langs L] [--tsv]
                                            one row per leaf sense (subsenses flattened) to CSV/TSV (streaming)
 ```
 
-`--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below. `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on no warnings at all rather than on errors alone. `--no-check-media` skips the filesystem media-presence check (suppressing `missing-media` findings), which is useful when validating a freshly generated export whose audio/photo files live elsewhere rather than in the same folder. `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id. Passing `-` as the path reads the document from stdin (a piped document has no folder, so its companion `.lift-ranges` and media are not resolved). `stats` likewise takes `--format json`, emitting the counts as a single JSON object.
+`validate`'s options:
+
+- `--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below.
+- `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on no warnings at all rather than on errors alone.
+- `--no-check-media` skips the filesystem media-presence check, suppressing `missing-media` and `media-href-mismatch` findings. Useful when validating a freshly generated export whose audio/photo files live elsewhere rather than in the same folder.
+- `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id.
+
+Passing `-` as the path reads the document from stdin. A piped document has no folder, so its companion `.lift-ranges` and media are not resolved.
+
+`stats` likewise takes `--format json`, emitting the counts as a single JSON object.
 
 !!! note
     `validate`'s exit codes and `--format json` schema are a supported automation interface: both are covered by tests and change only under SemVer.

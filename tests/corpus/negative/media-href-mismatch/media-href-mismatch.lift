@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Negative fixture (hand-authored): a Windows-authored folder whose media
+     hrefs reach their files only under case folding. Entry "one" misspells a
+     filename, entry "two" misspells the folder, and entry "three" is the
+     control: its href writes no folder at all, so the conventional audio/
+     subfolder matching an on-disk Audio/ is sil-lift's own guess and must not
+     be reported. Expected: two warnings media-href-mismatch, one for the
+     folder and one for the file, plus the uri-not-rfc warning each backslash
+     href draws anyway. The media files are empty placeholders: resolution
+     never reads their contents. -->
+<lift version="0.13">
+<entry id="one">
+<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>
+<sense id="s1">
+<illustration href="pictures\SDD.PNG"/>
+</sense>
+</entry>
+<entry id="two">
+<lexical-unit><form lang="en"><text>two</text></form></lexical-unit>
+<sense id="s2">
+<illustration href="Pictures\other.png"/>
+</sense>
+</entry>
+<entry id="three">
+<lexical-unit><form lang="en"><text>three</text></form></lexical-unit>
+<pronunciation>
+<form lang="en"><text>three</text></form>
+<media href="word.wav"/>
+</pronunciation>
+<sense id="s3">
+<gloss lang="en"><text>three</text></gloss>
+</sense>
+</entry>
+</lift>

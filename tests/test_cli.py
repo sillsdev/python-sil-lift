@@ -78,6 +78,54 @@ def test_validate_no_check_media(capsys: pytest.CaptureFixture[str]) -> None:
     assert "[missing-media]" not in capsys.readouterr().out
 
 
+def test_validate_no_check_media_covers_spelling_findings(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The flag is for media that lives outside the folder; a spelling verdict
+    # on files it was told not to check would contradict that.
+    path = CORPUS_DIR / "negative" / "media-href-mismatch" / "media-href-mismatch.lift"
+    assert main(["validate", str(path)]) == 0
+    assert "[media-href-mismatch]" in capsys.readouterr().out
+    assert main(["validate", str(path), "--no-check-media"]) == 0
+    assert "[media-href-mismatch]" not in capsys.readouterr().out
+
+
+def test_check_media_follows_a_dot_segment_href_to_its_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # "audio/sub/../one.wav" and the "audio/one.wav" the folder walk finds are
+    # one file: the href resolves, so nothing is missing and nothing orphaned.
+    (tmp_path / "audio" / "sub").mkdir(parents=True)
+    (tmp_path / "audio" / "one.wav").write_bytes(b"")
+    path = tmp_path / "dots.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<pronunciation><media href="audio/sub/../one.wav"/></pronunciation>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    assert main(["check-media", str(path)]) == 0
+    assert "0 missing, 0 mismatched, 0 orphaned" in capsys.readouterr().out
+
+
+def test_check_media_flags_mismatch_without_calling_the_file_orphaned(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = CORPUS_DIR / "negative" / "media-href-mismatch" / "media-href-mismatch.lift"
+    assert main(["check-media", str(path)]) == 1
+    out = capsys.readouterr().out
+    assert "0 missing, 2 mismatched, 0 orphaned" in out
+    # The files are named inexactly, not unnamed: reporting them orphaned as
+    # well as unresolved is the second half of the same bug.
+    assert "no media/illustration references it" not in out
+    assert "'SDD.PNG' is 'sdd.png' on disk" in out
+    assert "'Pictures' is 'pictures' on disk" in out
+
+
 def test_validate_require_ids(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     path = tmp_path / "noid.lift"
     path.write_bytes(
@@ -189,7 +237,7 @@ def test_check_media_absolute_href_does_not_mark_local_file_referenced(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # An absolute href (FLEx-style dangling path) must not mark a folder file
-    # as referenced — mirrors missing_media(), which skips non-relative hrefs.
+    # as referenced — mirrors check_media(), which skips non-relative hrefs.
     audio = tmp_path / "audio"
     audio.mkdir()
     wav = audio / "one.wav"
@@ -305,7 +353,8 @@ def test_export_filename_with_space(tmp_path: Path) -> None:
 
 def test_validate_text_output_survives_a_cp1252_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
     raw = _redirect(monkeypatch, "stdout", "cp1252")
-    assert main(["validate", str(CORPUS_DIR / "negative" / "nfd-range-ids.lift")]) == 1
+    path = CORPUS_DIR / "negative" / "nfd-range-ids" / "nfd-range-ids.lift"
+    assert main(["validate", str(path)]) == 1
     sys.stdout.flush()
     out = raw.getvalue().decode("utf-8")
     assert unicodedata.normalize("NFD", "Órfão") in out  # the id cp1252 cannot hold
