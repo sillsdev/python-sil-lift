@@ -24,34 +24,34 @@ problems = list(lex.iter_problems())
 
 1. **RELAX NG** 基于 LIFT 0.13 语法（从 lift-standard 引入——这是一个与本包中提交的版本字节级完全一致的副本）。
 2. **范围模式** —— 本项目的 `lift-ranges-0.13.rng` —— 覆盖了所有被追踪的 `.lift-ranges` 伴生类，其作用对象是伴生类本身，而非 `.lift`。
-3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
+3. **语义检查**——语法无法表达的十二种情况，每种情况对应一段代码。
 
 ## 问题代码
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. 字符串是一个受支持的接口；`--strict` 会将所有警告提升为错误。
+每个检测结果都包含其中一项，无论它来自哪个层——`schema` 和 `uri-not-rfc` 来自模式层，其余十二项则是语义检查。字符串是一个受支持的接口；`--strict` 会将所有警告提升为错误。
 
-| 代码                       | 级别 | 它标记的是什么                                                                 |
-| ------------------------ | -- | ----------------------------------------------------------------------- |
-| `ambiguous-ranges-file`  | 警告 | 在大小写转换和NFC模式下，多个文件对应同一个伴侣名称                                             |
-| `dangling-ranges-href`   | 警告 | 一个解析为无关联文件的 `range/@href` 标头                                            |
-| `悬空引用`                   | 错误 | 一个 `relation/@ref` 或 `variant/@ref` 未匹配到任何条目或释义                         |
-| `duplicate-form-lang`    | 警告 | 一种多文本中包含两种形式，且使用同一种语言                                                   |
-| `duplicate-guid`         | 错误 | 在不同条目之间，或在一个文档的范围/范围元素之间重复使用的GUID                                       |
-| `form-missing-lang`      | 错误 | `<form>` 或 `<gloss>`，但缺少架构要求的 `lang` 属性                                 |
-| `缺失的ID`                  | 错误 | 通过 `require_ids` 进行选择加入：没有 GUID 的条目，没有 ID 的条目                           |
-| `缺失媒体`                   | 警告 | 引用的音频或图片文件不在磁盘上                                                         |
-| `归一化不匹配`                 | 警告 | 一个仅在NFC环境下才能访问其所引用的ID的名称                                                |
-| `range-parent`           | 错误 | a `range-element/@parent` 未定义同级元素 ID                                    |
-| `schema`                 | 错误 | `.lift` 文件或伴生文件中存在 RELAX NG 语法错误                                        |
-| `未定义的范围值`                | 警告 | 一个语法信息或基于范围键的特征值，而该范围中未列出该值                                             |
-| `unreadable-ranges-file` | 警告 | a companion candidate that exists but is not a readable ranges document |
-| `uri-not-rfc`            | 警告 | 一个不是有效 URI 的 href — FLEx 的 `file://C:/...`                              |
+| 代码                      | 级别 | 它标记的是什么                                         |
+| ----------------------- | -- | ----------------------------------------------- |
+| `ambiguous-ranges-file` | 警告 | 在大小写转换和NFC模式下，多个文件对应同一个伴侣名称                     |
+| `dangling-ranges-href`  | 警告 | 一个解析为无关联文件的 `range/@href` 标头                    |
+| `悬空引用`                  | 错误 | 一个 `relation/@ref` 或 `variant/@ref` 未匹配到任何条目或释义 |
+| `duplicate-form-lang`   | 警告 | 一种多文本中包含两种形式，且使用同一种语言                           |
+| `duplicate-guid`        | 错误 | 在不同条目之间，或在一个文档的范围/范围元素之间重复使用的GUID               |
+| `form-missing-lang`     | 错误 | `<form>` 或 `<gloss>`，但缺少架构要求的 `lang` 属性         |
+| `缺失的ID`                 | 错误 | 通过 `require_ids` 进行选择加入：没有 GUID 的条目，没有 ID 的条目   |
+| `缺失媒体`                  | 警告 | 引用的音频或图片文件不在磁盘上                                 |
+| `归一化不匹配`                | 警告 | 一个仅在NFC环境下才能访问其所引用的ID的名称                        |
+| `range-parent`          | 错误 | a `range-element/@parent` 未定义同级元素 ID            |
+| `schema`                | 错误 | `.lift` 文件或伴生文件中存在 RELAX NG 语法错误                |
+| `未定义的范围值`               | 警告 | 一个语法信息或基于范围键的特征值，而该范围中未列出该值                     |
+| `无法读取的范围文件`             | 警告 | 一个已存在但并非可读范围文档的关联候选项                            |
+| `uri-not-rfc`           | 警告 | 一个不是有效 URI 的 href — FLEx 的 `file://C:/...`      |
 
 这三层均基于当前已序列化的文档进行处理，因此对于完全无法序列化的文档，系统会将其报告为单个 `lone-surrogate` 错误——详见 [保真度保证](../fidelity.md#content-xml-cannot-represent)。验证结果为只读：它反映的是文档当前的状态，即在保存时添加的 `dateModified` 时间戳之前的状态。任何生成的内容都不能算作结果，因此“先验证后保存”的做法是合理的。
 
 一个匹配多个文件的伴随名称无法加载其中任何一个文件：这些文件定义的范围会失效，直到将其中所有文件重命名或删除，仅剩一个为止。
 
-The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
+只有在运行了关联文件发现功能时，才会报告这三个关联文件代码（`ambiguous-ranges-file`、`dangling-ranges-href` 和 `unreadable-ranges-file`）。使用 `resolve_ranges=False` 加载时，伴生程序会被排除在作用域之外，因此不会报告其中任何一个；之后使用 `add_ranges_file()` 附加一个伴生程序也无法将其恢复，因为该函数从未读取过这些代码所报告的文件夹。 `missing-media` 不受影响：媒体从未被解析到模型中，因此没有任何内容被排除在外。
 
 ## FieldWorks（FLEx）的实际应用输出
 
