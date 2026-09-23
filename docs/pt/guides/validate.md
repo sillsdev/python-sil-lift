@@ -24,11 +24,11 @@ Cada `Problema` contém um `nível` (`"erro"`/`"aviso"`), um `código` fixo, uma
 
 1. **RELAX NG** em relação à gramática LIFT 0.13 (fornecida pelo lift-standard — uma cópia byte a byte incorporada neste pacote).
 2. **Esquema de intervalos** — o ficheiro `lift-ranges-0.13.rng` deste projeto — para cada companheiro `.lift-ranges` monitorizado, dirigido ao companheiro em vez de ao `.lift`.
-3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
+3. **Verificações semânticas** que a gramática não consegue expressar — doze no total, uma por código.
 
 ## Códigos de problema
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
+Cada resultado inclui um destes, independentemente da camada que o tenha gerado — «schema» e «uri-not-rfc» provêm das camadas de esquema, enquanto os outros doze são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
 
 | código                              | nível | o que assinala                                                                                                                      |
 | ----------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -44,14 +44,14 @@ Every finding carries one of these, whichever layer produced it — `schema` and
 | `range-parent`                      | erro  | um `range-element/@parent` sem identificação de elemento irmão definida                                                             |
 | `esquema`                           | erro  | uma violação da gramática RELAX NG, no ficheiro `.lift` ou num ficheiro complementar                                                |
 | `valor-fora-do-intervalo`           | aviso | um valor de característica com chave gramatical ou de intervalo que não conste do intervalo                                         |
-| `unreadable-ranges-file`            | aviso | a companion candidate that exists but is not a readable ranges document                                                             |
+| `ficheiro-de-intervalos-ilegíveis`  | aviso | um candidato associado que existe, mas que não é um documento de intervalos legível                                                 |
 | `uri-não-rfc`                       | aviso | um atributo `href` que não é um URI válido — `file://C:/...` do FLEx                                                                |
 
 As três camadas funcionam a partir do documento serializado tal como está; por isso, um documento que não possa ser serializado de todo é sinalizado como um único erro `lone-surrogate` — ver [Garantias de fidelidade](../fidelity.md#content-xml-cannot-represent). A validação é de só leitura: apresenta o documento tal como se encontra, antes do carimbo `dateModified` que acompanha um registo de gravação. Nada do que é gerado constitui, por si só, uma conclusão; por isso, a abordagem «validar e depois guardar» é acertada.
 
 Um nome de acompanhante que corresponde a vários ficheiros não carrega nenhum deles: os intervalos que definem ficam ausentes até que todos, exceto um, sejam renomeados ou removidos.
 
-The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
+Os três códigos de pastas associadas (`ambiguous-ranges-file`, `dangling-ranges-href` e `unreadable-ranges-file`) são comunicados apenas quando a deteção de pastas associadas foi executada. Carregar com `resolve_ranges=False` coloca os códigos complementares fora do âmbito, pelo que nenhum deles é reportado; anexar um posteriormente com `add_ranges_file()` não os traz de volta, uma vez que nunca lê a pasta sobre a qual estes códigos se baseiam. O `missing-media` não é afetado: os meios nunca são incorporados no modelo, pelo que nada foi excluído.
 
 ## Resultados do FieldWorks (FLEx) em condições reais
 
