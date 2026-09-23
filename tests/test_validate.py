@@ -379,8 +379,37 @@ def test_media_href_mismatch_reports_each_misspelled_folder_separately(tmp_path:
     problems = problems_for(path)
     mismatches = [p for p in problems if p.code == "media-href-mismatch"]
     assert len(mismatches) == 2
-    assert any("'a/Foo'" in p.message for p in mismatches)
-    assert any("'b/Foo'" in p.message for p in mismatches)
+    assert any("'a/foo'" in p.message for p in mismatches)
+    assert any("'b/foo'" in p.message for p in mismatches)
+
+
+def test_media_href_mismatch_reports_one_folder_once_however_hrefs_reach_it(
+    tmp_path: Path,
+) -> None:
+    # One folder is one rename however inconsistently the hrefs spell the way
+    # down to it: 'A/Foo' and 'a/Foo' reach the same 'a/foo' and report once.
+    (tmp_path / "a" / "foo").mkdir(parents=True)
+    for name in ("one.png", "two.png"):
+        (tmp_path / "a" / "foo" / name).write_bytes(b"")
+    path = tmp_path / "nested.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<sense id="s1"><illustration href="A/Foo/one.png"/></sense>\n'
+        '<sense id="s2"><illustration href="a/Foo/two.png"/></sense>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    problems = problems_for(path)
+    mismatches = [p for p in problems if p.code == "media-href-mismatch"]
+    # Two real defects: the parent written 'A', and 'a/foo' written 'Foo'.
+    assert sorted(p.message.split(";")[0] for p in mismatches) == [
+        "media hrefs name folder 'A', which is 'a' on disk",
+        "media hrefs name folder 'Foo', which is 'a/foo' on disk",
+    ]
 
 
 def test_media_href_mismatch_leaves_the_conventional_subfolder_alone() -> None:

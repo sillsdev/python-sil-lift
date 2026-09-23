@@ -71,7 +71,7 @@ that script; committed so tests don't depend on regeneration.
   `pictures/cultural law.png` (space in filename). The file has a UTF-8 BOM and
   tab-indented attribute-per-line formatting — a byte-fidelity edge case.
   Upstream `Moma.WeSayConfig` not taken (not LIFT). Primary fixture for
-  media_refs()/check_media().
+  `media_refs()`/`check_media()`.
 
 ## misc/sample.lift
 
