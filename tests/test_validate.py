@@ -358,6 +358,31 @@ def test_media_href_mismatch_folder_fixture() -> None:
     assert [(p.entry_id, "'SDD.PNG'" in p.message) for p in files] == [("one", True)]
 
 
+def test_media_href_mismatch_reports_each_misspelled_folder_separately(tmp_path: Path) -> None:
+    # One misspelled component under two parents is two renames, so keying the
+    # finding on the component alone would undercount the work.
+    for parent in ("a", "b"):
+        (tmp_path / parent / "foo").mkdir(parents=True)
+        (tmp_path / parent / "foo" / f"{parent}.png").write_bytes(b"")
+    path = tmp_path / "two.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<sense id="s1"><illustration href="a/Foo/a.png"/></sense>\n'
+        '<sense id="s2"><illustration href="b/Foo/b.png"/></sense>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    problems = problems_for(path)
+    mismatches = [p for p in problems if p.code == "media-href-mismatch"]
+    assert len(mismatches) == 2
+    assert any("'a/Foo'" in p.message for p in mismatches)
+    assert any("'b/Foo'" in p.message for p in mismatches)
+
+
 def test_media_href_mismatch_leaves_the_conventional_subfolder_alone() -> None:
     # Entry "three" writes a bare "word.wav" that only resolves because the
     # guessed audio/ folds onto the on-disk Audio/. That component is sil-lift's

@@ -90,6 +90,28 @@ def test_validate_no_check_media_covers_spelling_findings(
     assert "[media-href-mismatch]" not in capsys.readouterr().out
 
 
+def test_check_media_follows_a_dot_segment_href_to_its_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # "audio/sub/../one.wav" and the "audio/one.wav" the folder walk finds are
+    # one file: the href resolves, so nothing is missing and nothing orphaned.
+    (tmp_path / "audio" / "sub").mkdir(parents=True)
+    (tmp_path / "audio" / "one.wav").write_bytes(b"")
+    path = tmp_path / "dots.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<pronunciation><media href="audio/sub/../one.wav"/></pronunciation>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    assert main(["check-media", str(path)]) == 0
+    assert "0 missing, 0 mismatched, 0 orphaned" in capsys.readouterr().out
+
+
 def test_check_media_flags_mismatch_without_calling_the_file_orphaned(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -331,7 +353,8 @@ def test_export_filename_with_space(tmp_path: Path) -> None:
 
 def test_validate_text_output_survives_a_cp1252_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
     raw = _redirect(monkeypatch, "stdout", "cp1252")
-    assert main(["validate", str(CORPUS_DIR / "negative" / "nfd-range-ids" / "nfd-range-ids.lift")]) == 1
+    path = CORPUS_DIR / "negative" / "nfd-range-ids" / "nfd-range-ids.lift"
+    assert main(["validate", str(path)]) == 1
     sys.stdout.flush()
     out = raw.getvalue().decode("utf-8")
     assert unicodedata.normalize("NFD", "Órfão") in out  # the id cp1252 cannot hold

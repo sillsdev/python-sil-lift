@@ -334,6 +334,9 @@ def media_mismatch_groups(
     folder authored as ``Pictures\\`` would report once per media reference in
     the document.
 
+    A folder is keyed by its whole path rather than the one component that
+    differs, since ``A/Foo`` and ``B/Foo`` are two renames, not one.
+
     Shared with the CLI's ``check-media``, which groups the same way.
     """
     directories: dict[tuple[str, str], None] = {}
@@ -348,7 +351,10 @@ def media_mismatch_groups(
             if index == len(components) - 1:
                 files.append((resolution, written, on_disk))
             else:
-                directories[(written, on_disk)] = None
+                reached = components[: index + 1]
+                directories[
+                    ("/".join(part for part, _ in reached), "/".join(part for _, part in reached))
+                ] = None
     return list(directories), files
 
 
