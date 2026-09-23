@@ -383,6 +383,35 @@ def test_media_href_mismatch_reports_each_misspelled_folder_separately(tmp_path:
     assert any("'b/foo'" in p.message for p in mismatches)
 
 
+def test_media_href_mismatch_tells_apart_two_folders_one_href_could_name(
+    tmp_path: Path,
+) -> None:
+    # The conventional pictures/ lookup reaches a folder the direct one cannot,
+    # and both answer to "a/Foo": what the href writes cannot tell them apart,
+    # only the file each one reached.
+    (tmp_path / "a" / "foo").mkdir(parents=True)
+    (tmp_path / "pictures" / "a" / "foo").mkdir(parents=True)
+    (tmp_path / "a" / "foo" / "one.png").write_bytes(b"")
+    (tmp_path / "pictures" / "a" / "foo" / "two.png").write_bytes(b"")
+    path = tmp_path / "roots.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<sense id="s1"><illustration href="a/Foo/one.png"/></sense>\n'
+        '<sense id="s2"><illustration href="a/Foo/two.png"/></sense>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    mismatches = [p for p in problems_for(path) if p.code == "media-href-mismatch"]
+    assert sorted(p.message.split(";")[0] for p in mismatches) == [
+        "media hrefs name folder 'Foo', which is 'a/foo' on disk",
+        "media hrefs name folder 'Foo', which is 'pictures/a/foo' on disk",
+    ]
+
+
 def test_media_href_mismatch_reports_one_folder_once_however_hrefs_reach_it(
     tmp_path: Path,
 ) -> None:

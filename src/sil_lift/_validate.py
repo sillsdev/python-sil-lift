@@ -324,7 +324,7 @@ def _form_shape_problems(
 
 
 def media_mismatch_groups(
-    resolutions: Iterable[MediaResolution],
+    resolutions: Iterable[MediaResolution], base: Path
 ) -> tuple[list[tuple[str, str]], list[tuple[MediaResolution, str, str]]]:
     """Media spelling mismatches split into folder findings and file findings.
 
@@ -334,13 +334,15 @@ def media_mismatch_groups(
     folder authored as ``Pictures\\`` would report once per media reference in
     the document.
 
-    A folder finding is keyed by the on-disk path it reaches and the component
-    the href spells it with: ``a/foo`` and ``b/foo`` are two renames, while one
-    folder reached through two spellings of its parent is still one.
+    A folder is identified by the file that reached it, not by what the href
+    spells. Names taken from the href alone cannot tell ``a/foo`` from
+    ``pictures/a/foo``: what separates them is the conventional subfolder,
+    which the lookup supplied and the document never wrote. Paths are reported
+    relative to ``base``, the folder holding the ``.lift``.
 
     Shared with the CLI's ``check-media``, which groups the same way.
     """
-    directories: dict[tuple[str, str], None] = {}
+    directories: dict[tuple[Path, str], tuple[str, str]] = {}
     files: list[tuple[MediaResolution, str, str]] = []
     for resolution in resolutions:
         if resolution.status != "mismatch" or resolution.found is None:
@@ -351,10 +353,14 @@ def media_mismatch_groups(
                 continue
             if index == len(components) - 1:
                 files.append((resolution, written, on_disk))
-            else:
-                reached = components[: index + 1]
-                directories[(written, "/".join(part for _, part in reached))] = None
-    return list(directories), files
+                continue
+            # As many levels above the file as there are components after this
+            # one -- the directory this component actually named.
+            folder = resolution.found.parents[len(components) - index - 2]
+            directories.setdefault(
+                (folder, written), (written, folder.relative_to(base).as_posix())
+            )
+    return list(directories.values()), files
 
 
 def _semantic_problems(
@@ -722,7 +728,9 @@ def _semantic_problems(
             entry_id=resolution.ref.entry_id,
             guid=resolution.ref.entry_guid,
         )
-    directories, files = media_mismatch_groups(resolutions)
+    # A pathless lexicon resolves no media at all, so there is nothing to group.
+    media_base = lexicon.path.parent if lexicon.path is not None else Path()
+    directories, files = media_mismatch_groups(resolutions, media_base)
     # The two spellings can render identically, so name them by code point.
     for written, on_disk in directories:
         yield Problem(

@@ -156,12 +156,13 @@ def _cmd_sort(args: argparse.Namespace) -> int:
 
 def _cmd_check_media(args: argparse.Namespace) -> int:
     lexicon = Lexicon.load(args.path)
+    base = lexicon.path.parent if lexicon.path is not None else Path(args.path).parent
     resolutions = lexicon.check_media()
     missing = [item for item in resolutions if item.status == "missing"]
     for item in missing:
         owner = item.ref.entry_id or item.ref.entry_guid or "?"
         print(f"missing  {item.ref.kind:12s} {item.ref.href!r} (entry {owner})")
-    directories, files = media_mismatch_groups(resolutions)
+    directories, files = media_mismatch_groups(resolutions, base)
     # Spellings differing only in normalization render identically.
     for written, on_disk in directories:
         print(f"mismatch {'folder':12s} {written!a} is {on_disk!a} on disk")
@@ -172,7 +173,6 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
     # The files the hrefs reach, under the folding check_media() uses, rather
     # than the paths they spell: a file named inexactly is in use, not orphaned.
     referenced: set[Path] = set()
-    base = lexicon.path.parent if lexicon.path is not None else Path(args.path).parent
     listings: dict[Path, dict[str, list[Path]]] = {}
     for ref in lexicon.media_refs():
         relative = _normalize_href(ref.href)
