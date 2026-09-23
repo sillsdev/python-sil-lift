@@ -24,34 +24,34 @@ Kila `Problem` hubeba `level` (`"error"`/`"warning"`), `code` thabiti, `message`
 
 1. **RELAX NG** dhidi ya sarufi ya LIFT 0.13 (iliyotolewa kutoka lift-standard — nakala inayofanana byte kwa byte iliyowekwa katika kifurushi hiki).
 2. **Rangi za schema** — `lift-ranges-0.13.rng` ya mradi huu — juu ya kila mwenzi wa `.lift-ranges` unaofuatiliwa, ikielekezwa kwa mwenzi badala ya `.lift`.
-3. **Semantic checks** the grammar cannot express — twelve of them, one code each.
+3. **Ukaguzi wa semanti** ambao sarufi haiwezi kuonyesha — kumi na mbili, kila mmoja akiwa na msimbo wake.
 
 ## Misimbo ya matatizo
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. Vifungo ni kiolesura kinachotumika; `--strict` huibadilisha kila onyo kuwa kosa.
+Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha — `schema` na `uri-not-rfc` hutoka kwenye safu za schema, na zile kumi na mbili zilizobaki ni ukaguzi wa semantiki. Vifungo ni kiolesura kinachotumika; `--strict` huibadilisha kila onyo kuwa kosa.
 
-| msimbo                         | kiwango  | kinachoashiria                                                                                         |
-| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------ |
-| faili la masafa yenye utata    | Onyo     | faili kadhaa zinazojibiwa kwa jina moja la mwandani chini ya case folding na NFC                       |
-| viwigo-vinavyoelea-href        | Onyo     | Kichwa `range/@href` kinachotatua hadi faili rafiki isiyopo                                            |
-| rejea-isiyo na mwisho          | Hitilafu | `relation/@ref` au `variant/@ref` inayolingana na kiingilio au maana yoyote                            |
-| fomu-maradufu-lugha            | Onyo     | fomu mbili katika maandishi mengi yanayoshiriki lugha moja                                             |
-| nakala-ya-guid                 | Hitilafu | mwongozo unaotumika tena miongoni mwa maingizo, au miongoni mwa wigo/vipengele-vya-wigo vya hati moja  |
-| Fomu inakosa lugha             | Hitilafu | <form>` au `<gloss>` bila `lang` inayohitajika na schema                                               |
-| kitambulisho-kinachokosekana   | Hitilafu | kuingia kwa hiari kupitia `require_ids`: kipengee kisicho na guid, hisia kisicho na id |
-| Vyombo vya habari vinakosekana | Onyo     | Faili ya sauti au picha iliyorejelewa haipo kwenye diski                                               |
-| kutopatana kwa urekebishaji    | Onyo     | Jina linalofikia kitambulisho kinachorejelewa tu kupitia NFC                                           |
-| eneo-mzazi                     | Hitilafu | Hakuna id ya ndugu inayotambuliwa na `range-element/@parent`.                          |
-| `shemia`                       | Hitilafu | ukiukaji wa sarufi ya RELAX NG, katika `.lift` au katika faili rafiki                                  |
-| Thamani-ya-wigo-isiyoainishwa  | Onyo     | Thamani ya sifa ya taarifa ya kisarufi au yenye funguo za wigo ambayo wigo haitaorodhesha              |
-| `unreadable-ranges-file`       | Onyo     | a companion candidate that exists but is not a readable ranges document                                |
-| URL si RFC                     | Onyo     | href ambayo si URI halali — `file://C:/...` ya FLEx                                                    |
+| msimbo                             | kiwango  | kinachoashiria                                                                                         |
+| ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| faili la masafa yenye utata        | Onyo     | faili kadhaa zinazojibiwa kwa jina moja la mwandani chini ya case folding na NFC                       |
+| viwigo-vinavyoelea-href            | Onyo     | Kichwa `range/@href` kinachotatua hadi faili rafiki isiyopo                                            |
+| rejea-isiyo na mwisho              | Hitilafu | `relation/@ref` au `variant/@ref` inayolingana na kiingilio au maana yoyote                            |
+| fomu-maradufu-lugha                | Onyo     | fomu mbili katika maandishi mengi yanayoshiriki lugha moja                                             |
+| nakala-ya-guid                     | Hitilafu | mwongozo unaotumika tena miongoni mwa maingizo, au miongoni mwa wigo/vipengele-vya-wigo vya hati moja  |
+| Fomu inakosa lugha                 | Hitilafu | <form>` au `<gloss>` bila `lang` inayohitajika na schema                                               |
+| kitambulisho-kinachokosekana       | Hitilafu | kuingia kwa hiari kupitia `require_ids`: kipengee kisicho na guid, hisia kisicho na id |
+| Vyombo vya habari vinakosekana     | Onyo     | Faili ya sauti au picha iliyorejelewa haipo kwenye diski                                               |
+| kutopatana kwa urekebishaji        | Onyo     | Jina linalofikia kitambulisho kinachorejelewa tu kupitia NFC                                           |
+| eneo-mzazi                         | Hitilafu | Hakuna id ya ndugu inayotambuliwa na `range-element/@parent`.                          |
+| `shemia`                           | Hitilafu | ukiukaji wa sarufi ya RELAX NG, katika `.lift` au katika faili rafiki                                  |
+| Thamani-ya-wigo-isiyoainishwa      | Onyo     | Thamani ya sifa ya taarifa ya kisarufi au yenye funguo za wigo ambayo wigo haitaorodhesha              |
+| faili la masafa yasiyoweza kusomwa | Onyo     | mgombea mwenza uliopo lakini si hati ya masafa inayoweza kusomeka                                      |
+| URL si RFC                         | Onyo     | href ambayo si URI halali — `file://C:/...` ya FLEx                                                    |
 
 Tabaka zote tatu hufanya kazi kwa hati iliyoseriwa kama ilivyo, hivyo ile ambayo haiwezi kuseriwa kabisa huripotiwa kama kosa moja la `lone-surrogate` badala yake — angalia [Dhamana za Uaminifu](../fidelity.md#content-xml-cannot-represent). Uthibitishaji ni wa kusoma tu: unaripoti hati kama ilivyo, kabla ya kulewa alama ya `dateModified` inayofanywa na uhifadhi. Hakuna kinachotengenezwa kinachoweza kuwa matokeo ya utafutaji, kwa hivyo uthibitishe kisha uhifadhi ni njia sahihi.
 
 Jina la kiashiria linalolingana na faili kadhaa halipaki yoyote kati yao: vipimo wanavyovibainisha havionekani hadi faili zote isipokuwa moja ziitwe tena au ziondolewe.
 
-The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href`, and `unreadable-ranges-file`) are reported only when companion discovery ran. Loading with `resolve_ranges=False` puts companions out of scope, so none of them is reported; attaching one afterwards with `add_ranges_file()` does not bring them back, since it never reads the folder these codes report on. `missing-media` is unaffected: media is never resolved into the model, so nothing was opted out of.
+Misimbo mitatu ya folda-wenza (`ambiguous-ranges-file`, `dangling-ranges-href`, na `unreadable-ranges-file`) huripotiwa tu wakati ugunduzi wa folda-wenza ulipofanyika. Kupakia kwa kutumia `resolve_ranges=False` kunawaweka wenzao nje ya wigo, hivyo hakuna hata mmoja wao anayeripotiwa; kuambatanisha mmoja baadaye kwa `add_ranges_file()` hakuwaleti tena, kwa sababu haisomi kamwe folda ambayo misimbo hii inaripoti. `missing-media` haijaathirika: media haisombwi kamwe kwenye modeli, kwa hivyo hakuna kilichotengwa.
 
 ## Matokeo halisi ya FieldWorks (FLEx)
 
