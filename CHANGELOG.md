@@ -91,7 +91,8 @@ releases may contain breaking changes.
   leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages
   auto-detected or set with `--langs`. `validate` supports `--format json`
   (machine-readable findings), `--strict` (warnings become errors),
-  `--no-check-media` (skip the filesystem media-presence check),
+  `--no-check-media` (skip the filesystem media-presence check), `--allow CODE`
+  (report a code's findings but leave them out of the pass/fail decision),
   `--require-ids` (error on entries/senses missing a stable id), and `-` to
   read from stdin; `stats` also takes `--format json`. `validate`'s exit codes
   and JSON schema are a supported interface.

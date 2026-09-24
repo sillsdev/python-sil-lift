@@ -18,6 +18,12 @@ inputs:
     description: "Skip the filesystem media-presence check."
     required: false
     default: "false"
+  allow:
+    description: >-
+      Problem codes to report but leave out of the pass/fail decision,
+      separated by commas, spaces, or newlines (e.g. "uri-not-rfc schema").
+    required: false
+    default: ""
 runs:
   using: "docker"
   image: "Dockerfile"

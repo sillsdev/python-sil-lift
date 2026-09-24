@@ -29,4 +29,12 @@ if [ "$no_check_media" = "true" ]; then
   set -- "$@" --no-check-media
 fi
 
+# -d '' reads past newlines (a YAML block-scalar list) and returns 1 at EOF.
+IFS=$', \t\n' read -r -d '' -a allow_codes <<< "${INPUT_ALLOW:-}" || true
+for code in "${allow_codes[@]}"; do
+  if [ -n "$code" ]; then
+    set -- "$@" --allow "$code"
+  fi
+done
+
 exec sil-lift "$@"
