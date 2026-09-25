@@ -60,7 +60,7 @@ def test_validate_json_clean_file(capsys: pytest.CaptureFixture[str]) -> None:
     path = CORPUS_DIR / "ranges" / "test20080407.lift"
     assert main(["validate", str(path), "--format", "json"]) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload == {"problems": [], "summary": {"errors": 0, "warnings": 0}}
+    assert payload == {"problems": [], "summary": {"errors": 0, "warnings": 0, "allowed": 0}}
 
 
 def test_validate_strict_treats_warnings_as_errors(capsys: pytest.CaptureFixture[str]) -> None:
@@ -76,6 +76,40 @@ def test_validate_no_check_media(capsys: pytest.CaptureFixture[str]) -> None:
     assert "[missing-media]" in capsys.readouterr().out
     assert main(["validate", str(path), "--no-check-media"]) == 0
     assert "[missing-media]" not in capsys.readouterr().out
+
+
+def test_validate_allow_excludes_a_warning_from_strict(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "flex-quirks.lift"
+    assert main(["validate", str(path), "--strict", "--allow", "uri-not-rfc"]) == 0
+    out = capsys.readouterr().out
+    assert "[uri-not-rfc]" in out  # still reported, just not counted
+    assert "0 error(s), 0 warning(s); allowed: uri-not-rfc 1" in out
+    assert "strict:" not in out
+
+
+def test_validate_allow_applies_to_errors(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "schema-invalid.lift"
+    assert main(["validate", str(path), "--allow", "schema"]) == 1  # form-missing-lang remains
+    assert "1 error(s), 0 warning(s); allowed: schema 2" in capsys.readouterr().out
+    argv = ["validate", str(path), "--allow", "schema", "--allow", "form-missing-lang"]
+    assert main(argv) == 0
+    assert "allowed: form-missing-lang 1, schema 2" in capsys.readouterr().out
+
+
+def test_validate_allow_unknown_code_is_a_no_op(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "flex-quirks.lift"
+    assert main(["validate", str(path), "--strict", "--allow", "no-such-code"]) == 1
+    out = capsys.readouterr().out
+    assert "0 error(s), 1 warning(s)  (strict: warnings treated as errors)" in out
+    assert "allowed" not in out
+
+
+def test_validate_allow_json(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "schema-invalid.lift"
+    assert main(["validate", str(path), "--format", "json", "--allow", "schema"]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["summary"] == {"errors": 1, "warnings": 0, "allowed": 2}
+    assert [problem["code"] for problem in payload["problems"]].count("schema") == 2
 
 
 def test_validate_require_ids(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -108,7 +142,7 @@ def test_validate_stdin(
     monkeypatch.setattr("sys.stdin", _Stdin())
     assert main(["validate", "-", "--format", "json"]) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload == {"problems": [], "summary": {"errors": 0, "warnings": 0}}
+    assert payload == {"problems": [], "summary": {"errors": 0, "warnings": 0, "allowed": 0}}
 
 
 def test_stats_json(capsys: pytest.CaptureFixture[str]) -> None:

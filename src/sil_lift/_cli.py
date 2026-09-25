@@ -74,14 +74,20 @@ def _collect_problems(args: argparse.Namespace) -> list[Problem]:
 
 def _cmd_validate(args: argparse.Namespace) -> int:
     problems = _collect_problems(args)
-    errors = sum(1 for problem in problems if problem.level == "error")
-    warnings = len(problems) - errors
+    allowed = Counter(problem.code for problem in problems if problem.code in args.allow)
+    counted = [problem for problem in problems if problem.code not in args.allow]
+    errors = sum(1 for problem in counted if problem.level == "error")
+    warnings = len(counted) - errors
     failed = bool(errors) or (args.strict and bool(warnings))
     if args.format == "json":
         json.dump(
             {
                 "problems": [_problem_json(problem) for problem in problems],
-                "summary": {"errors": errors, "warnings": warnings},
+                "summary": {
+                    "errors": errors,
+                    "warnings": warnings,
+                    "allowed": allowed.total(),
+                },
             },
             sys.stdout,
             indent=2,
@@ -91,7 +97,12 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         for problem in problems:
             print(problem)
         strict_note = "  (strict: warnings treated as errors)" if args.strict and warnings else ""
-        print(f"{errors} error(s), {warnings} warning(s){strict_note}")
+        allowed_note = (
+            "; allowed: " + ", ".join(f"{code} {n}" for code, n in sorted(allowed.items()))
+            if allowed
+            else ""
+        )
+        print(f"{errors} error(s), {warnings} warning(s){allowed_note}{strict_note}")
     return 1 if failed else 0
 
 
@@ -341,6 +352,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--no-check-media",
         action="store_true",
         help="skip the filesystem media-presence check (suppresses missing-media findings)",
+    )
+    validate.add_argument(
+        "--allow",
+        action="append",
+        default=[],
+        metavar="CODE",
+        help="report CODE's findings but leave them out of the pass/fail decision (repeatable)",
     )
     validate.add_argument(
         "--require-ids",

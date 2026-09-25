@@ -3,7 +3,8 @@
 Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported tool in the spirit of LiftTools that ships with the package (and, for `validate`, a worked example of the library API).
 
 ```
-sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--require-ids]
+sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE]...
+                  [--require-ids]
                                            all problems, with file/entry/line; exit 1 on errors
 sil-lift stats PATH [--format {text,json}]
                                            entry/sense/language counts (streaming; any size)
@@ -14,6 +15,8 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 ```
 
 `--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below. `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on no warnings at all rather than on errors alone. `--no-check-media` skips the filesystem media-presence check (suppressing `missing-media` findings), which is useful when validating a freshly generated export whose audio/photo files live elsewhere rather than in the same folder. `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id. Passing `-` as the path reads the document from stdin (a piped document has no folder, so its companion `.lift-ranges` and media are not resolved). `stats` likewise takes `--format json`, emitting the counts as a single JSON object.
+
+`--allow CODE` (repeatable) reports a code's findings but leaves them out of the pass/fail decision. It applies to errors and warnings alike, so an allowed warning does not trip `--strict` either. The summary line tallies allowed findings per code; the JSON summary's `allowed` gives their total. A code that never occurs is ignored, so an allow list keeps working after a check is retired.
 
 !!! note
     `validate`'s exit codes and `--format json` schema are a supported automation interface: both are covered by tests and change only under SemVer.
@@ -55,7 +58,8 @@ $ sil-lift validate dictionary.lift --format json
   ],
   "summary": {
     "errors": 1,
-    "warnings": 1
+    "warnings": 1,
+    "allowed": 0
   }
 }
 
@@ -69,4 +73,4 @@ $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 
 All output is UTF-8, on every platform and whether it goes to a console, a pipe, or a `>` redirect — never the locale encoding (cp1252 on Windows, ASCII under a C/POSIX locale), which cannot represent LIFT content. `sil-lift export dictionary.lift > dictionary.csv` therefore writes exactly the bytes `-o dictionary.csv` writes, CRLF row terminators included.
 
-Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`), `2` an I/O failure at either end — input that cannot be read, or output that cannot be written (a reader like `head` closing the pipe, a full disk).
+Exit codes: `0` success (warnings allowed, unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`, not counting codes given to `--allow`), `2` an I/O failure at either end — input that cannot be read, or output that cannot be written (a reader like `head` closing the pipe, a full disk).
