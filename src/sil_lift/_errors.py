@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ._validate import Problem
-
-__all__ = ["LiftError", "LiftParseError", "LiftValidationError", "LiftWriteError"]
+__all__ = ["LiftError", "LiftParseError", "LiftWriteError"]
 
 
 class LiftError(Exception):
@@ -25,12 +20,3 @@ class LiftParseError(LiftError):
 
 class LiftWriteError(LiftError):
     """An in-memory document holds content that XML cannot represent, so it cannot be written."""
-
-
-class LiftValidationError(LiftError):
-    """Raised by the fail-fast validation wrappers on the first error-level
-    :class:`~sil_lift.Problem` (warnings never raise)."""
-
-    def __init__(self, problem: Problem) -> None:
-        super().__init__(str(problem))
-        self.problem = problem
