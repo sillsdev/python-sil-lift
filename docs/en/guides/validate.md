@@ -28,7 +28,7 @@ Each `Problem` carries `level` (`"error"`/`"warning"`), a stable `code`, `messag
 
 ## Problem codes
 
-Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error.
+Every finding carries one of these, whichever layer produced it — `schema` and `uri-not-rfc` come from the schema layers, the other twelve are semantic checks. The strings are a supported interface; `--strict` promotes every warning to an error. `sil-lift validate --allow CODE` leaves a code out of the pass/fail decision.
 
 | code                     | level   | what it flags                                                              |
 | ------------------------ | ------- | -------------------------------------------------------------------------- |
