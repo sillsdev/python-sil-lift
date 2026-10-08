@@ -91,11 +91,11 @@ releases may contain breaking changes.
   leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages
   auto-detected or set with `--langs`. `validate` supports `--format json`
   (machine-readable findings), `--strict` (warnings become errors),
-  `--no-check-media` (skip the filesystem media-presence check), `--allow CODE`
-  (report a code's findings but leave them out of the pass/fail decision),
-  `--require-ids` (error on entries/senses missing a stable id), and `-` to
-  read from stdin; `stats` also takes `--format json`. `validate`'s exit codes
-  and JSON schema are a supported interface.
+  `--no-check-media` (skip the filesystem media-presence check),
+  `--allow CODE[,CODE...]` (report the given codes' findings but leave them out
+  of the pass/fail decision), `--require-ids` (error on entries/senses missing
+  a stable id), and `-` to read from stdin; `stats` also takes `--format json`.
+  `validate`'s exit codes and JSON schema are a supported interface.
 - Container image and GitHub Action wrapping `sil-lift validate`, so a
   non-Python CI pipeline can run the conformance check with no local Python
   toolchain (`Dockerfile`, `action.yml`, `docker-entrypoint.sh`).

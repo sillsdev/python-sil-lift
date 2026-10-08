@@ -72,6 +72,10 @@ def _collect_problems(args: argparse.Namespace) -> list[Problem]:
     ]
 
 
+def _code_list(value: str) -> list[str]:
+    return [code for code in value.split(",") if code]
+
+
 def _cmd_validate(args: argparse.Namespace) -> int:
     problems = _collect_problems(args)
     allowed = Counter(problem.code for problem in problems if problem.code in args.allow)
@@ -355,10 +359,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     validate.add_argument(
         "--allow",
-        action="append",
+        action="extend",
+        type=_code_list,
         default=[],
-        metavar="CODE",
-        help="report CODE's findings but leave them out of the pass/fail decision (repeatable)",
+        metavar="CODE[,CODE...]",
+        help="report these codes' findings but leave them out of the pass/fail decision "
+        "(comma-separated; repeatable)",
     )
     validate.add_argument(
         "--require-ids",

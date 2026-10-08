@@ -96,6 +96,12 @@ def test_validate_allow_applies_to_errors(capsys: pytest.CaptureFixture[str]) ->
     assert "allowed: form-missing-lang 1, schema 2" in capsys.readouterr().out
 
 
+def test_validate_allow_comma_list(capsys: pytest.CaptureFixture[str]) -> None:
+    path = CORPUS_DIR / "negative" / "schema-invalid.lift"
+    assert main(["validate", str(path), "--allow", "schema,form-missing-lang,"]) == 0
+    assert "allowed: form-missing-lang 1, schema 2" in capsys.readouterr().out
+
+
 def test_validate_allow_unknown_code_is_a_no_op(capsys: pytest.CaptureFixture[str]) -> None:
     path = CORPUS_DIR / "negative" / "flex-quirks.lift"
     assert main(["validate", str(path), "--strict", "--allow", "no-such-code"]) == 1
