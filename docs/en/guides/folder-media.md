@@ -41,10 +41,17 @@ Pass `resolve_ranges=False` to `load()` to skip companion discovery.
 for ref in lex.media_refs():        # every <media> and <illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # refs whose files don't exist
+lex.check_media()                   # refs that don't resolve cleanly
 ```
 
 Resolution follows the conventional layout: a relative href is checked as given (backslashes normalized — WeSay writes `pictures\photo with space.png`) and under `audio/` (for pronunciation media) or `pictures/` (for illustrations). Remote/absolute hrefs can't be checked and are skipped.
+
+`check_media()` reports only the references that did not resolve cleanly, one `MediaResolution` each:
+
+- `status="missing"` — no file answered the href under any spelling.
+- `status="mismatch"` — one did, but only under case folding or NFC; `found` names the file on disk.
+
+A href that spells its file exactly is not reported. Unlike a companion name, which folds silently, a media href is also read by whatever serves the folder afterwards, so the fold is reported as [`media-href-mismatch`](validate.md#problem-codes).
 
 ## Other folder contents
 

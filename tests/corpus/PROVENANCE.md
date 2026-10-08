@@ -71,7 +71,7 @@ that script; committed so tests don't depend on regeneration.
   `pictures/cultural law.png` (space in filename). The file has a UTF-8 BOM and
   tab-indented attribute-per-line formatting — a byte-fidelity edge case.
   Upstream `Moma.WeSayConfig` not taken (not LIFT). Primary fixture for
-  media_refs()/missing_media().
+  `media_refs()`/`check_media()`.
 
 ## misc/sample.lift
 
@@ -184,7 +184,7 @@ What did match only after normalizing is still reported, as a
 `normalization-mismatch` warning per range-element id: 2 parent links and 80
 grammatical-info values reach 5 ids in Sango, one of them under both aliases
 of the part-of-speech list, so 6 warnings — and none in the other fixtures.
-`negative/nfd-range-ids.lift` is the hand-authored version of the same shape.
+`negative/nfd-range-ids/` is the hand-authored version of the same shape.
 
 ## generated/ — synthetic large files (not committed)
 
@@ -193,15 +193,16 @@ git-ignored, regenerated on demand.
 
 ## negative/ — invalid fixtures (hand-authored)
 
-Each file carries an XML comment documenting its defect and the expected
-Problem code: `duplicate-guid`, `dangling-ref`, `range-parent`,
-`undefined-range-value` (2 warnings \+ a clean control entry),
-`duplicate-form-lang` (the Schematron-only rule), `schema-invalid`
-(structural), `missing-media/` (a folder fixture), `flex-quirks`
-(URI quirks that must yield warnings, never schema errors), and
-`nfd-range-ids` (a `.lift` \+ `.lift-ranges` pair carrying FLEx's
-historical normalization asymmetry: NFD ids, NFC references, and one
-parent that dangles in every normalization).
+One defect class per fixture, each carrying an XML comment that names the
+defect and the Problem code it must yield. Some hold several instances of
+their defect, and some a clean control entry beside them, pinning a check
+against over-firing as well as under-firing.
+
+A defect contained in one document is a single `.lift`. A defect that needs
+more than the document gets a subfolder named for it, holding the `.lift` and
+everything its check reads. Any media files in those folders are empty
+placeholders rather than fetched content: nothing ever reads their bytes.
+
 `schema-invalid.lift` and `flex-quirks.lift` are raw-RNG-invalid (the
 latter only under libxml2's anyURI check) and appear in the corpus test's
 expected-invalid list.

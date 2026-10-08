@@ -167,7 +167,7 @@ def test_header_range_id_reaches_a_companion_id_in_another_normalization() -> No
 
 
 def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Path) -> None:
-    path = NEGATIVE_DIR / "nfd-range-ids.lift"
+    path = NEGATIVE_DIR / "nfd-range-ids" / "nfd-range-ids.lift"
     problems = problems_for(path)
     assert codes(problems) == {("error", "range-parent"), ("warning", "normalization-mismatch")}
     (dangling,) = [p for p in problems if p.code == "range-parent"]
@@ -184,7 +184,7 @@ def test_nfd_ids_warn_once_and_still_flag_the_real_dangling_parent(tmp_path: Pat
     # Normalization belongs to the comparison only: the mixed forms survive.
     sil_lift.Lexicon.load(path).save(tmp_path / path.name)
     for name in (path.name, "nfd-range-ids.lift-ranges"):
-        assert (tmp_path / name).read_bytes() == (NEGATIVE_DIR / name).read_bytes(), name
+        assert (tmp_path / name).read_bytes() == (path.parent / name).read_bytes(), name
 
 
 def test_one_id_referenced_in_two_spellings_still_warns_once() -> None:
@@ -340,6 +340,113 @@ def test_missing_media_folder_fixture() -> None:
     hrefs = {p.message for p in problems}
     assert any("none.wav" in m for m in hrefs)
     assert any("gone.png" in m for m in hrefs)
+
+
+def test_media_href_mismatch_folder_fixture() -> None:
+    # No skipif: the whole point of resolving against the directory listing is
+    # that a case-folding host reaches the same verdict as a case-sensitive one.
+    problems = problems_for(NEGATIVE_DIR / "media-href-mismatch" / "media-href-mismatch.lift")
+    assert not [p for p in problems if p.code == "missing-media"], "every file is present"
+    mismatches = [p for p in problems if p.code == "media-href-mismatch"]
+    assert all(p.level == "warning" for p in mismatches)
+    # The misspelled folder is one rename, so it reports once and names no
+    # entry; the misspelled filename is addressed to the entry that wrote it.
+    folder = [p for p in mismatches if p.entry_id is None]
+    assert len(folder) == 1
+    assert "'Pictures'" in folder[0].message and "'pictures'" in folder[0].message
+    files = [p for p in mismatches if p.entry_id is not None]
+    assert [(p.entry_id, "'SDD.PNG'" in p.message) for p in files] == [("one", True)]
+
+
+def test_media_href_mismatch_reports_each_misspelled_folder_separately(tmp_path: Path) -> None:
+    # One misspelled component under two parents is two renames, so keying the
+    # finding on the component alone would undercount the work.
+    for parent in ("a", "b"):
+        (tmp_path / parent / "foo").mkdir(parents=True)
+        (tmp_path / parent / "foo" / f"{parent}.png").write_bytes(b"")
+    path = tmp_path / "two.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<sense id="s1"><illustration href="a/Foo/a.png"/></sense>\n'
+        '<sense id="s2"><illustration href="b/Foo/b.png"/></sense>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    problems = problems_for(path)
+    mismatches = [p for p in problems if p.code == "media-href-mismatch"]
+    assert len(mismatches) == 2
+    assert any("'a/foo'" in p.message for p in mismatches)
+    assert any("'b/foo'" in p.message for p in mismatches)
+
+
+def test_media_href_mismatch_tells_apart_two_folders_one_href_could_name(
+    tmp_path: Path,
+) -> None:
+    # The conventional pictures/ lookup reaches a folder the direct one cannot,
+    # and both answer to "a/Foo": what the href writes cannot tell them apart,
+    # only the file each one reached.
+    (tmp_path / "a" / "foo").mkdir(parents=True)
+    (tmp_path / "pictures" / "a" / "foo").mkdir(parents=True)
+    (tmp_path / "a" / "foo" / "one.png").write_bytes(b"")
+    (tmp_path / "pictures" / "a" / "foo" / "two.png").write_bytes(b"")
+    path = tmp_path / "roots.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<sense id="s1"><illustration href="a/Foo/one.png"/></sense>\n'
+        '<sense id="s2"><illustration href="a/Foo/two.png"/></sense>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    mismatches = [p for p in problems_for(path) if p.code == "media-href-mismatch"]
+    assert sorted(p.message.split(";")[0] for p in mismatches) == [
+        "media hrefs name folder 'Foo', which is 'a/foo' on disk",
+        "media hrefs name folder 'Foo', which is 'pictures/a/foo' on disk",
+    ]
+
+
+def test_media_href_mismatch_reports_one_folder_once_however_hrefs_reach_it(
+    tmp_path: Path,
+) -> None:
+    # One folder is one rename however inconsistently the hrefs spell the way
+    # down to it: 'A/Foo' and 'a/Foo' reach the same 'a/foo' and report once.
+    (tmp_path / "a" / "foo").mkdir(parents=True)
+    for name in ("one.png", "two.png"):
+        (tmp_path / "a" / "foo" / name).write_bytes(b"")
+    path = tmp_path / "nested.lift"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<lift version="0.13">\n'
+        '<entry id="one">\n'
+        '<lexical-unit><form lang="en"><text>one</text></form></lexical-unit>\n'
+        '<sense id="s1"><illustration href="A/Foo/one.png"/></sense>\n'
+        '<sense id="s2"><illustration href="a/Foo/two.png"/></sense>\n'
+        "</entry>\n"
+        "</lift>\n",
+        encoding="utf-8",
+    )
+    problems = problems_for(path)
+    mismatches = [p for p in problems if p.code == "media-href-mismatch"]
+    # Two real defects: the parent written 'A', and 'a/foo' written 'Foo'.
+    assert sorted(p.message.split(";")[0] for p in mismatches) == [
+        "media hrefs name folder 'A', which is 'a' on disk",
+        "media hrefs name folder 'Foo', which is 'a/foo' on disk",
+    ]
+
+
+def test_media_href_mismatch_leaves_the_conventional_subfolder_alone() -> None:
+    # Entry "three" writes a bare "word.wav" that only resolves because the
+    # guessed audio/ folds onto the on-disk Audio/. That component is sil-lift's
+    # own, so its spelling is nobody's defect and must never be reported.
+    lexicon = sil_lift.load(NEGATIVE_DIR / "media-href-mismatch" / "media-href-mismatch.lift")
+    assert [r.ref.entry_id for r in lexicon.check_media()] == ["one", "two"]
 
 
 def test_flex_uri_quirks_warn_but_never_error() -> None:

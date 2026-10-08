@@ -52,7 +52,7 @@ releases may contain breaking changes.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`), `save()` writes companions together,
-  `all_ranges()` merged view, `media_refs()` / `missing_media()` helpers,
+  `all_ranges()` merged view, `media_refs()` / `check_media()` helpers,
   build-from-scratch helpers `Lexicon.add_ranges_file()` /
   `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
   header-references a new companion beside the `.lift`); vendored
@@ -71,7 +71,7 @@ releases may contain breaking changes.
   file, entry, and line it concerns. RELAX NG layer with two documented
   departures from strict validation (invalid `file://` hrefs downgraded to
   `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and twelve semantic checks, one `Problem`
+  ranges schema over companions; and thirteen semantic checks, one `Problem`
   code each (with missing-id opt-in via `require_ids`). Every code is
   described in `docs/en/guides/validate.md`.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
