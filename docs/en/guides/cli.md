@@ -81,4 +81,4 @@ $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 
 All output is UTF-8, on every platform and whether it goes to a console, a pipe, or a `>` redirect — never the locale encoding (cp1252 on Windows, ASCII under a C/POSIX locale), which cannot represent LIFT content. `sil-lift export dictionary.lift > dictionary.csv` therefore writes exactly the bytes `-o dictionary.csv` writes, CRLF row terminators included.
 
-Exit codes: `0` success (warnings do not fail the run unless `--strict`), `1` findings (validation errors / missing media / warnings under `--strict`, not counting codes given to `--allow`), `2` an I/O failure at either end — input that cannot be read, or output that cannot be written (a reader like `head` closing the pipe, a full disk).
+Exit codes: `0` success (warnings do not fail the run unless `--strict`), `1` findings (validation errors / missing or misspelled media / warnings under `--strict`, not counting codes given to `--allow`), `2` an I/O failure at either end — input that cannot be read, or output that cannot be written (a reader like `head` closing the pipe, a full disk).

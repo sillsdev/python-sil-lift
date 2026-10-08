@@ -273,6 +273,15 @@ def test_check_media_reports_a_href_that_several_files_fold_onto(tmp_path: Path)
     assert [r.status for r in sil_lift.load(path).check_media()] == ["mismatch"]
 
 
+@pytest.mark.parametrize("href", ["", "."])
+def test_check_media_reports_an_empty_href_missing(tmp_path: Path, href: str) -> None:
+    # A file named like the conventional subfolder is what an empty href
+    # appended to it would reach.
+    (tmp_path / "pictures").write_bytes(b"")
+    path = _write_lift_with_illustration(tmp_path, href)
+    assert [r.status for r in sil_lift.load(path).check_media()] == ["missing"]
+
+
 def test_check_media_resolves_an_exactly_spelled_href_above_the_folder(tmp_path: Path) -> None:
     # ".." names no directory to search, so it is probed as written rather than
     # folded -- and must keep resolving.

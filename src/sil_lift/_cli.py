@@ -191,7 +191,7 @@ def _cmd_check_media(args: argparse.Namespace) -> int:
     listings: dict[Path, dict[str, list[Path]]] = {}
     for ref in lexicon.media_refs():
         relative = _normalize_href(ref.href)
-        if relative is None:  # remote/absolute hrefs can't confirm a local file
+        if relative is None or not relative.parts:  # remote/absolute/empty: no local file
             continue
         subfolder = "audio" if ref.kind == "media" else "pictures"
         for candidate in (relative, Path(subfolder) / relative):

@@ -571,7 +571,9 @@ def _folded_entries(
     if folder not in listings:
         entries: dict[str, list[Path]] = {}
         try:
-            for path in folder.iterdir():
+            # Sorted, so which of several folding matches gets reported does
+            # not depend on the order a filesystem happens to list them in.
+            for path in sorted(folder.iterdir()):
                 entries.setdefault(_fold(path.name), []).append(path)
         except OSError:
             pass  # missing or unreadable folder: nothing resolves out of it
@@ -607,7 +609,7 @@ def _media_matches(
             match
             for folder in current
             for match in _folded_entries(folder, listings).get(_fold(part), ())
-            if match.is_dir()
+            if _is_dir(match)
         ]
         if not current:
             return []
@@ -615,8 +617,29 @@ def _media_matches(
         match
         for folder in current
         for match in _folded_entries(folder, listings).get(_fold(parts[-1]), ())
-        if match.is_file()
+        if _is_file(match)
     ]
+
+
+def _is_file(path: Path) -> bool:
+    """``path.is_file()``, False where stat fails for any reason.
+
+    Before Python 3.14 pathlib swallows only a few errnos, so a
+    ``PermissionError`` would otherwise escape a listable but unsearchable
+    folder.
+    """
+    try:
+        return path.is_file()
+    except OSError:
+        return False
+
+
+def _is_dir(path: Path) -> bool:
+    """``path.is_dir()``, False where stat fails for any reason."""
+    try:
+        return path.is_dir()
+    except OSError:
+        return False
 
 
 def _foldable(parts: tuple[str, ...]) -> bool:
@@ -1249,6 +1272,11 @@ class Lexicon:
         for ref in self.media_refs():
             relative = _normalize_href(ref.href)
             if relative is None:
+                continue
+            if not relative.parts:
+                # "" or ".": names no file, and appending it to the
+                # conventional subfolder would name the subfolder itself.
+                unresolved.append(MediaResolution(ref, "missing"))
                 continue
             matches = [
                 match
