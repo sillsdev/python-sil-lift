@@ -73,7 +73,7 @@ def _collect_problems(args: argparse.Namespace) -> list[Problem]:
 
 
 def _code_list(value: str) -> list[str]:
-    return [code for code in value.split(",") if code]
+    return [code for part in value.split(",") if (code := part.strip())]
 
 
 def _cmd_validate(args: argparse.Namespace) -> int:

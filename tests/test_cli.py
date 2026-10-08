@@ -98,7 +98,7 @@ def test_validate_allow_applies_to_errors(capsys: pytest.CaptureFixture[str]) ->
 
 def test_validate_allow_comma_list(capsys: pytest.CaptureFixture[str]) -> None:
     path = CORPUS_DIR / "negative" / "schema-invalid.lift"
-    assert main(["validate", str(path), "--allow", "schema,form-missing-lang,"]) == 0
+    assert main(["validate", str(path), "--allow", "schema, form-missing-lang,"]) == 0
     assert "allowed: form-missing-lang 1, schema 2" in capsys.readouterr().out
 
 
