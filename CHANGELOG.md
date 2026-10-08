@@ -66,14 +66,13 @@ releases may contain breaking changes.
   Extraction is capped at 100,000 members and 10 GiB (the whole package for a
   full extraction, the `.lift` alone for a streaming one), and refuses members
   whose paths escape the extraction directory.
-- Validation: `validate_file()` / `iter_problems()` /
-  `Lexicon.iter_problems()` returning a `Problem` stream, each carrying the
-  file, entry, and line it concerns. RELAX NG layer with two documented
-  departures from strict validation (invalid `file://` hrefs downgraded to
-  `uri-not-rfc` warnings; legal interleaving not falsely flagged); vendored
-  ranges schema over companions; and thirteen semantic checks, one `Problem`
-  code each (with missing-id opt-in via `require_ids`). Every code is
-  described in `docs/en/guides/validate.md`.
+- Validation: `iter_problems()` / `Lexicon.iter_problems()` returning a
+  `Problem` stream, each carrying the file, entry, and line it concerns. RELAX
+  NG layer with two documented departures from strict validation (invalid
+  `file://` hrefs downgraded to `uri-not-rfc` warnings; legal interleaving not
+  falsely flagged); vendored ranges schema over companions; and thirteen
+  semantic checks, one `Problem` code each (with missing-id opt-in via
+  `require_ids`). Every code is described in `docs/en/guides/validate.md`.
 - Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
   case-folded guid/id, ranges/range-elements by id, field definitions by tag;
   informed by the C# LiftSorter, locale-independent) and
