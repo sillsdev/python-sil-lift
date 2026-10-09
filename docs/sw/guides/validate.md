@@ -24,11 +24,11 @@ Kila `Problem` hubeba `level` (`"error"`/`"warning"`), `code` thabiti, `message`
 
 1. **RELAX NG** dhidi ya sarufi ya LIFT 0.13 (iliyotolewa kutoka lift-standard — nakala inayofanana byte kwa byte iliyowekwa katika kifurushi hiki).
 2. **Rangi za schema** — `lift-ranges-0.13.rng` ya mradi huu — juu ya kila mwenzi wa `.lift-ranges` unaofuatiliwa, ikielekezwa kwa mwenzi badala ya `.lift`.
-3. **Ukaguzi wa semanti** ambao sarufi haiwezi kuonyesha — kumi na mbili, kila mmoja akiwa na msimbo wake.
+3. **Ukaguzi wa semanti** ambao sarufi haiwezi kuonyesha — kumi na tatu, kila moja ikiwa na msimbo wake.
 
 ## Misimbo ya matatizo
 
-Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha — `schema` na `uri-not-rfc` hutoka kwenye safu za schema, na zile kumi na mbili zilizobaki ni ukaguzi wa semantiki. Vifungo ni kiolesura kinachotumika; `--strict` huibadilisha kila onyo kuwa kosa.
+Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha — `schema` na `uri-not-rfc` hutoka kwenye safu za schema, na zile kumi na tatu zingine ni ukaguzi wa semanti. Vifungo ni kiolesura kinachotumika; `--strict` huibadilisha kila onyo kuwa kosa. `sil-lift validate --allow CODE` huacha msimbo nje ya uamuzi wa kupita/kushindwa.
 
 | msimbo                             | kiwango  | kinachoashiria                                                                                         |
 | ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
@@ -38,6 +38,7 @@ Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha �
 | fomu-maradufu-lugha                | Onyo     | fomu mbili katika maandishi mengi yanayoshiriki lugha moja                                             |
 | nakala-ya-guid                     | Hitilafu | mwongozo unaotumika tena miongoni mwa maingizo, au miongoni mwa wigo/vipengele-vya-wigo vya hati moja  |
 | Fomu inakosa lugha                 | Hitilafu | <form>` au `<gloss>` bila `lang` inayohitajika na schema                                               |
+| kutofautiana kwa kiungo cha media  | Onyo     | href ya media inayofikia faili yake tu chini ya urekebishaji wa herufi au NFC                          |
 | kitambulisho-kinachokosekana       | Hitilafu | kuingia kwa hiari kupitia `require_ids`: kipengee kisicho na guid, hisia kisicho na id |
 | Vyombo vya habari vinakosekana     | Onyo     | Faili ya sauti au picha iliyorejelewa haipo kwenye diski                                               |
 | kutopatana kwa urekebishaji        | Onyo     | Jina linalofikia kitambulisho kinachorejelewa tu kupitia NFC                                           |
@@ -51,7 +52,14 @@ Tabaka zote tatu hufanya kazi kwa hati iliyoseriwa kama ilivyo, hivyo ile ambayo
 
 Jina la kiashiria linalolingana na faili kadhaa halipaki yoyote kati yao: vipimo wanavyovibainisha havionekani hadi faili zote isipokuwa moja ziitwe tena au ziondolewe.
 
-Misimbo mitatu ya folda-wenza (`ambiguous-ranges-file`, `dangling-ranges-href`, na `unreadable-ranges-file`) huripotiwa tu wakati ugunduzi wa folda-wenza ulipofanyika. Kupakia kwa kutumia `resolve_ranges=False` kunawaweka wenzao nje ya wigo, hivyo hakuna hata mmoja wao anayeripotiwa; kuambatanisha mmoja baadaye kwa `add_ranges_file()` hakuwaleti tena, kwa sababu haisomi kamwe folda ambayo misimbo hii inaripoti. `missing-media` haijaathirika: media haisombwi kamwe kwenye modeli, kwa hivyo hakuna kilichotengwa.
+Misimbo mitatu ya folda-wenza (`ambiguous-ranges-file`, `dangling-ranges-href`, na `unreadable-ranges-file`) huripotiwa tu wakati ugunduzi wa folda-wenza ulipofanyika. Kupakia kwa kutumia `resolve_ranges=False` kunawaweka wenzao nje ya wigo, hivyo hakuna hata mmoja wao anayeripotiwa; kuambatanisha mmoja baadaye kwa `add_ranges_file()` hakuwaleti tena, kwa sababu haisomi kamwe folda ambayo misimbo hii inaripoti. `missing-media` na `media-href-mismatch` hazijaathirika: media haisombwi kamwe kwenye modeli, kwa hivyo hakuna kilichojitengwa.
+
+`missing-media` na `media-href-mismatch` hugawanya ukaguzi wa media kati yao: ya kwanza ina maana hakuna faili lililojibu href kwa tahajia yoyote, ya pili ina maana faili lilijibu href lakini href haitaji jina lake kwa usahihi. Ya pili ni ugunduzi wa kubebeka — faili iko hapa, na seva inayotumika kwa kesi nyeti haitaipata.
+
+Kanuni mbili zinatawala kile ambacho `media-href-mismatch` inaripoti:
+
+- _folder_ iliyotajwa vibaya ni moja tu, hata kama inatajwa tena mara nyingi; kwa hivyo inaripotiwa mara moja na haina kiingilio. Jina la faili lililoandikwa vibaya linaripotiwa kwa kila rejeleo, likielekezwa kwa kipengee kilicholiandika.
+- Folda ndogo ya kawaida `audio/`/`pictures/` ni dhana ya sil-lift mwenyewe badala ya kile hati ilichoandika, hivyo folda iliyotajwa kwa tahajia tofauti hutatuliwa bila kuripotiwa.
 
 ## Matokeo halisi ya FieldWorks (FLEx)
 
