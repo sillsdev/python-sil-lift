@@ -41,10 +41,17 @@ ranges.save()
 for ref in lex.media_refs():        # 所有<media> 和<illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # 文件不存在的引用
+lex.check_media()                   # 无法正确解析的引用
 ```
 
 解析遵循常规布局：对相对 href 进行原样检查（反斜杠已规范化——WeSay 写的是 `pictures\photo with space.png`），并检查其是否位于 `audio/`（用于发音媒体）或 `pictures/`（用于插图）目录下。无法验证远程/绝对 href，因此会跳过这些链接。
+
+`check_media()` 仅报告那些未成功解析的引用，每个引用对应一个 `MediaResolution`：
+
+- `status="missing"` — 无论拼写如何，均未找到与该 href 对应的文件。
+- `status="mismatch"` — 确实存在匹配，但仅在进行大小写转换或NFC处理时；`found` 指代磁盘上的文件。
+
+文件名与链接完全一致的 A href 标签不会被报告。与会静默折叠的伴随名称不同，媒体 href 也会被后续提供该文件夹服务的任何系统读取，因此该折叠操作会被报告为 [`media-href-mismatch`](validate.md#problem-codes)。
 
 ## 其他文件夹内容
 
