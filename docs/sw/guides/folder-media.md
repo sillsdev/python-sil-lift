@@ -41,10 +41,17 @@ Pitisha `resolve_ranges=False` kwenye `load()` ili kupuuza ugunduzi wa vifaa vie
 kwa ref katika lex.media_refs():        # kila <media> na <illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # marejeleo ambayo faili zao hazipo
+lex.check_media()                   # marejeleo ambayo hayatatatuliwa vizuri
 ```
 
 Resolution inafuata mpangilio wa kawaida: href ya jamaa inachunguzwa kama ilivyo (backslashes zimewekwa sawa — WeSay inaandika `pictures\photo with space.png`) na chini ya `audio/` (kwa vyombo vya matamshi) au `pictures/` (kwa michoro). Href za mbali/kamili haziwezi kukaguliwa na hupitishwa.
+
+`check_media()` inaripoti tu marejeleo ambayo hayakutatuliwa vizuri, moja ya `MediaResolution` kila moja:
+
+- `status="missing"` — hakuna faili lililopatikana kwa href kwa tahajia yoyote.
+- `status="mismatch"` — moja ilifanikiwa, lakini tu chini ya kufinyanga herufi au NFC; `found` huitaja faili kwenye diski.
+
+Href inayotaja faili lake kamili hairipotiwi. Tofauti na jina la mwenzake, ambalo hufunguka kimya kimya, href ya media pia husomwa na chochote kinachohudumia folda baadaye, hivyo kufunguka kunaripotiwa kama [`media-href-mismatch`](validate.md#problem-codes).
 
 ## Maudhui mengine ya folda
 
