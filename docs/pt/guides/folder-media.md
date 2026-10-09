@@ -41,10 +41,17 @@ Passe `resolve_ranges=False` à função `load()` para ignorar a deteção de co
 for ref in lex.media_refs():        # todos os <media> e <illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # referências cujos ficheiros não existem
+lex.check_media()                   # referências que não são resolvidas corretamente
 ```
 
 A resolução segue o esquema convencional: um link «href» relativo é verificado tal como fornecido (barras invertidas normalizadas — o WeSay escreve «pictures\photo with space.png») e na pasta «audio/» (para ficheiros de pronúncia) ou «pictures/» (para ilustrações). Os links «href» remotos/absolutos não podem ser verificados e são ignorados.
+
+A função `check_media()` apresenta apenas as referências que não foram resolvidas corretamente, uma `MediaResolution` por cada uma:
+
+- `status="missing"` — nenhum ficheiro correspondeu ao href, independentemente da grafia.
+- `status="mismatch"` — houve uma correspondência, mas apenas com a conversão de maiúsculas e minúsculas ou no modo NFC; `found` indica o nome do ficheiro no disco.
+
+Um link `a href` cujo nome do ficheiro seja exatamente igual ao nome do ficheiro não é indicado. Ao contrário de um nome de companheiro, que é ocultado silenciosamente, um href de multimédia também é lido por qualquer entidade que sirva a pasta posteriormente, pelo que a ocultação é reportada como [`media-href-mismatch`](validate.md#problem-codes).
 
 ## Outros conteúdos da pasta
 
