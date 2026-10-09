@@ -24,34 +24,42 @@ Cada `Problema` incluye un `nivel` (`«error»`/`«advertencia»`), un `código`
 
 1. **RELAX NG** con respecto a la gramática LIFT 0.13 (incluida en lift-standard —una copia idéntica al byte, incorporada a este paquete).
 2. **Esquema de rangos** —el archivo `lift-ranges-0.13.rng` de este proyecto— sobre cada compañero `.lift-ranges` al que se realiza un seguimiento, dirigido al compañero en lugar de a `.lift`.
-3. **Comprobaciones semánticas** que la gramática no puede expresar: doce en total, una por cada código.
+3. **Comprobaciones semánticas** que la gramática no puede expresar: trece en total, una por cada código.
 
 ## Códigos de error
 
-Cada resultado incluye uno de estos elementos, independientemente de la capa en la que se haya generado: «schema» y «uri-not-rfc» proceden de las capas de esquema, mientras que los otros doce son comprobaciones semánticas. Las cadenas son una interfaz compatible; la opción `--strict` convierte todas las advertencias en errores.
+Cada resultado incluye uno de estos elementos, independientemente de la capa en la que se haya generado: «schema» y «uri-not-rfc» proceden de las capas de esquema, mientras que los otros trece son comprobaciones semánticas. Las cadenas son una interfaz compatible; la opción `--strict` convierte todas las advertencias en errores. El comando `sil-lift validate --allow CODE` excluye un código de la decisión de aprobado/suspenso.
 
-| código                           | nivel       | lo que señala                                                                                                                    |
-| -------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `archivo-de-intervalos-ambiguos` | advertencia | varios archivos que responden a un mismo nombre de compañero, tanto en modo de conversión de mayúsculas y minúsculas como en NFC |
-| `dangling-ranges-href`           | advertencia | un encabezado `range/@href` que no remite a ningún archivo asociado                                                              |
-| `dangling-ref`                   | error       | una `relation/@ref` o `variant/@ref` que no coincide con ninguna entrada ni acepción                                             |
-| `duplicate-form-lang`            | advertencia | dos formas en un multitexto que comparten un idioma                                                                              |
-| `duplicate-guid`                 | error       | un identificador reutilizado entre entradas, o entre los rangos o elementos de rango de un mismo documento                       |
-| `form-missing-lang`              | error       | un `<form>` o `<gloss>` sin el atributo `lang` que exige el esquema                                                              |
-| `id-faltante`                    | error       | Inclusión mediante `require_ids`: una entrada sin GUID, un sentido sin ID                                        |
-| `archivos-que-faltan`            | advertencia | un archivo de audio o imagen al que se hace referencia y que no se encuentra en el disco                                         |
-| `desajuste de normalización`     | advertencia | un nombre que solo permite acceder al identificador al que hace referencia mediante NFC                                          |
-| `range-parent`                   | error       | un `range-element/@parent` sin ID de elemento hermano definido                                                                   |
-| `esquema`                        | error       | una infracción de la gramática RELAX NG, en el archivo `.lift` o en un archivo complementario                                    |
-| `valor-de-rango-indefinido`      | advertencia | un valor de rasgo con clave gramatical o de rango que no figura en la lista del rango                                            |
-| `archivo de rangos ilegibles`    | advertencia | un candidato asociado que existe pero que no es un documento de rangos legible                                                   |
-| `uri-not-rfc`                    | advertencia | un enlace `href` que no es un URI válido — `file://C:/...` de FLEx                                                               |
+| código                           | nivel       | lo que señala                                                                                                                         |
+| -------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `archivo-de-intervalos-ambiguos` | advertencia | varios archivos que responden a un mismo nombre de compañero, tanto en modo de conversión de mayúsculas y minúsculas como en NFC      |
+| `dangling-ranges-href`           | advertencia | un encabezado `range/@href` que no remite a ningún archivo asociado                                                                   |
+| `dangling-ref`                   | error       | una `relation/@ref` o `variant/@ref` que no coincide con ninguna entrada ni acepción                                                  |
+| `duplicate-form-lang`            | advertencia | dos formas en un multitexto que comparten un idioma                                                                                   |
+| `duplicate-guid`                 | error       | un identificador reutilizado entre entradas, o entre los rangos o elementos de rango de un mismo documento                            |
+| `form-missing-lang`              | error       | un `<form>` o `<gloss>` sin el atributo `lang` que exige el esquema                                                                   |
+| `media-href-mismatch`            | advertencia | un enlace «href» de un archivo multimedia que solo permite acceder al archivo mediante la conversión de mayúsculas a minúsculas o NFC |
+| `id-faltante`                    | error       | Inclusión mediante `require_ids`: una entrada sin GUID, un sentido sin ID                                             |
+| `archivos-que-faltan`            | advertencia | un archivo de audio o imagen al que se hace referencia y que no se encuentra en el disco                                              |
+| `desajuste de normalización`     | advertencia | un nombre que solo permite acceder al identificador al que hace referencia mediante NFC                                               |
+| `range-parent`                   | error       | un `range-element/@parent` sin ID de elemento hermano definido                                                                        |
+| `esquema`                        | error       | una infracción de la gramática RELAX NG, en el archivo `.lift` o en un archivo complementario                                         |
+| `valor-de-rango-indefinido`      | advertencia | un valor de rasgo con clave gramatical o de rango que no figura en la lista del rango                                                 |
+| `archivo de rangos ilegibles`    | advertencia | un candidato asociado que existe pero que no es un documento de rangos legible                                                        |
+| `uri-not-rfc`                    | advertencia | un enlace `href` que no es un URI válido — `file://C:/...` de FLEx                                                                    |
 
 Las tres capas funcionan a partir del documento tal y como está serializado, por lo que, si un documento no se puede serializar en absoluto, se notifica como un único error `lone-surrogate`; véase [Garantías de fidelidad](../fidelity.md#content-xml-cannot-represent). La validación es de solo lectura: muestra el documento tal y como está, antes de que la marca `dateModified` refleje el momento en que se guardó. Nada de lo que se genera constituye en sí mismo un resultado, por lo que la estrategia de «validar primero y guardar después» es acertada.
 
 Un nombre de acompañante que coincide con varios archivos no carga ninguno de ellos: los rangos que definen desaparecen hasta que todos, excepto uno, se renombren o se eliminen.
 
-Los tres códigos de carpetas asociadas (`ambiguous-ranges-file`, `dangling-ranges-href` y `unreadable-ranges-file`) solo se notifican cuando se ha ejecutado la detección de carpetas asociadas. Al cargar con `resolve_ranges=False`, los complementos quedan fuera del ámbito, por lo que no se informa de ninguno de ellos; añadir uno posteriormente con `add_ranges_file()` no los recupera, ya que nunca lee la carpeta sobre la que informan estos códigos. `missing-media` no se ve afectado: los medios nunca se incorporan al modelo, por lo que no se ha excluido nada.
+Los tres códigos de carpetas asociadas (`ambiguous-ranges-file`, `dangling-ranges-href` y `unreadable-ranges-file`) solo se notifican cuando se ha ejecutado la detección de carpetas asociadas. Al cargar con `resolve_ranges=False`, los complementos quedan fuera del ámbito, por lo que no se informa de ninguno de ellos; añadir uno posteriormente con `add_ranges_file()` no los recupera, ya que nunca lee la carpeta sobre la que informan estos códigos. Los errores `missing-media` y `media-href-mismatch` no se ven afectados: los elementos multimedia nunca se resuelven en el modelo, por lo que no se ha excluido nada.
+
+Los códigos `missing-media` y `media-href-mismatch` se reparten la comprobación de los archivos multimedia: el primero indica que ningún archivo se corresponde con la URL, independientemente de cómo se escriba; el segundo, que sí hay uno, pero que la URL no lo identifica exactamente. La segunda es la observación sobre la portabilidad: el archivo está aquí, y un servidor que distinga entre mayúsculas y minúsculas y que aloje esta carpeta no lo encontrará.
+
+Hay dos reglas que determinan lo que indica el error `media-href-mismatch`:
+
+- Una _carpeta_ con un error ortográfico se renombra una sola vez, independientemente del número de referencias que tenga, por lo que solo se notifica una vez y no se registra ninguna entrada. Se notifica un _nombre de archivo_ mal escrito por cada referencia, dirigiéndose a la entrada que lo escribió.
+- La subcarpeta convencional «audio/»/«pictures/» es una suposición propia de sil-lift, y no algo que figure en el documento, por lo que una carpeta con una ortografía diferente se resuelve sin que se genere ningún aviso.
 
 ## Resultados de FieldWorks (FLEx) en el mundo real
 
