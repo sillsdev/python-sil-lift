@@ -38,13 +38,20 @@ Transmettez `resolve_ranges=False` à la fonction `load()` pour ignorer la reche
 ## Médias
 
 ```python
-for ref in lex.media_refs():        # toutes les références de type « <media> » et « <illustration>
-    »     print(ref.kind, ref.href, ref.entry_id)
+for ref in lex.media_refs():        # toutes les références de type <media> et <illustration>
+    print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # références dont les fichiers n'existent pas
+lex.check_media()                   # références qui ne peuvent pas être résolues correctement
 ```
 
 La résolution suit le schéma classique : un lien « href » relatif est vérifié tel qu'il est fourni (barres obliques inversées normalisées — WeSay écrit « pictures\photo with space.png ») et se trouve dans le répertoire « audio/ » (pour les fichiers audio de prononciation) ou « pictures/ » (pour les illustrations). Les liens « href » distants ou absolus ne peuvent pas être vérifiés et sont ignorés.
+
+La fonction `check_media()` ne signale que les références qui n'ont pas pu être résolues correctement, à raison d'un objet `MediaResolution` par référence :
+
+- `status="missing"` — aucun fichier n'a été trouvé pour l'URL, quelle que soit la façon dont elle a été orthographiée.
+- `status="mismatch"` — il y en a eu un, mais uniquement en mode « case folding » ou NFC ; `found` indique le nom du fichier sur le disque.
+
+Un lien `a href` dont le nom de fichier est orthographié exactement comme il faut n'est pas signalé. Contrairement à un nom de compagnon, qui est masqué de manière silencieuse, un lien « href » multimédia est également lu par tout service qui gère le dossier par la suite ; le masquage est donc signalé comme [`media-href-mismatch`](validate.md#problem-codes).
 
 ## Autres éléments du dossier
 
