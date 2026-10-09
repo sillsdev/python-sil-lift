@@ -31,6 +31,7 @@ sil-lift validate export.lift --strict --no-check-media --format json
 - `--strict` 会使警告（而不仅仅是错误）导致运行失败。
 - `--no-check-media` 会跳过文件系统的媒体存在性检查；当音频/照片文件与 CI 中的 `.lift` 文件不在同一文件夹时，该检查得出的 `missing-media` 结果属于误报。
 - `--format json` 会输出一个 JSON 对象（`{"problems": [...], "summary": {...}}`），而非可读文本；其退出代码和模式构成一个受支持且符合 SemVer 规范的接口（参见 [命令行指南](cli.md)）。
+- `--allow CODE[,CODE...]`（可重复）可防止某些可容忍的代码（例如 FLEx 的 `uri-not-rfc`）导致运行失败。其结果已打印出来，但尚未统计。
 - `--require-ids` 还会针对缺少 `guid` 的条目或缺少 `id` 的字段报错——这在后续重新导入时需要更新而非重复导入的情况下非常有用。
 
 通过使用 `stats --format json` 对源模型进行计数验证，以防范“隐性数据丢失”（即导致平面 CSV 导出出现数据丢失的故障模式）：
@@ -51,6 +52,7 @@ TypeScript 或 C# 项目的持续集成（CI）可以通过内置的 GitHub Acti
     path: export.lift
     strict: "true"
     no-check-media: "true"
+    allow: "uri-not-rfc"
     format: json
 ```
 
