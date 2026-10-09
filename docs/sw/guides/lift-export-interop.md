@@ -31,6 +31,7 @@ sil-lift validate export.lift --strict --no-check-media --format json
 - `--strict` hufanya maonyo (sio tu makosa) kusababisha utekelezaji kushindikana.
 - `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili, ambao matokeo yake ya `missing-media` ni kelele tu wakati faili za sauti/picha haziko kwenye folda moja na `.lift` katika CI.
 - `--format json` huchapisha kitu kimoja cha JSON (`{"problems": [...], "summary": {...}}`) badala ya maandishi ya kawaida; misimbo yake ya kutoka na schema ni kiolesura kinachotumika kinachofunikwa na SemVer (tazama [mwongozo wa mstari wa amri](cli.md)).
+- `--allow CODE[,CODE...]` (inaweza kurudiwa) huruhusu msimbo unaokubalika, kama vile `uri-not-rfc` ya FLEx, usishindwe wakati wa utekelezaji. Matokeo yake yamechapishwa lakini hayajahesabiwa.
 - `--require-ids` pia hutoa hitilafu kwa maingizo yanayokosa `guid` au `id` — ni muhimu wakati uingizaji upya wa baadaye unapaswa kusasisha badala ya kurudia.
 
 Jikinga dhidi ya upotevu wa data kimya (mtindo wa kushindwa unaofanya usafirishaji wa CSV wa kawaida upoteze data) kwa kuthibitisha idadi kwa kutumia `stats --format json` dhidi ya mfano wako wa chanzo:
@@ -49,8 +50,9 @@ CI ya mradi wa TypeScript au C# inaweza kufanya ukaguzi uleule bila kusakinisha 
 - matumizi: sillsdev/python-sil-lift@v0.1.0
   na:
     njia: export.lift
-    strict: "kweli"
-    no-check-media: "kweli"
+    strict: "true"
+    no-check-media: "true"
+    allow: "uri-not-rfc"
     format: json
 ```
 
