@@ -31,6 +31,7 @@ sil-lift validate export.lift --strict --no-check-media --format json
 - Mit `--strict` führen bereits Warnungen (nicht nur Fehler) zum Abbruch der Ausführung.
 - `--no-check-media` überspringt die Überprüfung auf das Vorhandensein von Mediendateien im Dateisystem, deren `missing-media`-Funde irreführend sind, wenn sich die Audio- und Fotodateien in der CI nicht im selben Ordner wie die `.lift`-Datei befinden.
 - `--format json` gibt anstelle von lesbarem Text ein einzelnes JSON-Objekt aus (`{"problems": [...], "summary": {...}}`); die Rückgabecodes und das Schema bilden eine unterstützte, SemVer-konforme Schnittstelle (siehe [das Handbuch zur Befehlszeile](cli.md)).
+- `--allow CODE[,CODE...]` (wiederholbar) verhindert, dass ein tolerierter Code, wie beispielsweise `uri-not-rfc` von FLEx, den Lauf zum Scheitern bringt. Die Ergebnisse werden ausgedruckt, aber nicht gezählt.
 - `--require-ids` gibt zusätzlich Fehlermeldungen aus, wenn bei Einträgen eine `guid` fehlt oder bei Sensoren eine `id` fehlt – nützlich, wenn bei einem späteren erneuten Import die Einträge aktualisiert und nicht dupliziert werden sollen.
 
 Schützen Sie sich vor unbemerktem Datenverlust (dem Fehlermodus, der den Export als flache CSV-Datei verlustbehaftet macht), indem Sie die Zählwerte mit `stats --format json` für Ihr Quellmodell überprüfen:
@@ -51,6 +52,7 @@ Die CI eines TypeScript- oder C#-Projekts kann dieselbe Überprüfung über die 
     path: export.lift
     strict: "true"
     no-check-media: "true"
+    allow: "uri-not-rfc"
     format: json
 ```
 
