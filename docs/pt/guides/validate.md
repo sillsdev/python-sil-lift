@@ -24,11 +24,11 @@ Cada `Problema` contém um `nível` (`"erro"`/`"aviso"`), um `código` fixo, uma
 
 1. **RELAX NG** em relação à gramática LIFT 0.13 (fornecida pelo lift-standard — uma cópia byte a byte incorporada neste pacote).
 2. **Esquema de intervalos** — o ficheiro `lift-ranges-0.13.rng` deste projeto — para cada companheiro `.lift-ranges` monitorizado, dirigido ao companheiro em vez de ao `.lift`.
-3. **Verificações semânticas** que a gramática não consegue expressar — doze no total, uma por código.
+3. **Verificações semânticas** que a gramática não consegue expressar — treze no total, uma por código.
 
 ## Códigos de problema
 
-Cada resultado inclui um destes, independentemente da camada que o tenha gerado — «schema» e «uri-not-rfc» provêm das camadas de esquema, enquanto os outros doze são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros.
+Cada resultado inclui um destes, independentemente da camada que o tenha gerado — `schema` e `uri-not-rfc` provêm das camadas de esquema, enquanto os outros treze são verificações semânticas. As cadeias de caracteres são uma interface suportada; a opção `--strict` transforma todos os avisos em erros. O comando `sil-lift validate --allow CODE` exclui um código da decisão de aprovação/reprovação.
 
 | código                              | nível | o que assinala                                                                                                                      |
 | ----------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -38,6 +38,7 @@ Cada resultado inclui um destes, independentemente da camada que o tenha gerado 
 | `duplicate-form-lang`               | aviso | duas formas num único multitexto que partilham uma língua                                                                           |
 | `duplicate-guid`                    | erro  | um GUID reutilizado entre entradas ou entre intervalos/elementos de intervalo de um mesmo documento                                 |
 | `form-missing-lang`                 | erro  | um `<form>` ou `<gloss>` sem o atributo `lang` exigido pelo esquema                                                                 |
+| `media-href-mismatch`               | aviso | um href de ficheiro multimédia que acede ao ficheiro apenas com a conversão de maiúsculas e minúsculas ou NFC                       |
 | `missing-id`                        | erro  | adesão através de `require_ids`: uma entrada sem um GUID, um sentido sem um ID                                      |
 | `failas-de-meios`                   | aviso | um ficheiro de áudio ou de imagem referenciado que não se encontra no disco                                                         |
 | `incompatibilidade de normalização` | aviso | um nome que acede ao ID a que se refere apenas através da tecnologia NFC                                                            |
@@ -51,7 +52,14 @@ As três camadas funcionam a partir do documento serializado tal como está; por
 
 Um nome de acompanhante que corresponde a vários ficheiros não carrega nenhum deles: os intervalos que definem ficam ausentes até que todos, exceto um, sejam renomeados ou removidos.
 
-Os três códigos de pastas associadas (`ambiguous-ranges-file`, `dangling-ranges-href` e `unreadable-ranges-file`) são comunicados apenas quando a deteção de pastas associadas foi executada. Carregar com `resolve_ranges=False` coloca os códigos complementares fora do âmbito, pelo que nenhum deles é reportado; anexar um posteriormente com `add_ranges_file()` não os traz de volta, uma vez que nunca lê a pasta sobre a qual estes códigos se baseiam. O `missing-media` não é afetado: os meios nunca são incorporados no modelo, pelo que nada foi excluído.
+Os três códigos de pastas associadas (`ambiguous-ranges-file`, `dangling-ranges-href` e `unreadable-ranges-file`) são comunicados apenas quando a deteção de pastas associadas foi executada. Carregar com `resolve_ranges=False` coloca os códigos complementares fora do âmbito, pelo que nenhum deles é reportado; anexar um posteriormente com `add_ranges_file()` não os traz de volta, uma vez que nunca lê a pasta sobre a qual estes códigos se baseiam. Os erros `missing-media` e `media-href-mismatch` não são afetados: os ficheiros multimédia nunca são resolvidos no modelo, pelo que nada foi excluído.
+
+Os códigos `missing-media` e `media-href-mismatch` dividem entre si a verificação do ficheiro multimédia: o primeiro significa que nenhum ficheiro correspondeu ao href, independentemente da grafia; o segundo significa que um ficheiro correspondeu, mas o href não o identifica exatamente. A segunda é a constatação relativa à portabilidade — o ficheiro está aqui, mas um servidor que distinga maiúsculas de minúsculas e que aloje esta pasta não o irá encontrar.
+
+Existem duas regras que determinam o que o `media-href-mismatch` indica:
+
+- Uma _pasta_ com um erro ortográfico é considerada uma única renomeação, independentemente do número de referências que a mencionem, pelo que é reportada uma única vez e não dá origem a nenhuma entrada. É comunicada uma _nome de ficheiro_ com erro ortográfico por referência, dirigida à entrada que o escreveu.
+- A subpasta convencional `audio/`/`pictures/` é uma suposição do próprio sil-lift e não algo indicado no documento; por isso, uma pasta com um nome diferente resolve-se sem que seja assinalada.
 
 ## Resultados do FieldWorks (FLEx) em condições reais
 
