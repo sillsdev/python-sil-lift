@@ -41,10 +41,17 @@ Pasa `resolve_ranges=False` a `load()` para omitir la detección de componentes 
 for ref in lex.media_refs():        # todos los <media> y <illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # referencias cuyos archivos no existen
+lex.check_media()                   # referencias que no se resuelven correctamente
 ```
 
 La resolución sigue el esquema convencional: se comprueba un enlace «href» relativo tal y como se ha indicado (con las barras invertidas normalizadas — WeSay escribe «pictures\photo con espacio.png») y dentro de «audio/» (para archivos de audio con pronunciación) o «pictures/» (para ilustraciones). Los enlaces «href» remotos o absolutos no se pueden comprobar y se omiten.
+
+La función `check_media()` solo muestra las referencias que no se han resuelto correctamente, una `MediaResolution` por cada una:
+
+- `status="missing"`: no se ha encontrado ningún archivo que corresponda al enlace «href», independientemente de cómo se escriba.
+- `status="mismatch"`: se encontró uno, pero solo tras la conversión de mayúsculas y minúsculas o en formato NFC; `found` indica el nombre del archivo en el disco.
+
+No se notifica ningún enlace `a href` cuyo nombre de archivo coincida exactamente. A diferencia de un nombre de acompañante, que se pliega de forma silenciosa, un enlace «href» multimedia también es leído por cualquier elemento que sirva la carpeta posteriormente, por lo que el plegado se notifica como [`media-href-mismatch`](validate.md#problem-codes).
 
 ## Otros contenidos de la carpeta
 
