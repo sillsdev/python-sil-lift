@@ -24,11 +24,11 @@ Jedes `Problem` enthält einen `Level` (`„error“`/`„warning“`), einen st
 
 1. **RELAX NG** gemäß der LIFT 0.13-Grammatik (aus „lift-standard“ übernommen – eine byteweise identische Kopie, die in dieses Paket integriert wurde).
 2. **Ranges-Schema** – in diesem Projekt `lift-ranges-0.13.rng` – für jeden erfassten `.lift-ranges`-Companion, wobei die Adressierung an den Companion statt an `.lift` erfolgt.
-3. **Semantische Prüfungen**, die die Grammatik nicht abbilden kann – zwölf an der Zahl, jeweils ein Code.
+3. **Semantische Prüfungen**, die die Grammatik nicht abbilden kann – dreizehn an der Zahl, jeweils ein Code.
 
 ## Fehlercodes
 
-Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Schicht er entstanden ist – `schema` und `uri-not-rfc` stammen aus den Schema-Schichten, die übrigen zwölf sind semantische Prüfungen. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler.
+Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Ebene er entstanden ist – `schema` und `uri-not-rfc` stammen aus den Schema-Ebenen, die übrigen dreizehn sind semantische Prüfungen. Die Zeichenketten sind eine unterstützte Schnittstelle; mit `--strict` wird jede Warnung zu einem Fehler. Mit dem Befehl `sil-lift validate --allow CODE` wird ein Code bei der Entscheidung über „bestanden“ oder „nicht bestanden“ nicht berücksichtigt.
 
 | Code                                     | Ebene   | Was es markiert                                                                                                             |
 | ---------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -38,6 +38,7 @@ Jeder Befund enthält einen dieser Einträge, unabhängig davon, in welcher Schi
 | `duplicate-form-lang`                    | Warnung | Zwei Formen in einem Multitext, die dieselbe Sprache verwenden                                                              |
 | `duplicate-guid`                         | Fehler  | ein GUID, der innerhalb mehrerer Einträge oder innerhalb der Bereiche/Bereichselemente eines Dokuments wiederverwendet wird |
 | `form-missing-lang`                      | Fehler  | ein `<form>` oder `<gloss>` ohne das vom Schema geforderte `lang`                                                           |
+| `media-href-mismatch`                    | Warnung | Ein Medien-href, der nur bei „Case Folding“ oder NFC auf die entsprechende Datei verweist                                   |
 | `fehlende-ID`                            | Fehler  | Opt-in über `require_ids`: Ein Eintrag ohne GUID, ein Eintrag ohne ID                                       |
 | `fehlende Medien`                        | Warnung | Eine referenzierte Audio- oder Bilddatei, die sich nicht auf der Festplatte befindet                                        |
 | `Normalisierungsabweichung`              | Warnung | ein Name, der nur über NFC auf die ID zugreift, auf die er sich bezieht                                                     |
@@ -51,7 +52,14 @@ Alle drei Ebenen arbeiten mit dem Dokument in seiner serialisierten Form, sodass
 
 Ein Begleitname, der mehreren Dateien entspricht, lädt keine davon: Die von ihnen definierten Bereiche sind nicht vorhanden, bis alle bis auf eine umbenannt oder entfernt wurden.
 
-Die drei Codes für zugehörige Ordner (`ambiguous-ranges-file`, `dangling-ranges-href` und `unreadable-ranges-file`) werden nur gemeldet, wenn die Erkennung zugehöriger Ordner durchgeführt wurde. Beim Laden mit `resolve_ranges=False` werden Begleitdateien aus dem Geltungsbereich ausgeschlossen, sodass keine davon gemeldet wird; das nachträgliche Hinzufügen einer solchen Datei mit `add_ranges_file()` bringt sie nicht zurück, da die Datei, auf die sich diese Codes beziehen, nie gelesen wird. `missing-media` bleibt davon unberührt: Medien werden niemals in das Modell eingebunden, daher wurde nichts ausgeschlossen.
+Die drei Codes für zugehörige Ordner (`ambiguous-ranges-file`, `dangling-ranges-href` und `unreadable-ranges-file`) werden nur gemeldet, wenn die Erkennung zugehöriger Ordner durchgeführt wurde. Beim Laden mit `resolve_ranges=False` werden Begleitdateien aus dem Geltungsbereich ausgeschlossen, sodass keine davon gemeldet wird; das nachträgliche Hinzufügen einer solchen Datei mit `add_ranges_file()` bringt sie nicht zurück, da die Datei, auf die sich diese Codes beziehen, nie gelesen wird. `missing-media` und `media-href-mismatch` sind davon nicht betroffen: Medien werden niemals in das Modell aufgelöst, daher wurde nichts ausgeschlossen.
+
+`missing-media` und `media-href-mismatch` teilen sich die Medienprüfung untereinander auf: Ersteres bedeutet, dass unter keiner Schreibweise eine Datei auf den href-Bezug reagiert hat, Letzteres, dass zwar eine Datei reagiert hat, der href-Bezug diese jedoch nicht genau benennt. Der zweite Punkt betrifft die Portabilität – die Datei befindet sich hier, und ein Host, der bei der Angabe des Ordners zwischen Groß- und Kleinschreibung unterscheidet, wird sie nicht finden.
+
+Zwei Regeln legen fest, was `media-href-mismatch` meldet:
+
+- Ein falsch geschriebener _Ordner_ wird nur einmal umbenannt, unabhängig davon, wie viele Verweise darauf bestehen; daher wird er nur einmal gemeldet und führt zu keinem Eintrag. Pro Referenz wird ein falsch geschriebener _Dateiname_ gemeldet, der dem Eintrag zugeordnet ist, der ihn geschrieben hat.
+- Der übliche Unterordner „audio/“/„pictures/“ ist eher eine Vermutung von sil-lift als eine Angabe aus dem Dokument; daher wird ein Ordner mit einer anderen Schreibweise ohne Meldung aufgelöst.
 
 ## Praktische FieldWorks (FLEx)-Ergebnisse
 
