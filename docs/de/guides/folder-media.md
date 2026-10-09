@@ -41,10 +41,17 @@ Ein Kandidat, der nicht als `<lift-ranges>`-Dokument gelesen werden kann (z. B. 
 for ref in lex.media_refs():        # alle <media> und <illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # Verweise, deren Dateien nicht vorhanden sind
+lex.check_media()                   # Verweise, die nicht einwandfrei aufgelöst werden können
 ```
 
 Die Auflösung erfolgt nach dem üblichen Schema: Ein relativer href-Link wird unverändert geprüft (Backslashes werden normalisiert – WeSay schreibt „pictures\photo with space.png“) und unter „audio/“ (für Aussprachedateien) oder „pictures/“ (für Abbildungen) gesucht. Externe/absolute „hrefs“ können nicht überprüft werden und werden übersprungen.
+
+`check_media()` meldet nur die Verweise, die nicht einwandfrei aufgelöst werden konnten, jeweils ein `MediaResolution`:
+
+- `status="missing"` – Unter keiner Schreibweise wurde eine Datei für den href-Link gefunden.
+- `status="mismatch"` – einer passte, allerdings nur bei Groß-/Kleinschreibung ignorieren oder NFC; `found` gibt den Namen der Datei auf der Festplatte an.
+
+Ein `a href`-Link, dessen Dateiname genau so geschrieben ist, wird nicht gemeldet. Im Gegensatz zu einem Begleitnamen, der stillschweigend ausgeblendet wird, wird ein Medien-href auch von dem Server gelesen, der den Ordner anschließend bereitstellt, sodass das Ausblenden als [`media-href-mismatch`](validate.md#problem-codes) gemeldet wird.
 
 ## Sonstige Ordnerinhalte
 
