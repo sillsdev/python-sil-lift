@@ -24,11 +24,11 @@ Chaque `Problème` comporte un `niveau` (`"erreur"`/`"avertissement"`), un `code
 
 1. **RELAX NG** par rapport à la grammaire LIFT 0.13 (fournie par lift-standard — une copie identique au niveau des octets intégrée à ce paquet).
 2. **Schéma des plages** — le fichier `lift-ranges-0.13.rng` de ce projet — s’applique à chaque compagnon `.lift-ranges` suivi ; il s’adresse au compagnon plutôt qu’au fichier `.lift`.
-3. **Vérifications sémantiques** que la grammaire ne permet pas d'exprimer — douze au total, une par code.
+3. **Vérifications sémantiques** que la grammaire ne permet pas d'exprimer — treize au total, une par code.
 
 ## Codes d'erreur
 
-Chaque résultat comporte l'un de ces éléments, quelle que soit la couche à l'origine de celui-ci : « schema » et « uri-not-rfc » proviennent des couches de schéma, tandis que les douze autres correspondent à des vérifications sémantiques. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur.
+Chaque résultat comporte l'un de ces éléments, quelle que soit la couche à l'origine de celui-ci : « `schema` » et « `uri-not-rfc` » proviennent des couches de schéma, tandis que les treize autres correspondent à des vérifications sémantiques. Les chaînes de caractères constituent une interface prise en charge ; l'option `--strict` transforme chaque avertissement en erreur. La commande `sil-lift validate --allow CODE` exclut un code de la décision de réussite ou d'échec.
 
 | code                           | niveau        | ce qu'il signale                                                                                                  |
 | ------------------------------ | ------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -38,6 +38,7 @@ Chaque résultat comporte l'un de ces éléments, quelle que soit la couche à l
 | `duplicate-form-lang`          | avertissement | deux formes dans un même multitexte partageant une même langue                                                    |
 | `duplicate-guid`               | erreur        | un identifiant réutilisé entre plusieurs entrées, ou entre les plages et les éléments de plage d'un même document |
 | `form-missing-lang`            | erreur        | un `<form>` ou `<gloss>` sans l'attribut `lang` requis par le schéma                                              |
+| `media-href-mismatch`          | avertissement | un lien href vers un fichier multimédia qui n'est accessible qu'en mode « case folding » ou NFC                   |
 | `identifiant manquant`         | erreur        | inscription via `require_ids` : une entrée sans GUID, une entrée sans identifiant                 |
 | `fichiers-manquants`           | avertissement | un fichier audio ou image référencé qui ne se trouve pas sur le disque                                            |
 | `décalage de normalisation`    | avertissement | un nom qui n'accède à l'identifiant auquel il fait référence que via NFC                                          |
@@ -51,7 +52,14 @@ Ces trois couches fonctionnent à partir du document tel qu'il est sérialisé ;
 
 Un nom de compagnon correspondant à plusieurs fichiers n'en charge aucun : les plages qu'ils définissent disparaissent jusqu'à ce que tous, sauf un, soient renommés ou supprimés.
 
-Les trois codes relatifs aux dossiers associés (`ambiguous-ranges-file`, `dangling-ranges-href` et `unreadable-ranges-file`) ne sont signalés que lorsque la détection des dossiers associés a été effectuée. Le chargement avec `resolve_ranges=False` place les compagnons hors de portée, de sorte qu'aucun d'entre eux n'est signalé ; en ajouter un par la suite avec `add_ranges_file()` ne les fait pas réapparaître, car cette fonction ne lit jamais le dossier sur lequel ces codes s'appuient. `missing-media` n'est pas concerné : les médias ne sont jamais intégrés au modèle, donc aucun élément n'a été exclu.
+Les trois codes relatifs aux dossiers associés (`ambiguous-ranges-file`, `dangling-ranges-href` et `unreadable-ranges-file`) ne sont signalés que lorsque la détection des dossiers associés a été effectuée. Le chargement avec `resolve_ranges=False` place les compagnons hors de portée, de sorte qu'aucun d'entre eux n'est signalé ; en ajouter un par la suite avec `add_ranges_file()` ne les fait pas réapparaître, car cette fonction ne lit jamais le dossier sur lequel ces codes s'appuient. Les erreurs `missing-media` et `media-href-mismatch` ne sont pas concernées : les éléments multimédias ne sont jamais intégrés au modèle, donc aucun n'a été exclu.
+
+Les codes `missing-media` et `media-href-mismatch` se répartissent la vérification des médias : le premier indique qu'aucun fichier ne correspond à l'href, quelle que soit l'orthographe, tandis que le second signifie qu'un fichier correspond, mais que l'href ne le désigne pas exactement. Le deuxième point concerne la portabilité : le fichier se trouve ici, mais un serveur qui tient compte de la casse et héberge ce dossier ne le trouvera pas.
+
+Deux règles régissent ce que signale l'erreur `media-href-mismatch` :
+
+- Un _dossier_ mal orthographié ne fait l'objet que d'un seul changement de nom, quel que soit le nombre de références qui y renvoient ; il est donc signalé une seule fois et ne fait l'objet d'aucune entrée. Une erreur d'orthographe dans le _nom de fichier_ est signalée par référence, à l'attention de l'entrée qui l'a générée.
+- Le sous-dossier standard « `audio/`/`pictures/` » correspond à une supposition de sil-lift plutôt qu'à une indication figurant dans le document ; par conséquent, un dossier dont l'orthographe diffère est pris en charge sans que cela ne soit signalé.
 
 ## Résultats concrets de FieldWorks (FLEx)
 
