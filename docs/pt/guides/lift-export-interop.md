@@ -31,6 +31,7 @@ sil-lift validate export.lift --strict --no-check-media --format json
 - A opção `--strict` faz com que os avisos (e não apenas os erros) provoquem o falhanço da execução.
 - `--no-check-media` ignora a verificação da presença de ficheiros multimédia no sistema de ficheiros, cujos resultados de `missing-media` são irrelevantes quando os ficheiros de áudio/fotografias não se encontram na mesma pasta que o ficheiro `.lift` na CI.
 - `--format json` apresenta um único objeto JSON (`{"problems": [...], "summary": {...}}`) em vez de texto legível; os seus códigos de saída e esquema constituem uma interface suportada e abrangida pela SemVer (ver [o guia da linha de comandos](cli.md)).
+- `--allow CODE[,CODE...]` (repetível) evita que um código tolerado, como o `uri-not-rfc` do FLEx, provoque o falhanço da execução. Os seus resultados são impressos, mas não são contabilizados.
 - `--require-ids` também apresenta erros em entradas que não tenham um `guid` ou que não tenham um `id` — útil quando uma reimportação posterior tiver de atualizar, em vez de duplicar.
 
 Proteja-se contra a perda silenciosa de dados (o modo de falha que torna a exportação em CSV simples propensa a perdas) verificando as contagens com o comando `stats --format json` no seu modelo de origem:
@@ -50,7 +51,8 @@ A integração contínua (CI) de um projeto em TypeScript ou C# pode executar a 
   com:
     caminho: export.lift
     rigoroso: "true"
-    sem verificação de mídia: "true"
+    não verificar tipo de mídia: "true"
+    permitir: "uri-not-rfc"
     formato: json
 ```
 
