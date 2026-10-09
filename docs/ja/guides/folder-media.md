@@ -41,10 +41,17 @@ ranges.save()
 for ref in lex.media_refs():        # すべての<media> および<illustration>
     print(ref.kind, ref.href, ref.entry_id)
 
-lex.missing_media()                 # ファイルが存在しない参照
+lex.check_media()                   # 正常に解決されない参照
 ```
 
 解決方法は従来のレイアウトに従います。相対的な href は指定されたままの形式でチェックされ（バックスラッシュは正規化されます — WeSay は `pictures\photo with space.png` と記述します）、`audio/`（発音用メディアの場合）または `pictures/`（イラストの場合）の下に配置されます。リモートまたは絶対パスの href は検証できないため、スキップされます。
+
+`check_media()` は、正常に解決されなかった参照のみを報告し、それぞれ 1 つの `MediaResolution` を返します：
+
+- `status="missing"` — どのスペルで検索しても、hrefに対応するファイルが見つかりませんでした。
+- `status="mismatch"` — 一致したものは1つあったが、大文字小文字を区別しない処理（case folding）またはNFCの場合に限られる；`found`はディスク上のファイル名を指定する。
+
+ファイル名を正確に指定した `a href` は報告されません。コンパニオン名とは異なり、コンパニオン名は黙って折りたたまれるのに対し、メディアのhrefはその後そのフォルダを配信するあらゆるシステムによっても読み込まれるため、この折りたたみは [`media-href-mismatch`](validate.md#problem-codes) として報告されます。
 
 ## その他のフォルダ内の内容
 
