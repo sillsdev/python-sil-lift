@@ -5,13 +5,14 @@ La validation est toujours explicite : le chargement et l'enregistrement n'entra
 ```python
 import sil_lift
 
-# Approche exhaustive : un flux paresseux de problèmes (schéma + couches sémantiques).
+# Exhaustif : un flux paresseux de problèmes (schéma + couches sémantiques).
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
     # erreur [dangling-ref] dictionary.lift:88 (entrée apu) : la référence « nope » correspond à...
 
-# Détection rapide des erreurs : lève une exception LiftValidationError dès le premier problème de niveau d'erreur.
-sil_lift.validate_file("dictionary.lift")
+# Détection précoce des erreurs : arrêt dès le premier problème de niveau « error ».
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
 # État en mémoire (sérialisation préalable — un coût documenté pour les grands lexiques) :
 lex = sil_lift.load("dictionary.lift")
