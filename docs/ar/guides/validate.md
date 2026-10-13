@@ -10,8 +10,9 @@ for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
     # خطأ [dangling-ref] dictionary.lift:88 (entry apu): المرجع 'nope' يطابق ...
 
-# الفشل السريع: يثير استثناء LiftValidationError عند أول مشكلة على مستوى الخطأ.
-sil_lift.validate_file("dictionary.lift")
+# الفشل السريع: التوقف عند أول مشكلة على مستوى الخطأ.
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
 # الحالة في الذاكرة (يتم التسلسل أولاً — تكلفة موثقة في المعاجم الكبيرة):
 lex = sil_lift.load("dictionary.lift")
