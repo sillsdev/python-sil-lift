@@ -10,10 +10,11 @@ for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
     # Fehler [dangling-ref] dictionary.lift:88 (Eintrag apu): ref 'nope' passt zu ...
 
-# Fail-fast: Löst bei dem ersten Problem auf Fehler-Ebene einen LiftValidationError aus.
-sil_lift.validate_file("dictionary.lift")
+# Fail-fast: Bei dem ersten Problem der Fehlerstufe anhalten.
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
-# In-Memory-Zustand (wird zunächst serialisiert – ein dokumentierter Mehraufwand bei großen Lexika):
+# Speicherinterner Zustand (wird zunächst serialisiert – ein dokumentierter Aufwand bei großen Lexika):
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
