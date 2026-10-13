@@ -1,3 +1,4 @@
+import dataclasses
 import inspect
 
 import sil_lift
@@ -43,3 +44,42 @@ def test_all_names_exist_and_sorted() -> None:
     for name in sil_lift.__all__:
         assert hasattr(sil_lift, name)
     assert sil_lift.__all__ == sorted(sil_lift.__all__)
+
+
+# Constructors take keywords past the leading field(s), so that a field can be
+# added or reordered without breaking callers. Results the library hands back
+# rather than objects callers build are not held to this.
+_POSITIONAL_FIELDS = {
+    "Annotation": ["name"],
+    "Form": ["lang", "text"],
+    "GrammaticalInfo": ["value"],
+    "Text": ["fragments"],
+    "Trait": ["name", "value"],
+    "URLRef": ["href"],
+}
+_NOT_CONSTRUCTED_BY_CALLERS = {
+    "Changes",
+    "Extras",
+    "MediaRef",
+    "MediaResolution",
+    "Problem",
+    "RangesChanges",
+}
+
+
+def test_model_constructors_are_keyword_only_past_leading_fields() -> None:
+    checked = 0
+    for name in sil_lift.__all__:
+        public = getattr(sil_lift, name)
+        if not inspect.isclass(public) or not dataclasses.is_dataclass(public):
+            continue
+        if name in _NOT_CONSTRUCTED_BY_CALLERS:
+            continue
+        positional = [
+            p.name
+            for p in inspect.signature(public).parameters.values()
+            if p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+        ]
+        assert positional == _POSITIONAL_FIELDS.get(name, []), name
+        checked += 1
+    assert checked > len(_POSITIONAL_FIELDS)
