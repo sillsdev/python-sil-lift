@@ -8,10 +8,11 @@ import sil_lift
 # Exhaustivo: un flujo diferido de problemas (esquema + capas semánticas).
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
-    # error [dangling-ref] dictionary.lift:88 (entrada apu): la referencia «nope» coincide con...
+    # error [dangling-ref] dictionary.lift:88 (entrada apu): la referencia 'nope' coincide con...
 
-# Detección rápida de errores: lanza un LiftValidationError ante el primer problema de nivel de error.
-sil_lift.validate_file("dictionary.lift")
+# Detección rápida de fallos: se detiene ante el primer problema de nivel de error.
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
 # Estado en memoria (se serializa primero — un coste documentado en léxicos grandes):
 lex = sil_lift.load("dictionary.lift")
