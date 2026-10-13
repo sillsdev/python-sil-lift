@@ -5,15 +5,16 @@
 ```python
 import sil_lift
 
-# Exhaustive: समस्याओं की एक लेज़ी स्ट्रीम (स्कीमा + सेमंटिक लेयर्स).
+# Exhaustive: समस्याओं (स्कीमा + सेमंटिक लेयर्स) की एक लेज़ी स्ट्रीम।
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
     # error [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches ...
 
-# Fail-fast: पहली त्रुटि-स्तर की समस्या पर LiftValidationError उठाता है।
-sil_lift.validate_file("dictionary.lift")
+# फेल-फास्ट: पहली त्रुटि-स्तर की समस्या पर रुकें।
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
-# इन-मेमोरी स्थिति (पहले सीरियलाइज़ होती है — बड़े शब्दकोशों पर एक दस्तावेजीकृत लागत):
+# इन-मेमोरी स्थिति (पहले सीरियलाइज़ होती है — बड़े शब्दकोशों पर एक प्रलेखित लागत):
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
