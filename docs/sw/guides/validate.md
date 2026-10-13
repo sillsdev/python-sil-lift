@@ -5,15 +5,16 @@ Uthibitishaji daima ni wazi — kupakia na kuhifadhi kamwe havithibitishi kwa nj
 ```python
 import sil_lift
 
-# Exhaustive: mtiririko wa vigezo (schema + tabaka za semantiki).
+# Exhaustive: mtiririko wa uvivu wa Matatizo (schema + tabaka za semantiki).
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
     # kosa [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' inalingana ...
 
-# Fail-fast: inasababisha LiftValidationError kwenye tatizo la kwanza la kiwango cha kosa.
-sil_lift.validate_file("dictionary.lift")
+# Fail-fast: simama mara tu unapopata tatizo la kiwango cha kosa.
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
-# Hali ya kumbukumbu (inayosafirishwa kwanza — gharama iliyoorodheshwa kwa kamusi kubwa):
+# Hali ya kumbukumbu (inayosafirishwa kwanza — gharama iliyodokezwa kwa kamusi kubwa):
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
