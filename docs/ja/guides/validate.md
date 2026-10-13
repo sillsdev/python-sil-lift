@@ -5,15 +5,16 @@
 ```python
 import sil_lift
 
-# 網羅的：Problem（スキーマ層＋セマンティック層）の遅延ストリーム。
+# 網羅的：Problem（スキーマ＋セマンティック層）の遅延ストリーム。
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
-    # エラー [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' matches ...
+    # エラー [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' が ... と一致します
 
-# フェイルファースト：最初のエラーレベルの問題で LiftValidationError を発生させます。
-sil_lift.validate_file("dictionary.lift")
+# フェイルファースト：最初のエラーレベルの問題で停止する。
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
-# メモリ内状態（最初にシリアライズされる — 大規模な辞書では、ドキュメントに記載されているようにコストがかかる）：
+# メモリ内状態（最初にシリアライズされる — 大規模な辞書では、ドキュメントに記載されているコストが発生する）：
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
