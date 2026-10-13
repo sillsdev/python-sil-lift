@@ -5,15 +5,16 @@
 ```python
 import sil_lift
 
-# Исчерпывающий подход: ленивый поток объектов Problems (схема + семантические слои).
+# Исчерпывающий подход: ленивый поток объектов Problem (схема + семантические слои).
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
     # ошибка [dangling-ref] dictionary.lift:88 (запись apu): ссылка 'nope' совпадает с ...
 
-# Быстрая остановка при ошибке: генерирует LiftValidationError при первой проблеме уровня ошибки.
-sil_lift.validate_file("dictionary.lift")
+# Быстрая остановка при ошибке: останавливаемся при первой проблеме уровня «error».
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
-# Состояние в памяти (сначала сериализуется — задокументированная нагрузка при работе с большими лексиконами):
+# Состояние в памяти (сначала сериализуется — задокументированная нагрузка при работе с большими словарями):
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
