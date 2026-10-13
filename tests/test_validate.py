@@ -7,7 +7,7 @@ from typing import get_args, get_type_hints
 import pytest
 
 import sil_lift
-from sil_lift import GrammaticalInfo, LiftValidationError, Problem, Trait
+from sil_lift import GrammaticalInfo, Problem, Trait
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 NEGATIVE_DIR = CORPUS_DIR / "negative"
@@ -517,17 +517,6 @@ def test_undefined_semantic_domain_value_is_flagged() -> None:
     flagged = [p for p in lexicon.iter_problems() if p.code == "undefined-range-value"]
     assert len(flagged) == 1
     assert "9.9.9" in flagged[0].message
-
-
-def test_validate_file_raises_on_first_error() -> None:
-    with pytest.raises(LiftValidationError) as info:
-        sil_lift.validate_file(NEGATIVE_DIR / "duplicate-guid.lift")
-    assert info.value.problem.code == "duplicate-guid"
-
-
-def test_validate_file_passes_on_warning_only_files() -> None:
-    sil_lift.validate_file(NEGATIVE_DIR / "flex-quirks.lift")
-    sil_lift.validate_file(NEGATIVE_DIR / "duplicate-form-lang.lift")
 
 
 CLEAN = [

@@ -41,7 +41,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar
 
 from lxml import etree
 
-from ._errors import LiftValidationError, LiftWriteError
+from ._errors import LiftWriteError
 from ._model import (
     GrammaticalInfo,
     Lexicon,
@@ -61,7 +61,7 @@ if TYPE_CHECKING:
     from ._header import Range
     from ._model import MediaResolution
 
-__all__ = ["Problem", "iter_problems", "validate_file"]
+__all__ = ["Problem", "iter_problems"]
 
 _T = TypeVar("_T")
 
@@ -96,13 +96,6 @@ def iter_problems(path: str | os.PathLike[str], *, require_ids: bool = False) ->
     (``missing-id`` errors); see :meth:`Lexicon.iter_problems`.
     """
     return Lexicon.load(path).iter_problems(require_ids=require_ids)
-
-
-def validate_file(path: str | os.PathLike[str]) -> None:
-    """Raise :class:`LiftValidationError` on the first error-level problem."""
-    for problem in iter_problems(path):
-        if problem.level == "error":
-            raise LiftValidationError(problem)
 
 
 def iter_lexicon_problems(lexicon: Lexicon, *, require_ids: bool = False) -> Iterator[Problem]:

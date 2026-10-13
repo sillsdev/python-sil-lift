@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ._canonical import canonicalize
-from ._errors import LiftError, LiftParseError, LiftValidationError, LiftWriteError
+from ._errors import LiftError, LiftParseError, LiftWriteError
 from ._extras import Extras
 from ._header import FieldDefinition, Header, Range, RangeElement
 from ._model import (
@@ -36,7 +36,7 @@ from ._model import (
 )
 from ._stream import LiftReader, LiftWriter, open_reader, open_writer
 from ._text import Annotation, Form, Multitext, Span, Text, Trait
-from ._validate import Problem, iter_problems, validate_file
+from ._validate import Problem, iter_problems
 
 if TYPE_CHECKING:
     import os
@@ -59,7 +59,6 @@ __all__ = [
     "LiftError",
     "LiftParseError",
     "LiftReader",
-    "LiftValidationError",
     "LiftWriteError",
     "LiftWriter",
     "MediaRef",
@@ -87,7 +86,6 @@ __all__ = [
     "load",
     "open_reader",
     "open_writer",
-    "validate_file",
 ]
 
 
