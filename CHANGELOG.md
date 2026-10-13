@@ -25,15 +25,15 @@ releases may contain breaking changes.
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
   test corpus with provenance, corpus-prep and large-file-generator tooling.
 - Full object model: all 35 LIFT 0.13 elements as typed dataclasses.
-  Constructors are keyword-only except for the leading fields of `Form(lang,
-  text)`, `Trait(name, value)`, `Text(fragments)`, `Annotation(name)`,
-  `URLRef(href)`, and `GrammaticalInfo(value)`. Multilingual fields are
-  `Multitext`, a `Mapping` from language code to `Text` that coerces plain
-  strings on assignment; the `forms` list stays the full truth, holding forms
-  no key reaches. `Entry.all_senses()` walks every
-  subsense depth-first in document order, which `Entry.senses` (top level
-  only) does not. `sil_lift.load()` / `Lexicon.load()` full-document reader
-  that keeps LIFT residue per node in `Extras`; LIFT-version guard.
+  Constructors and class patterns are keyword-only except for the leading
+  fields of `Form`, `Trait`, `Text`, `Annotation`, `URLRef`, and
+  `GrammaticalInfo`. Multilingual fields are `Multitext`, a `Mapping` from
+  language code to `Text` that coerces plain strings on assignment; the
+  `forms` list stays the full truth, holding forms no key reaches.
+  `Entry.all_senses()` walks every subsense depth-first in document order,
+  which `Entry.senses` (top level only) does not. `sil_lift.load()` /
+  `Lexicon.load()` full-document reader that keeps LIFT residue per node in
+  `Extras`; LIFT-version guard.
 - `Lexicon.save()` writer with byte-fidelity passthrough — unchanged
   documents and untouched entries are written byte-identically; touched entries
   re-serialize canonically with all out-of-schema content preserved. Fidelity
