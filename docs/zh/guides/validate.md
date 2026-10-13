@@ -8,10 +8,11 @@ import sil_lift
 # 穷举：一个由问题（模式层 + 语义层）组成的惰性流。
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
-    # 错误 [悬空引用] dictionary.lift:88 (条目 apu)：引用 'nope' 与 ... 匹配
+    # 错误 [悬空引用] dictionary.lift:88（条目 apu）：引用 'nope' 与 ... 匹配
 
-# 快速失败：在遇到第一个错误级别的问题时抛出 LiftValidationError。
-sil_lift.validate_file("dictionary.lift")
+# 快速失败：在第一个错误级别的错误处停止。
+if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
+    raise SystemExit(1)
 
 # 内存状态（先进行序列化——这是大型词典中已记录的开销）：
 lex = sil_lift.load("dictionary.lift")
