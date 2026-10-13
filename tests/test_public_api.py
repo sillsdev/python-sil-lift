@@ -46,9 +46,9 @@ def test_all_names_exist_and_sorted() -> None:
     assert sil_lift.__all__ == sorted(sil_lift.__all__)
 
 
-# Constructors take keywords past the leading field(s), so that a field can be
-# added or reordered without breaking callers. Results the library hands back
-# rather than objects callers build are not held to this.
+# Constructors and class patterns take keywords past the leading field(s), so
+# that a field can be added or reordered without breaking callers. Results the
+# library hands back rather than objects callers build are not held to this.
 _POSITIONAL_FIELDS = {
     "Annotation": ["name"],
     "Form": ["lang", "text"],
@@ -67,7 +67,7 @@ _NOT_CONSTRUCTED_BY_CALLERS = {
 }
 
 
-def test_model_constructors_are_keyword_only_past_leading_fields() -> None:
+def test_model_constructors_and_patterns_are_keyword_only_past_leading_fields() -> None:
     checked = 0
     for name in sil_lift.__all__:
         public = getattr(sil_lift, name)
@@ -80,6 +80,8 @@ def test_model_constructors_are_keyword_only_past_leading_fields() -> None:
             for p in inspect.signature(public).parameters.values()
             if p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
         ]
-        assert positional == _POSITIONAL_FIELDS.get(name, []), name
+        expected = _POSITIONAL_FIELDS.get(name, [])
+        assert positional == expected, name
+        assert vars(public)["__match_args__"] == tuple(expected), name
         checked += 1
     assert checked > len(_POSITIONAL_FIELDS)
