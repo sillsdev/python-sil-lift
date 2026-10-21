@@ -11,7 +11,7 @@ type of its own.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import KW_ONLY, dataclass, field
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 __all__ = ["Annotation", "Form", "Multitext", "Span", "Text", "Trait"]
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, kw_only=True)
 class Span:
     """An inline markup run inside a ``<text>``; nests recursively."""
 
@@ -54,6 +54,7 @@ class Trait:
 
     name: str
     value: str
+    _: KW_ONLY
     annotations: list[Annotation] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
 
@@ -63,6 +64,7 @@ class Annotation:
     """An ``<annotation>``: reviewer/editorial metadata on a node."""
 
     name: str
+    _: KW_ONLY
     value: str | None = None
     who: str | None = None
     when: datetime | date | None = None
@@ -80,11 +82,12 @@ class Form:
 
     lang: str | None
     text: Text = field(default_factory=Text)
+    _: KW_ONLY
     annotations: list[Annotation] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
 
 
-@dataclass(slots=True, repr=False)
+@dataclass(slots=True, kw_only=True, repr=False)
 class Multitext(Mapping[str, Text]):
     """An insertion-ordered collection of forms, keyed by language.
 

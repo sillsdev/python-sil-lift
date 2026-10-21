@@ -12,7 +12,7 @@ node's ``extra`` and the model field stays ``None``.
 from __future__ import annotations
 
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import KW_ONLY, dataclass, field
 from datetime import date, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TYPE_CHECKING, NamedTuple
@@ -100,6 +100,7 @@ class GrammaticalInfo:
     """A ``<grammatical-info value=...>``; the extensibility exception — traits only, no fields."""
 
     value: str
+    _: KW_ONLY
     traits: list[Trait] = field(default_factory=list)
     extra: Extras = field(default_factory=Extras)
 
@@ -109,6 +110,7 @@ class URLRef:
     """A ``<media>`` or ``<illustration>``: an href with an optional label."""
 
     href: str
+    _: KW_ONLY
     label: Multitext = field(default_factory=Multitext)
     extra: Extras = field(default_factory=Extras)
 
