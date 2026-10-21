@@ -1211,7 +1211,7 @@ class Lexicon:
                 merged[range_.id] = range_
         return merged
 
-    def add_ranges_file(self, ranges_file: RangesFile | None = None, *, href: str) -> RangesFile:
+    def add_ranges_file(self, ranges_file: RangesFile, *, href: str) -> RangesFile:
         """Attach a companion ``.lift-ranges`` document so :meth:`save` writes it.
 
         For every range already in ``ranges_file`` that the header does not
@@ -1222,14 +1222,12 @@ class Lexicon:
         ``.lift`` under that basename. Populate the companion before calling
         (or call again to reference ranges added later).
 
-        Returns the attached (or newly created) :class:`RangesFile`.
+        Returns ``ranges_file``.
 
         Attaching a companion does not read the folder, so it does not put one
         back in scope for the companion-folder checks: under
         ``resolve_ranges=False`` those stay silent (see :meth:`iter_problems`).
         """
-        if ranges_file is None:
-            ranges_file = RangesFile()
         referenced = {range_.id for range_ in self.header.ranges}
         for range_ in ranges_file.ranges:
             if range_.id not in referenced:
