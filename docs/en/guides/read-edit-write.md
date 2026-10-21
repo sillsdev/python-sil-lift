@@ -51,6 +51,15 @@ Entries you didn't modify are written back **byte-identical**; a document you di
 
 The entries you did modify go out with a fresh `dateModified` (and a `dateCreated` if they had none), so an edit doesn't ship under the date it was loaded with — the tools that merge LIFT decide what changed from that attribute. `lex.save(stamp=False)` writes the dates the model holds and nothing more; `lex.save(when=...)` pins the moment instead of reading the clock. See [Generated timestamps](../fidelity.md#generated-timestamps) for the rest of the rules.
 
+To skip a save that would change nothing, guard it with `lex.changes()`:
+
+```python
+if lex.changes():
+    lex.save()
+```
+
+It is falsy only when `save()` would reproduce the source bytes, covering the entries, the header, the root element, and every `.lift-ranges` companion. It compares content, not destination, so guard only an in-place save: `lex.save("elsewhere.lift")` writes the document and its companions there whatever `changes()` reports. It costs more than the save it guards; what it saves is the write (an unchanged modification time, no spurious diff), not the work.
+
 ## Building from scratch
 
 ```python

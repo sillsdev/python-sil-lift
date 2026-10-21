@@ -328,8 +328,9 @@ def test_validation_reports_a_lone_surrogate_in_a_companion(tmp_path: Path) -> N
     layers keep running around it."""
     source = _write(tmp_path, "with-companion.lift", NON_BMP_LIFT)
     lexicon = sil_lift.load(source)
-    ranges_file = lexicon.add_ranges_file(href="with-companion.lift-ranges")
+    ranges_file = sil_lift.RangesFile()
     ranges_file.add_range("etymology")
+    lexicon.add_ranges_file(ranges_file, href="with-companion.lift-ranges")
     lexicon.save()  # the companion exists on disk, so findings can address it
     ranges_file.add_range(f"borrowed{LONE}")
     # A finding on the .lift side, to show it is still reached.

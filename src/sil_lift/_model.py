@@ -305,11 +305,9 @@ class RangesChanges:
     to have been there before. The object is truthy either way: the file will
     be written in full.
 
-    ``ranges`` names each range once, even one aliased into the list twice;
-    against a baseline the repeat is reported by ``added``, and without one it
-    is not reported at all, though :meth:`RangesFile.save` still writes it.
-    ``reordered`` answers only where the same ranges are still present, as on
-    :class:`Changes`.
+    As on :class:`Changes`, ``reordered`` answers only where the same ranges
+    are still present. The same range object in the list twice is named once
+    in ``ranges``; against a baseline, the second occurrence is an addition.
     """
 
     ranges: list[Range]  # content differs from the source
@@ -347,6 +345,9 @@ class Changes:
     addition or a removal re-serializes the document on its own, so a
     reordering alongside one is not reported separately — enough for the guard,
     short of a full account of what happened.
+
+    The same entry object in the list twice is named once in ``entries``;
+    against a baseline, the second occurrence is an addition.
 
     ``baseline`` is False when no byte snapshot was captured. Nothing can be
     compared then, so the fields say what :meth:`Lexicon.save` will write
@@ -1028,13 +1029,6 @@ class Lexicon:
         :meth:`changes`. An empty result here does not mean the document would
         round-trip byte-identically.
 
-        One report per entry, not per occurrence: an entry aliased into the
-        list twice is named once here, so a count of this list is a count of
-        entries. Against a baseline the repeat is an addition (see
-        :meth:`added_entries`), which accounts for every occurrence exactly
-        once; without a baseline, nothing is reported as added, so the repeat
-        goes unnamed even though :meth:`save` writes it.
-
         Every entry is reported when there is no byte baseline to compare
         against — a lexicon built from scratch, and equally one whose source the
         byte scanner declined to read (an encoding that is not ASCII-compatible,
@@ -1077,10 +1071,6 @@ class Lexicon:
     def added_entries(self) -> list[Entry]:
         """Entries in the lexicon that were not in the loaded document.
 
-        An entry the document already held, appended a second time, counts as
-        an addition too: the list gained an occurrence, and :meth:`save` writes
-        the entry out twice.
-
         Empty when there is no byte baseline: nothing is known to be new, since
         nothing is known to have been there before. Needs no serialization.
         """
@@ -1091,10 +1081,6 @@ class Lexicon:
 
         The entry objects survive because the parse-time records hold them, so
         a removed entry is returned intact rather than merely counted.
-
-        The mirror of the addition rule: an entry aliased into the list twice
-        is removed only once no occurrence is left. Dropping just one leaves
-        the list reordered, or unchanged if what went was the repeat.
 
         Empty when there is no byte baseline. Needs no serialization.
         """
@@ -1138,18 +1124,8 @@ class Lexicon:
         its archive is never byte-reproducible, and it carries package files
         (media, ``WritingSystems/``, ...) that nothing here inspects.
 
-        The most expensive query here: it serializes the entries, the header,
-        and every tracked companion's ranges. When only one part is wanted,
-        :meth:`changed_entries`, :meth:`added_entries`, and
-        :meth:`removed_entries` answer individually, and the latter two need no
-        serialization at all.
-
-        It is not a shortcut around :meth:`save` — it costs more than the save
-        it guards. Deciding which source bytes can be reused digests every entry
-        again, and nothing is cached between the two calls, so guarding a write
-        that turns out to be needed roughly doubles the work. What the guard
-        buys is not writing: an unchanged file-modification time, no spurious
-        diff, nothing downstream woken up.
+        It costs more than the :meth:`save` it guards: it saves the write, not
+        the work.
         """
         added, removed, reordered = self._entry_diff()
         return Changes(
@@ -1211,7 +1187,7 @@ class Lexicon:
                 merged[range_.id] = range_
         return merged
 
-    def add_ranges_file(self, ranges_file: RangesFile | None = None, *, href: str) -> RangesFile:
+    def add_ranges_file(self, ranges_file: RangesFile, *, href: str) -> RangesFile:
         """Attach a companion ``.lift-ranges`` document so :meth:`save` writes it.
 
         For every range already in ``ranges_file`` that the header does not
@@ -1222,14 +1198,12 @@ class Lexicon:
         ``.lift`` under that basename. Populate the companion before calling
         (or call again to reference ranges added later).
 
-        Returns the attached (or newly created) :class:`RangesFile`.
+        Returns ``ranges_file``.
 
         Attaching a companion does not read the folder, so it does not put one
         back in scope for the companion-folder checks: under
         ``resolve_ranges=False`` those stay silent (see :meth:`iter_problems`).
         """
-        if ranges_file is None:
-            ranges_file = RangesFile()
         referenced = {range_.id for range_ in self.header.ranges}
         for range_ in ranges_file.ranges:
             if range_.id not in referenced:
