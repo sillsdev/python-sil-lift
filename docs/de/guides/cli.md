@@ -1,6 +1,6 @@
 # Die Befehlszeile
 
-Durch die Installation des Pakets (`pip install sil-lift`) wird auch der Befehl `sil-lift` installiert – ein unterstütztes Tool im Stil von LiftTools, das im Lieferumfang des Pakets enthalten ist (und für `validate` ein Beispiel für die Anwendung der Bibliotheks-API).
+Durch die Installation des Pakets (`pip install sil-lift`) wird auch der Befehl `sil-lift` installiert – ein unterstütztes Tool im Sinne von LiftTools, das im Lieferumfang des Pakets enthalten ist.
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
