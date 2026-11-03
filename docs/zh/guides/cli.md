@@ -1,6 +1,6 @@
 # 命令行
 
-安装该包（`pip install sil-lift`）时，还会一并安装 `sil-lift` 命令——这是一个遵循 LiftTools 理念的受支持工具，随包附带（对于 `validate` 而言，它还是该库 API 的一个示例）。
+安装该包（`pip install sil-lift`）时，还会一并安装 `sil-lift` 命令——这是一个遵循 LiftTools 理念、随包附带的受支持工具。
 
 ```
 sil-lift 验证 PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
