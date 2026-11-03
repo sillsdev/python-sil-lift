@@ -1,6 +1,6 @@
 # Mstari wa amri
 
-Kusakinisha kifurushi (`pip install sil-lift`) pia husakinisha amri ya `sil-lift` — zana inayoungwa mkono katika mtindo wa LiftTools inayokuja na kifurushi hicho (na, kwa `validate`, mfano uliofanyiwa kazi wa API ya maktaba).
+Kusakinisha kifurushi (`pip install sil-lift`) pia husakinisha amri ya `sil-lift` — zana inayotumika katika mtindo wa LiftTools inayokuja pamoja na kifurushi hicho.
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
