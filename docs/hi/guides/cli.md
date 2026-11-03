@@ -1,6 +1,6 @@
 # कमांड लाइन
 
-पैकेज (`pip install sil-lift`) इंस्टॉल करने पर `sil-lift` कमांड भी इंस्टॉल हो जाता है — यह LiftTools की भावना में एक समर्थित टूल है जो पैकेज के साथ आता है (और `validate` के लिए लाइब्रेरी API का एक कार्यशील उदाहरण)।
+पैकेज (`pip install sil-lift`) इंस्टॉल करने पर `sil-lift` कमांड भी इंस्टॉल हो जाता है — यह LiftTools की भावना में एक समर्थित टूल है जो पैकेज के साथ आता है।
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
