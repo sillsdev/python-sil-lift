@@ -51,6 +51,15 @@ Maingizo ambayo hukuyabadilisha yamerudishwa **sawa kwa baiti**; hati ambayo huk
 
 Maingizo uliyoyabadilisha yanatoka na `dateModified` mpya (na `dateCreated` ikiwa haikuwa na moja), hivyo uhariri hauwasilishwi chini ya tarehe iliyopakiwa nayo — zana zinazochanganya LIFT zinabaini kile kilichobadilika kutoka kwa sifa hiyo. `lex.save(stamp=False)` huandika tarehe ambazo mfano unazoshikilia na hakuna zaidi; `lex.save(when=...)` hushikilia wakati badala ya kusoma saa. Tazama [Generated timestamps](../fidelity.md#generated-timestamps) kwa sheria zilizobaki.
 
+Ili kuruka uhifadhi ambao hautabadilisha chochote, ulinde kwa kutumia `lex.changes()`:
+
+```python
+ikiwa lex.changes():
+    lex.save()
+```
+
+Ni potofu tu wakati `save()` ingetengeneza tena baiti za chanzo, ikijumuisha maingizo, kichwa, kipengele msingi, na kila mwenza wa `.lift-ranges`. Inalinganisha yaliyomo, si mahali pa kuokoa, kwa hivyo linda tu uhifadhi mahali pake: `lex.save("elsewhere.lift")` huandika hati na viambatisho vyake huko, chochote kinachoripotiwa na `changes()`. Inagharimu zaidi kuliko inavyookoa; kinachookoa ni uandishi (muda wa mabadiliko haujabadilika, hakuna tofauti bandia), si kazi yenyewe.
+
 ## Kujenga kutoka mwanzo
 
 ```python
