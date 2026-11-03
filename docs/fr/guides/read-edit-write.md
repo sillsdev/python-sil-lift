@@ -51,6 +51,15 @@ Les entrées que vous n'avez pas modifiées sont réécrites **à l'octet près*
 
 Les entrées que vous avez modifiées sont envoyées avec une nouvelle valeur `dateModified` (et une valeur `dateCreated` si elles n'en avaient pas) ; ainsi, une modification n'est pas transmise avec la date à laquelle elle a été chargée — ce sont les outils qui fusionnent LIFT qui déterminent ce qui a changé à partir de cet attribut. `lex.save(stamp=False)` enregistre uniquement les dates contenues dans le modèle, sans rien d'autre ; `lex.save(when=...)` fixe un instant précis au lieu de se baser sur l'heure. Consultez la page [Horodatages générés](../fidelity.md#generated-timestamps) pour connaître les autres règles.
 
+To skip a save that would change nothing, guard it with `lex.changes()`:
+
+```python
+if lex.changes():
+    lex.save()
+```
+
+It is falsy only when `save()` would reproduce the source bytes, covering the entries, the header, the root element, and every `.lift-ranges` companion. It compares content, not destination, so guard only an in-place save: `lex.save("elsewhere.lift")` writes the document and its companions there whatever `changes()` reports. It costs more than the save it guards; what it saves is the write (an unchanged modification time, no spurious diff), not the work.
+
 ## Construire à partir de zéro
 
 ```python
