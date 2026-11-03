@@ -1,6 +1,6 @@
 # La línea de comandos
 
-Al instalar el paquete (`pip install sil-lift`) también se instala el comando `sil-lift`, una herramienta compatible con el espíritu de LiftTools que se incluye con el paquete (y, en el caso de `validate`, un ejemplo práctico de la API de la biblioteca).
+Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported tool in the spirit of LiftTools that ships with the package.
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
