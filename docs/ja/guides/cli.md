@@ -1,6 +1,6 @@
 # コマンドライン
 
-パッケージをインストールすると（`pip install sil-lift`）、`sil-lift` コマンドもインストールされます。これは、LiftTools の精神に基づいた、パッケージに同梱されているサポートツールです（また、`validate` については、ライブラリ API の実用例も含まれています）。
+このパッケージをインストールすると（`pip install sil-lift`）、`sil-lift` コマンドもインストールされます。これは、LiftTools の精神に基づいた、パッケージに同梱されているサポート対象のツールです。
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
