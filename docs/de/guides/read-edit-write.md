@@ -51,6 +51,15 @@ Einträge, die Sie nicht geändert haben, werden **byte-identisch** zurückgesch
 
 Die von Ihnen geänderten Einträge werden mit einem neuen `dateModified` (und einem `dateCreated`, falls noch kein Datum vorhanden war) ausgegeben, sodass eine Bearbeitung nicht unter dem Datum erfolgt, mit dem sie geladen wurde – die Tools, die LIFT zusammenführen, entscheiden anhand dieses Attributs, was sich geändert hat. `lex.save(stamp=False)` schreibt lediglich die im Modell gespeicherten Datumsangaben und sonst nichts; `lex.save(when=...)` legt den Zeitpunkt fest, anstatt die Uhrzeit abzulesen. Die übrigen Regeln finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
 
+Um ein Speichern zu überspringen, das keine Änderungen zur Folge hätte, schütze es mit `lex.changes()`:
+
+```python
+if lex.changes():
+    lex.save()
+```
+
+Der Ausdruck ist nur dann falsch, wenn `save()` die Quellbytes reproduzieren würde, einschließlich der Einträge, des Headers, des Stammelements und aller zugehörigen `.lift-ranges`-Elemente. Da hier der Inhalt und nicht das Ziel verglichen wird, sollte man nur eine Speicherung am aktuellen Speicherort sicherstellen: `lex.save("elsewhere.lift")` schreibt das Dokument und die zugehörigen Dateien dorthin, unabhängig davon, was `changes()` zurückgibt. Es kostet mehr als das, was es schützt; was es schützt, ist der Schreibvorgang (eine unveränderte Änderungszeit, kein falscher Diff), nicht die Arbeit.
+
 ## Von Grund auf neu aufbauen
 
 ```python
