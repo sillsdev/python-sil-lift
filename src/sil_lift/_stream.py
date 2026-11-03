@@ -37,9 +37,11 @@ __all__ = ["LiftReader", "LiftWriter", "open_reader", "open_writer"]
 class LiftReader:
     """Lazy entry iterator over a ``.lift`` file; the header is parsed eagerly.
 
-    Use as a context manager. The version guard runs at open time; the header
-    (which precedes entries in a conforming file) is available immediately as
-    :attr:`header`.
+    Open one with :func:`open_reader`; the class is exported for type
+    annotations. Use as a context manager. The version guard runs at open time;
+    the header (which precedes entries in a conforming file) is available
+    immediately as :attr:`header`, and the root's ``producer`` attribute as
+    :attr:`producer`.
     """
 
     def __init__(self, path: str | os.PathLike[str]) -> None:
@@ -143,9 +145,10 @@ class LiftReader:
 class LiftWriter:
     """Streaming writer: header up front, then one canonical chunk per entry.
 
-    Use as a context manager; the closing ``</lift>`` is written only on a
-    clean exit (an exception leaves an unterminated file, deliberately — a
-    half-written lexicon must not look complete).
+    Open one with :func:`open_writer`; the class is exported for type
+    annotations. Use as a context manager; the closing ``</lift>`` is written
+    only on a clean exit (an exception leaves an unterminated file,
+    deliberately — a half-written lexicon must not look complete).
     """
 
     def __init__(
