@@ -51,6 +51,15 @@ lex.save("elsewhere.lift")
 
 您修改过的条目会以新的 `dateModified` 字段（如果原本没有，还会带有 `dateCreated` 字段）发布，因此编辑后的内容不会以加载时的日期发布——负责合并 LIFT 的工具会根据该属性来确定发生了哪些变化。 `lex.save(stamp=False)` 仅保存模型中存储的日期，不保存其他信息；`lex.save(when=...)` 则锁定特定时刻，而非读取系统时间。其余规则请参见 [生成的时间戳](../fidelity.md#generated-timestamps)。
 
+若要跳过一个不会产生任何变化的保存操作，请使用 `lex.changes()` 对其进行保护：
+
+```python
+if lex.changes():
+    lex.save()
+```
+
+只有当 `save()` 能重现源字节（包括条目、头信息、根元素以及每个 `.lift-ranges` 伴生对象）时，该条件才为假。它比较的是内容，而非保存位置，因此请仅对就地保存进行保护：`lex.save("elsewhere.lift")` 会将文档及其关联文件写入该位置，无论 `changes()` 返回什么结果。它的成本比它所保护的数据还要高；它所保存的是写入操作（修改时间不变，没有虚假的差异），而不是工作本身。
+
 ## 从零开始构建
 
 ```python
