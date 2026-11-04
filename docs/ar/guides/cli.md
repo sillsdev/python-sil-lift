@@ -1,6 +1,6 @@
 # سطر الأوامر
 
-Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported tool in the spirit of LiftTools that ships with the package.
+يؤدي تثبيت الحزمة (`pip install sil-lift`) أيضًا إلى تثبيت الأمر `sil-lift` — وهي أداة مدعومة تتماشى مع روح LiftTools وتأتي مرفقة مع الحزمة.
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
