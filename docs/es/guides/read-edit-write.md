@@ -51,14 +51,14 @@ Las entradas que no hayas modificado se vuelven a escribir **con los mismos byte
 
 Las entradas que has modificado se envían con un nuevo `dateModified` (y un `dateCreated` si no tenían ninguno), por lo que una modificación no se envía con la fecha con la que se cargó; las herramientas que fusionan LIFT determinan qué ha cambiado a partir de ese atributo. `lex.save(stamp=False)` guarda las fechas que contiene el modelo y nada más; `lex.save(when=...)` fija el momento en lugar de leer la hora del reloj. Consulta [Marcas de tiempo generadas](../fidelity.md#generated-timestamps) para ver el resto de las reglas.
 
-To skip a save that would change nothing, guard it with `lex.changes()`:
+Para omitir un guardado que no supondría ningún cambio, protégelo con `lex.changes()`:
 
 ```python
-if lex.changes():
+si lex.changes():
     lex.save()
 ```
 
-It is falsy only when `save()` would reproduce the source bytes, covering the entries, the header, the root element, and every `.lift-ranges` companion. It compares content, not destination, so guard only an in-place save: `lex.save("elsewhere.lift")` writes the document and its companions there whatever `changes()` reports. It costs more than the save it guards; what it saves is the write (an unchanged modification time, no spurious diff), not the work.
+Solo es falso cuando `save()` reproduciría los bytes de origen, incluyendo las entradas, el encabezado, el elemento raíz y todos los elementos `.lift-ranges` asociados. Compara el contenido, no el destino, por lo que solo garantiza un guardado en el mismo lugar: `lex.save("elsewhere.lift")` guarda el documento y sus archivos asociados en esa ubicación, independientemente de lo que indique `changes()`. Cuesta más de lo que protege; lo que ahorra es la escritura (una fecha de modificación sin cambios, sin diferencias espurias), no el trabajo.
 
 ## Construir desde cero
 
