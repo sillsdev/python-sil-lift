@@ -24,7 +24,6 @@ Both paths refuse content XML cannot represent: see :func:`_guarded`.
 from __future__ import annotations
 
 import hashlib
-from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
@@ -66,7 +65,7 @@ __all__ = [
     "default_now",
     "entry_digest",
     "header_digest",
-    "node_diff",
+    "nodes_aligned",
     "note_caller_dates",
     "range_digest",
     "render_document",
@@ -931,44 +930,21 @@ def _fit_between_regions(chunk: bytes) -> bytes:
     return chunk[:-1] if chunk.endswith(b"\n") else chunk
 
 
-def node_diff(current: list[int], original: list[int]) -> tuple[list[int], list[int], bool]:
-    """Positions added, positions removed, and whether the survivors moved.
-
-    Node identities, in document order. ``original`` holds one identity per
-    parsed node, all distinct; ``current`` may repeat one, since appending a
-    node the document already has aliases the object rather than copying it.
-    An occurrence beyond the recorded one is therefore an addition — comparing
-    the two lists as sets would miss it, and the document would still be
-    written with the node twice. The mirror holds on the other side: a recorded
-    node counts as removed only once no occurrence of it is left, so dropping
-    one of two aliased occurrences leaves the list reordered, or unchanged if
-    the occurrence dropped was the repeat.
-
-    This is what ``Lexicon.changes`` and ``RangesFile.changes`` report as
-    ``added`` / ``removed`` / ``reordered``, and what :func:`_nodes_aligned`
-    reduces to a yes/no, so the guard cannot fall out of step with the writer.
-    """
-    known = Counter(original)
-    seen: Counter[int] = Counter()
-    added: list[int] = []
-    for index, identity in enumerate(current):
-        seen[identity] += 1
-        if seen[identity] > known[identity]:
-            added.append(index)
-    removed = [index for index, identity in enumerate(original) if not seen[identity]]
-    return added, removed, not added and not removed and current != original
-
-
-def _nodes_aligned(current: list[int], original: list[int]) -> bool:
+def nodes_aligned(current: list[int], original: list[int]) -> bool:
     """Whether the nodes still match the source's regions one-for-one, in order.
 
-    Byte reuse pairs the *i*th source region with the *i*th node, so an
-    addition, a removal, a reordering, or the same object repeated all send the
-    document down the canonical path instead — exactly the cases
-    :func:`node_diff` enumerates, which is how the change guard stays in step
-    with the writer.
+    Node identities, in document order: ``original`` holds one per parsed
+    node, and ``current`` may repeat one, since appending a node the document
+    already has aliases the object rather than copying it. Byte reuse pairs
+    the *i*th source region with the *i*th node, so an addition, a removal, a
+    reordering, or the same object repeated all send the document down the
+    canonical path instead. Comparing the lists as sets would miss the repeat,
+    and the document would still be written with the node twice.
+
+    ``Lexicon.changes`` and ``RangesFile.changes`` ask the same question, so
+    the guard cannot fall out of step with the writer.
     """
-    return not any(node_diff(current, original))
+    return current == original
 
 
 def _root_unchanged(lexicon: Lexicon, source: _SourceInfo) -> bool:
@@ -1030,7 +1006,7 @@ def render_document(lexicon: Lexicon) -> bytes:
             return source.data
         return canonical_document(lexicon, entry_fn, header_fn)
 
-    if not _nodes_aligned(
+    if not nodes_aligned(
         [id(entry) for entry in lexicon.entries],
         [id(record.entry) for record in source.entry_records],
     ):
@@ -1134,7 +1110,7 @@ def render_ranges_document(ranges_file: RangesFile) -> bytes:
             return source.data
         return canonical_ranges_document(ranges_file, range_fn)
 
-    if not _nodes_aligned(
+    if not nodes_aligned(
         [id(range_) for range_ in ranges_file.ranges],
         [id(record.range) for record in source.range_records],
     ):

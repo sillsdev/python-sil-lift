@@ -25,11 +25,14 @@ releases may contain breaking changes.
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
   test corpus with provenance, corpus-prep and large-file-generator tooling.
 - Full object model: all 35 LIFT 0.13 elements as typed dataclasses.
-  Constructors and class patterns are keyword-only except for the leading
-  fields of `Form`, `Trait`, `Text`, `Annotation`, `URLRef`, and
-  `GrammaticalInfo`. Multilingual fields are `Multitext`, a `Mapping` from
-  language code to `Text` that coerces plain strings on assignment; the
-  `forms` list stays the full truth, holding forms no key reaches.
+  Every public dataclass, including the results the library returns
+  (`Problem`, `MediaRef`, `MediaResolution`), takes keywords in its
+  constructor and class patterns, except for the leading fields of `Form`,
+  `Trait`, `Text`, `Annotation`, `URLRef`, and `GrammaticalInfo`. `Extras`
+  takes no constructor arguments. Multilingual fields are `Multitext`, a
+  `Mapping` from language code to `Text` that coerces plain strings on
+  assignment; the `forms` list stays the full truth, holding forms no key
+  reaches.
   `Entry.all_senses()` walks every subsense depth-first in document order,
   which `Entry.senses` (top level only) does not. `sil_lift.load()` /
   `Lexicon.load()` full-document reader that keeps LIFT residue per node in
@@ -47,11 +50,11 @@ releases may contain breaking changes.
   fill a blank `dateCreated` with the same moment. `stamp=False` turns it off;
   `when=` supplies the moment in place of the wall clock.
 - Change detection against the loaded document, reading the same parse-time
-  digests. `Lexicon.changed_entries()`, `added_entries()`, and
-  `removed_entries()` report entries; `Lexicon.changes()` and
-  `RangesFile.changes()` return a `Changes` / `RangesChanges` summary covering
-  entry content, additions, removals, reordering, the header, the root
-  element, and tracked companions.
+  digests. `Lexicon.changed_entries()` lists the entries whose content
+  changed. `Lexicon.changes()` and `RangesFile.changes()` return whether a
+  save would differ from the source: a `bool` covering entry content,
+  additions, removals, reordering, the header, the root element, and tracked
+  companions.
 - LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
   same fidelity guarantees), automatic companion discovery/tracking on load
   (`Lexicon.ranges_files`), `save()` writes companions together,

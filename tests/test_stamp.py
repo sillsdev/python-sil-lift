@@ -466,8 +466,8 @@ def test_a_removed_entry_drops_out_of_the_stamping_baseline(tmp_path: Path) -> N
     """The baseline dict is rebuilt each save, so it holds no entry the lexicon lost.
 
     An entry the document was loaded with is retained by its parse-time record
-    either way — that is what makes `removed_entries()` work — but one appended
-    and then dropped would otherwise be kept alive here, subtree and all.
+    either way, but one appended and then dropped would otherwise be kept alive
+    here, subtree and all.
     """
     lexicon = sil_lift.load(UNDATED)
     appended = sil_lift.Entry(id="temporary")

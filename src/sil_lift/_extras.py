@@ -36,8 +36,8 @@ class _ExtraNode:
 class Extras:
     """Out-of-schema content carried losslessly (opaque; see module docstring)."""
 
-    _attrs: dict[str, str] = field(default_factory=dict)
-    _nodes: list[_ExtraNode] = field(default_factory=list)
+    _attrs: dict[str, str] = field(default_factory=dict, init=False)
+    _nodes: list[_ExtraNode] = field(default_factory=list, init=False)
 
     def __bool__(self) -> bool:
         return bool(self._attrs or self._nodes)
