@@ -33,7 +33,8 @@ releases may contain breaking changes.
 - Writing with byte fidelity: `Lexicon.save()` writes unchanged documents and
   untouched entries back byte-identically.
   - Edited entries re-serialize canonically, out-of-schema content included.
-  - Edited entries get a fresh `dateModified`; `stamp=False` turns that off.
+  - Edited entries get a fresh `dateModified`; `when=` pins the moment for
+    reproducible output, and `stamp=False` turns stamping off.
   - The contract is documented in `docs/en/fidelity.md`.
 - Change detection against the loaded document.
   - `Lexicon.changes()` and `RangesFile.changes()` say whether a save would
@@ -45,8 +46,14 @@ releases may contain breaking changes.
   - Helpers build a lexicon and its companions from scratch.
 - Zipped LIFT packages: `sil_lift.load()` reads a `.zip`, and
   `Lexicon.save_zip()` writes one.
+  - The CLI's `validate`, `stats`, `check-media`, and `export` accept a
+    `.zip` path directly.
+  - Extraction is capped (100,000 members, 10 GiB) and refuses members
+    whose paths escape the extraction directory.
 - Validation: `iter_problems()` and `Lexicon.iter_problems()` report
   `Problem`s from the RELAX NG schemas and thirteen semantic checks.
+  - FLEx's `file://` hrefs, which the schema rejects, are reported as
+    `uri-not-rfc` warnings, so real FLEx exports pass.
   - Every problem code is described in `docs/en/guides/validate.md`.
 - Canonical sorting with `Lexicon.sort()` and `RangesFile.sort()`, and
   `sil_lift.canonicalize()` for fully re-serialized, diff-ready output.
@@ -55,6 +62,8 @@ releases may contain breaking changes.
   entry in memory at a time.
 - The `sil-lift` CLI: `validate`, `stats`, `sort`, `check-media`, and
   `export` (to CSV/TSV).
+  - `validate` takes `--strict`, `--allow CODE`, `--require-ids`,
+    `--no-check-media`, and `-` for stdin.
   - `validate`'s exit codes and `--format json` output are a supported
     interface for CI.
 - A container image and GitHub Action that run `sil-lift validate` in CI with
