@@ -9,6 +9,18 @@ releases may contain breaking changes.
 
 <!-- Available types of changes:
 ### Added
+### Fixed
+### Changed
+### Deprecated
+### Removed
+### Security
+-->
+
+## [Unreleased]
+
+## [0.1.0] - 2026-11-TBD
+
+### Added
 
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
   and a test corpus with provenance.
