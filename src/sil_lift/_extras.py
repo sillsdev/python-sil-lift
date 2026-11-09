@@ -5,10 +5,10 @@ LIFT 0.13 schema does not define: unknown attributes, unknown child elements, XM
 comments/processing instructions, and stray text in element-only contexts. The
 writer re-emits it so nothing is dropped.
 
-FieldWorks calls this LIFT residue and keeps it much the same way — content that
-does not map onto its model is serialized into a ``<lift-residue>`` blob held in
-a ``LiftResidue`` field — so that is the name used throughout this package. Take
-care with the bare word: in FieldWorks "residue" on its own means the
+FieldWorks keeps this content much the same way and calls it LIFT residue, so
+that is the name used throughout this package. In FieldWorks, content that does
+not map onto its model is serialized into a ``<lift-residue>`` blob held in a
+``LiftResidue`` field. Take care with the bare word: in FieldWorks "residue" on its own means the
 ``import-residue`` field, a user-visible LIFT field recording what a standard
 format import could not place, which is a different thing entirely.
 
@@ -36,8 +36,8 @@ class _ExtraNode:
 class Extras:
     """Out-of-schema content carried losslessly (opaque; see module docstring)."""
 
-    _attrs: dict[str, str] = field(default_factory=dict)
-    _nodes: list[_ExtraNode] = field(default_factory=list)
+    _attrs: dict[str, str] = field(default_factory=dict, init=False)
+    _nodes: list[_ExtraNode] = field(default_factory=list, init=False)
 
     def __bool__(self) -> bool:
         return bool(self._attrs or self._nodes)

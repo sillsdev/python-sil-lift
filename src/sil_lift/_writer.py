@@ -18,13 +18,12 @@ Snapshots are sha256 digests of canonical bytes, taken at parse time. The same
 digests decide, in :func:`stamp_entries`, which entries an edit has left with a
 stale ``dateModified``.
 
-Both paths refuse content XML cannot represent: see :func:`_guarded`.
+Both paths refuse content that XML cannot represent: see :func:`_guarded`.
 """
 
 from __future__ import annotations
 
 import hashlib
-from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
@@ -66,7 +65,7 @@ __all__ = [
     "default_now",
     "entry_digest",
     "header_digest",
-    "node_diff",
+    "nodes_aligned",
     "note_caller_dates",
     "range_digest",
     "render_document",
@@ -218,8 +217,8 @@ def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> 
     """Whether the content moved since ``baseline`` while the date stayed put.
 
     Both halves matter. The digest covers the entry's whole subtree, so it
-    catches an edit at any depth; the date comparison is what leaves an entry
-    the caller dated by hand alone, since a deliberate value is not one to
+    catches an edit at any depth. The date comparison is what leaves alone an
+    entry the caller dated by hand, since a deliberate value is not one to
     overwrite.
 
     Without a baseline there is nothing to compare — an entry added since the
@@ -266,12 +265,12 @@ def note_caller_dates(lexicon: Lexicon) -> _StampUndo:
     Only an entry whose date moved off its baseline is noted, and only that
     entry is digested. An entry written unstamped under the date it was loaded
     with is left out on purpose: its content is now on disk under a date that
-    no longer describes it, and the next stamping save should still say so.
+    no longer describes it, and the next stamping save should still stamp it.
 
     The rest of the baseline carries over from the last save, less any entry
-    that has since left the lexicon — dropped for the same reason
-    :func:`stamp_entries` rebuilds its own dict each pass. That function adopts
-    the dates it writes the same way.
+    that has since left the lexicon (dropped for the same reason
+    :func:`stamp_entries` rebuilds its own dict each pass). :func:`stamp_entries`
+    likewise adopts the dates it writes as the new baseline.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps
@@ -311,19 +310,21 @@ def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
     it, for a caller whose write does not go through.
 
     Each save leaves behind the state it wrote, in ``lexicon._stamps``, and the
-    next save measures against that rather than against the load. Without it a
-    second round of edits on the same in-memory lexicon would ship unstamped.
-    Its content differs from the loaded content, but so does its date: the
-    first save's own stamp, which reads exactly like a date the caller set
-    deliberately. An entry still matching its parse-time record needs no such
-    override and is recorded nowhere, so a save of a few edited entries
-    remembers only those. Rebuilding the dict each pass also drops entries that
-    have since left the lexicon, which would otherwise stay alive here for a
-    baseline nothing will consult again.
+    next save measures against that rather than against the load. Without it, a
+    second round of edits on the same in-memory lexicon would ship unstamped:
+    an entry edited again differs from its loaded content, but so does its
+    date, which is the first save's own stamp and reads exactly like a date the
+    caller set deliberately.
+
+    An entry still matching its parse-time record needs no such override and is
+    recorded nowhere, so a save of a few edited entries remembers only those.
+    Rebuilding the dict each pass also drops entries that have since left the
+    lexicon, which would otherwise stay alive here for a baseline nothing will
+    consult again.
 
     Deciding comes before mutating because digesting is the only step that can
-    fail (see :func:`_guarded`). Content XML cannot represent is refused with
-    nothing stamped, rather than half-stamped at the entry it was found on.
+    fail (see :func:`_guarded`). Content that XML cannot represent is refused
+    with nothing stamped, rather than half-stamped at the entry it was found on.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps
@@ -931,44 +932,21 @@ def _fit_between_regions(chunk: bytes) -> bytes:
     return chunk[:-1] if chunk.endswith(b"\n") else chunk
 
 
-def node_diff(current: list[int], original: list[int]) -> tuple[list[int], list[int], bool]:
-    """Positions added, positions removed, and whether the survivors moved.
-
-    Node identities, in document order. ``original`` holds one identity per
-    parsed node, all distinct; ``current`` may repeat one, since appending a
-    node the document already has aliases the object rather than copying it.
-    An occurrence beyond the recorded one is therefore an addition — comparing
-    the two lists as sets would miss it, and the document would still be
-    written with the node twice. The mirror holds on the other side: a recorded
-    node counts as removed only once no occurrence of it is left, so dropping
-    one of two aliased occurrences leaves the list reordered, or unchanged if
-    the occurrence dropped was the repeat.
-
-    This is what ``Lexicon.changes`` and ``RangesFile.changes`` report as
-    ``added`` / ``removed`` / ``reordered``, and what :func:`_nodes_aligned`
-    reduces to a yes/no, so the guard cannot fall out of step with the writer.
-    """
-    known = Counter(original)
-    seen: Counter[int] = Counter()
-    added: list[int] = []
-    for index, identity in enumerate(current):
-        seen[identity] += 1
-        if seen[identity] > known[identity]:
-            added.append(index)
-    removed = [index for index, identity in enumerate(original) if not seen[identity]]
-    return added, removed, not added and not removed and current != original
-
-
-def _nodes_aligned(current: list[int], original: list[int]) -> bool:
+def nodes_aligned(current: list[int], original: list[int]) -> bool:
     """Whether the nodes still match the source's regions one-for-one, in order.
 
-    Byte reuse pairs the *i*th source region with the *i*th node, so an
-    addition, a removal, a reordering, or the same object repeated all send the
-    document down the canonical path instead — exactly the cases
-    :func:`node_diff` enumerates, which is how the change guard stays in step
-    with the writer.
+    Node identities, in document order: ``original`` holds one per parsed
+    node, and ``current`` may repeat one, since appending a node the document
+    already has aliases the object rather than copying it. Byte reuse pairs
+    the *i*th source region with the *i*th node, so an addition, a removal, a
+    reordering, or the same object repeated all send the document down the
+    canonical path instead. Comparing the lists as sets would miss the repeat,
+    and the document would still be written with the node twice.
+
+    ``Lexicon.changes`` and ``RangesFile.changes`` ask the same question, so
+    the guard cannot fall out of step with the writer.
     """
-    return not any(node_diff(current, original))
+    return current == original
 
 
 def _root_unchanged(lexicon: Lexicon, source: _SourceInfo) -> bool:
@@ -1030,7 +1008,7 @@ def render_document(lexicon: Lexicon) -> bytes:
             return source.data
         return canonical_document(lexicon, entry_fn, header_fn)
 
-    if not _nodes_aligned(
+    if not nodes_aligned(
         [id(entry) for entry in lexicon.entries],
         [id(record.entry) for record in source.entry_records],
     ):
@@ -1134,7 +1112,7 @@ def render_ranges_document(ranges_file: RangesFile) -> bytes:
             return source.data
         return canonical_ranges_document(ranges_file, range_fn)
 
-    if not _nodes_aligned(
+    if not nodes_aligned(
         [id(range_) for range_ in ranges_file.ranges],
         [id(record.range) for record in source.range_records],
     ):

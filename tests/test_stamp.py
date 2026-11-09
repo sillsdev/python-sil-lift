@@ -120,9 +120,9 @@ def test_sorting_alone_stamps_nothing(tmp_path: Path) -> None:
 def test_a_second_round_of_edits_on_the_same_lexicon_is_also_stamped(tmp_path: Path) -> None:
     """The baseline moves with each save; without that, only the first edit would bump.
 
-    After the first save the entry's date differs from the loaded one — this
-    library's own stamp — which is indistinguishable from a caller-set date
-    unless the save records what it wrote.
+    After the first save the entry's date differs from the loaded one. That
+    date is this library's own stamp, but it is indistinguishable from a
+    caller-set date unless the save records what it wrote.
     """
     lexicon = sil_lift.load(DATED)
     entry = lexicon.entries[0]
@@ -171,10 +171,10 @@ def test_a_hand_set_date_becomes_the_baseline_for_the_next_edit(tmp_path: Path) 
 def test_an_unstamped_save_notes_a_date_the_caller_set(tmp_path: Path) -> None:
     """Which kind of save ran in between must not decide whether a later edit is stamped.
 
-    An unstamped save writes the caller's date to disk, so it becomes the date
-    the next stamping save measures against — as it would have if that save had
-    stamped. Otherwise the entry reads as deliberately dated for good and is
-    never stamped again.
+    An unstamped save writes the caller's date to disk, so that date becomes
+    the one the next stamping save measures against, just as it would if the
+    in-between save had stamped. Otherwise the entry reads as deliberately
+    dated for good and is never stamped again.
     """
     lexicon = sil_lift.load(DATED)
     entry = lexicon.entries[0]
@@ -257,7 +257,7 @@ def test_clearing_a_date_without_an_edit_is_left_alone_too(tmp_path: Path) -> No
     """A date is part of an entry's bytes, so clearing one moves the digest by itself.
 
     What holds the stamp off is the date having left its baseline, not the
-    digest standing still — which it does not here.
+    digest standing still; here the digest moves.
     """
     lexicon = sil_lift.load(DATED)
     entry = lexicon.entries[0]
@@ -466,8 +466,8 @@ def test_a_removed_entry_drops_out_of_the_stamping_baseline(tmp_path: Path) -> N
     """The baseline dict is rebuilt each save, so it holds no entry the lexicon lost.
 
     An entry the document was loaded with is retained by its parse-time record
-    either way — that is what makes `removed_entries()` work — but one appended
-    and then dropped would otherwise be kept alive here, subtree and all.
+    either way, but one appended and then dropped would otherwise be kept alive
+    here, subtree and all.
     """
     lexicon = sil_lift.load(UNDATED)
     appended = sil_lift.Entry(id="temporary")
@@ -543,7 +543,7 @@ def test_two_saves_of_one_moment_share_a_stamp(tmp_path: Path) -> None:
     """The documented limit of seconds precision, said with an explicit moment.
 
     The same second cannot hold two distinct dates, so a second edit saved
-    within one reads as no change to anything comparing dates. The stamping
+    within the same second reads as no change to anything comparing dates. The stamping
     baseline still tracks it, so the next distinct moment stamps normally.
     """
     lexicon = sil_lift.load(DATED)
