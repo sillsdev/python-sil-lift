@@ -9,104 +9,43 @@ releases may contain breaking changes.
 
 <!-- Available types of changes:
 ### Added
-### Fixed
-### Changed
-### Deprecated
-### Removed
-### Security
--->
-
-## [Unreleased]
-
-## [0.1.0] - 2026-07-TBD
-
-### Added
 
 - Project scaffolding: package skeleton, vendored LIFT 0.13 RELAX NG schema,
-  test corpus with provenance, corpus-prep and large-file-generator tooling.
-- Full object model: all 35 LIFT 0.13 elements as typed dataclasses.
-  Every public dataclass, including the results the library returns
-  (`Problem`, `MediaRef`, `MediaResolution`), takes keywords in its
-  constructor and class patterns, except for the leading fields of `Form`,
-  `Trait`, `Text`, `Annotation`, `URLRef`, and `GrammaticalInfo`. `Extras`
-  takes no constructor arguments. Multilingual fields are `Multitext`, a
-  `Mapping` from language code to `Text` that coerces plain strings on
-  assignment; the `forms` list stays the full truth, holding forms no key
-  reaches.
-  `Entry.all_senses()` walks every subsense depth-first in document order,
-  which `Entry.senses` (top level only) does not. `sil_lift.load()` /
-  `Lexicon.load()` full-document reader that keeps LIFT residue per node in
-  `Extras`; LIFT-version guard.
-- `Lexicon.save()` writer with byte-fidelity passthrough — unchanged
-  documents and untouched entries are written byte-identically; touched entries
-  re-serialize canonically with all out-of-schema content preserved. Fidelity
-  contract documented in `docs/en/fidelity.md` and enforced by corpus
-  byte-identity tests plus Hypothesis round-trip properties. Content XML cannot
-  represent — a lone surrogate, which only an API assignment can introduce — is
-  refused with `LiftWriteError` naming the node, and reported by validation as
-  `lone-surrogate`.
-- Generated timestamps on save: `Lexicon.save()` and `Lexicon.save_zip()` stamp
-  `dateModified` on every entry whose content changed since it was loaded, and
-  fill a blank `dateCreated` with the same moment. `stamp=False` turns it off;
-  `when=` supplies the moment in place of the wall clock.
-- Change detection against the loaded document, reading the same parse-time
-  digests. `Lexicon.changed_entries()` lists the entries whose content
-  changed. `Lexicon.changes()` and `RangesFile.changes()` return whether a
-  save would differ from the source: a `bool` covering entry content,
-  additions, removals, reordering, the header, the root element, and tracked
-  companions.
-- LIFT-folder handling: `RangesFile` (standalone `.lift-ranges` documents,
-  same fidelity guarantees), automatic companion discovery/tracking on load
-  (`Lexicon.ranges_files`), `save()` writes companions together,
-  `all_ranges()` merged view, `media_refs()` / `check_media()` helpers,
-  build-from-scratch helpers `Lexicon.add_ranges_file()` /
-  `RangesFile.add_range()` / `Range.add_element()` (`save()` writes and
-  header-references a new companion beside the `.lift`); vendored
-  `schemas/lift-ranges-0.13.rng` for standalone ranges documents.
-- Zipped LIFT packages: `sil_lift.load()` reads a `.zip` (both the flat and
-  folder-wrapped layouts, junk entries like `__MACOSX` ignored),
-  `Lexicon.save_zip()` writes one (carrying media, `WritingSystems/`, and other
-  package files through verbatim); `validate`, `stats`, `check-media`, and
-  `export` accept a `.zip` path on the CLI, and the streaming commands
-  (`stats`, `export`) extract only the `.lift` rather than the whole package.
-  Extraction is capped at 100,000 members and 10 GiB (the whole package for a
-  full extraction, the `.lift` alone for a streaming one), and refuses members
-  whose paths escape the extraction directory.
-- Validation: `iter_problems()` / `Lexicon.iter_problems()` returning a
-  `Problem` stream, each carrying the file, entry, and line it concerns. RELAX
-  NG layer with two documented departures from strict validation (invalid
-  `file://` hrefs downgraded to `uri-not-rfc` warnings; legal interleaving not
-  falsely flagged); vendored ranges schema over companions; and thirteen
-  semantic checks, one `Problem` code each (with missing-id opt-in via
-  `require_ids`). Every code is described in `docs/en/guides/validate.md`.
-- Canonical sort: `Lexicon.sort()` / `RangesFile.sort()` (entries by
-  case-folded guid/id, ranges/range-elements by id, field definitions by tag;
-  informed by the C# LiftSorter, locale-independent) and
-  `sil_lift.canonicalize()` for fully re-serialized diff-ready output. Sorting
-  composes with the passthrough: sort \+ save moves untouched entries' bytes
-  without rewriting them. Text whitespace is never normalized.
-- Streaming: `open_reader()` (lazy entry iterator with the parsed header
-  available up front) and `open_writer()` (header \+ one canonical chunk per
-  entry; byte-identical to `canonical_document` output by construction, and
-  optionally writing a `.lift-ranges` companion via `ranges=`), both
-  over the same `Entry` types as full-document mode, holding one entry in
-  memory at a time (verified on a ~340 MB generated file).
-- The `sil-lift` CLI (stdlib-only, installed with the package):
-  `validate` / `stats` / `sort` / `check-media`, plus `export` — one row per
-  leaf sense (subsenses flattened) to CSV/TSV, streaming; analysis languages
-  auto-detected or set with `--langs`. `validate` supports `--format json`
-  (machine-readable findings), `--strict` (warnings become errors),
-  `--no-check-media` (skip the filesystem media-presence check),
-  `--allow CODE[,CODE...]` (report the given codes' findings but leave them out
-  of the pass/fail decision), `--require-ids` (error on entries/senses missing
-  a stable id), and `-` to read from stdin; `stats` also takes `--format json`.
-  `validate`'s exit codes and JSON schema are a supported interface.
-- Container image and GitHub Action wrapping `sil-lift validate`, so a
-  non-Python CI pipeline can run the conformance check with no local Python
-  toolchain (`Dockerfile`, `action.yml`, `docker-entrypoint.sh`).
-- Documentation site: task-oriented guides, the fidelity contract, generated
-  API reference, localization-ready configuration; includes worked examples
-  ("bulk-editing glosses" and "building a LIFT export from scratch", complete
-  runnable scripts with verified output) and
-  a "Differences from the C# libraries" page summarizing where sil-lift
-  deviates from SIL.Lift/LiftSorter behavior and why.
+  and a test corpus with provenance.
+- A typed object model covering all 35 LIFT 0.13 elements.
+  - Multilingual fields are `Multitext`, a mapping from language code to
+    `Text`.
+  - Every public dataclass is keyword-only past its leading fields.
+- Reading: `sil_lift.load()` / `Lexicon.load()`, keeping out-of-schema
+  content (LIFT residue) on each node in `Extras`.
+- Writing with byte fidelity: `Lexicon.save()` writes unchanged documents and
+  untouched entries back byte-identically.
+  - Edited entries re-serialize canonically, out-of-schema content included.
+  - Edited entries get a fresh `dateModified`; `stamp=False` turns that off.
+  - The contract is documented in `docs/en/fidelity.md`.
+- Change detection against the loaded document.
+  - `Lexicon.changes()` and `RangesFile.changes()` say whether a save would
+    differ from the source, as a guard for skipping the write.
+  - `Lexicon.changed_entries()` lists the entries whose content changed.
+- LIFT folders: `.lift-ranges` companions are discovered on load and saved
+  with the document, and `RangesFile` handles a standalone ranges document.
+  - `check_media()` reports media references that don't resolve.
+  - Helpers build a lexicon and its companions from scratch.
+- Zipped LIFT packages: `sil_lift.load()` reads a `.zip`, and
+  `Lexicon.save_zip()` writes one.
+- Validation: `iter_problems()` and `Lexicon.iter_problems()` report
+  `Problem`s from the RELAX NG schemas and thirteen semantic checks.
+  - Every problem code is described in `docs/en/guides/validate.md`.
+- Canonical sorting with `Lexicon.sort()` and `RangesFile.sort()`, and
+  `sil_lift.canonicalize()` for fully re-serialized, diff-ready output.
+  - Sorting moves untouched entries without rewriting them.
+- Streaming for large files: `open_reader()` and `open_writer()` hold one
+  entry in memory at a time.
+- The `sil-lift` CLI: `validate`, `stats`, `sort`, `check-media`, and
+  `export` (to CSV/TSV).
+  - `validate`'s exit codes and `--format json` output are a supported
+    interface for CI.
+- A container image and GitHub Action that run `sil-lift validate` in CI with
+  no Python toolchain.
+- A documentation site: task-oriented guides, worked examples, an API
+  reference, and a page on differences from the C# libraries.
