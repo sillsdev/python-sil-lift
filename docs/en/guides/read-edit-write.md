@@ -58,7 +58,7 @@ if lex.changes():
     lex.save()
 ```
 
-It returns `False` only when `save()` would reproduce the source bytes, covering the entries, the header, the root element, and every `.lift-ranges` companion. It stops at the first difference, but an unchanged lexicon has to be serialized in full to prove it unchanged. What the guard saves is the write (an unchanged modification time, no spurious diff), not the work.
+It returns `False` only when `save()` would reproduce the source bytes, covering the entries, the header, the root element, and every `.lift-ranges` companion. It stops at the first difference, so on an edited lexicon it costs almost nothing. An unchanged lexicon has to be serialized in full to prove it unchanged, but that still costs less than the save it skips. Skipping the write also leaves the file's modification time alone and avoids a spurious diff.
 
 It compares content, not destination, so guard only an in-place save. `lex.save("elsewhere.lift")` writes the document and its companions there whatever `changes()` returns.
 

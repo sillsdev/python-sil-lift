@@ -1012,9 +1012,9 @@ class Lexicon:
         never byte-reproducible, and it carries package files (media,
         ``WritingSystems/``, ...) that nothing here inspects.
 
-        It stops at the first difference, but an unchanged lexicon costs one
-        canonical serialization pass over its entries and ranges: it saves the
-        write, not the work.
+        It stops at the first difference. An unchanged lexicon costs one
+        canonical serialization pass over its entries and ranges, which is
+        still less than the :meth:`save` it skips.
         """
         from ._writer import entry_digest, nodes_aligned
 
