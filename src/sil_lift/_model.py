@@ -425,8 +425,9 @@ def _folded_matches(candidate: Path, listings: dict[Path, dict[str, list[Path]]]
     misses, and then only on the final component — the hrefs this serves are
     basenames or same-folder relatives.
 
-    Several matches mean the folder holds names the filesystem that wrote them
-    could not have told apart, so which one the name meant is not recoverable.
+    Several matches mean the folder holds names that could not have been told
+    apart on the filesystem that wrote them, so which one the name meant is not
+    recoverable.
 
     ``listings`` caches one directory read per folder.
     """
@@ -469,10 +470,11 @@ def _folded_entries(
     """Everything in ``folder``, keyed by folded name; one read per folder.
 
     Unlike :func:`_folded_matches` this never probes an exact spelling first,
-    because an exact probe on a case-folding filesystem answers for a name it
-    cannot report: ``SDD.PNG`` stats true against an on-disk ``sdd.png`` and
-    the real spelling is never seen. Listing is also the cheaper half of the
-    trade, since a document's media probes the same few folders over and over.
+    because on a case-folding filesystem an exact probe succeeds without
+    revealing the on-disk spelling: ``SDD.PNG`` stats true against an on-disk
+    ``sdd.png``, and the real spelling is never seen. Listing is also cheaper
+    than probing, since a document's media references hit the same few folders
+    over and over.
     """
     if folder not in listings:
         entries: dict[str, list[Path]] = {}
@@ -493,9 +495,9 @@ def _media_matches(
     """Every file under ``base`` that ``relative`` names, folding each component.
 
     Component by component, because a folder spelled another way hides
-    everything under it: a Windows-authored ``Pictures\\`` read on a
-    case-sensitive filesystem would otherwise take every href across it with
-    it.
+    everything under it. Otherwise a Windows-authored ``Pictures\\`` read on a
+    case-sensitive filesystem would leave every href that passes through it
+    unresolved.
 
     A href reaching outside the folder (``..``) is probed as written and not
     folded: which directory to search would be a guess.
@@ -698,25 +700,30 @@ class Lexicon:
 
         With ``resolve_ranges`` (the default), companion ``.lift-ranges``
         files are loaded and tracked in :attr:`ranges_files`. Several
-        candidates are tried and every distinct file among them is loaded:
-        the conventional ``<name>.lift-ranges`` sibling, and for each header
-        ``range/@href`` both the href resolved as a path relative to the
-        ``.lift`` file and its bare basename in the same directory (FLEx
-        hrefs are usually dangling absolute ``file://C:/...`` paths from the
-        exporting machine, so the basename is what resolves locally).
+        candidates are tried, and every distinct file among them is loaded:
+
+        - the conventional ``<name>.lift-ranges`` sibling;
+        - for each header ``range/@href``, the href resolved as a path
+          relative to the ``.lift`` file;
+        - for each header ``range/@href``, its bare basename in the same
+          directory.
+
+        FLEx hrefs are usually dangling absolute ``file://C:/...`` paths from
+        the exporting machine, so the basename is what resolves locally.
 
         A candidate matching no file exactly resolves across differences in
         case or Unicode normalization, so a folder authored on Windows loads
-        the same way everywhere. One that several files answer to that way is
-        ambiguous and resolves to none of them, which validation reports as
-        ``ambiguous-ranges-file``; the ``.lift`` is never its own companion.
+        the same way everywhere. A candidate that matches several files under
+        that folding is ambiguous and resolves to none of them, which
+        validation reports as ``ambiguous-ranges-file``. The ``.lift`` itself
+        is never loaded as its own companion.
 
         Companion discovery never raises. A candidate that exists but cannot be
-        read as a ``<lift-ranges>`` document -- a zero-byte or truncated
-        sidecar, another ``.lift``, an unrelated file an href names -- is
-        skipped, so its entries still load, and validation reports it as
-        ``unreadable-ranges-file``. :meth:`RangesFile.load` is unchanged and
-        still raises.
+        read as a ``<lift-ranges>`` document is skipped: a zero-byte or
+        truncated sidecar, another ``.lift``, or an unrelated file an href
+        names. The lexicon's entries still load, and validation reports the
+        skipped file as ``unreadable-ranges-file``. :meth:`RangesFile.load`
+        called directly does raise on such a file.
 
         A ``.zip`` path is treated as a packaged LIFT folder: it is extracted
         to a temporary directory (kept alive for the returned lexicon's
@@ -796,15 +803,16 @@ class Lexicon:
         name in the *same* directory leaves companions at their original
         paths (they are shared with the original document, not copied).
 
-        This mutates the model: every entry whose content changed since the
-        load goes out with a fresh ``dateModified``, and with a ``dateCreated``
-        if it had none — in a ``save(path)`` used to export a copy too. Left as
-        they stand: a date the caller set deliberately, and any entry whose
-        content did not change, reordering included (see :meth:`sort`).
+        This mutates the model, even in a ``save(path)`` used to export a copy:
+        every entry whose content changed since the load goes out with a fresh
+        ``dateModified``, and with a ``dateCreated`` if it had none. Two things
+        are left as they stand: a date the caller set deliberately, and any
+        entry whose content did not change. Reordering is not a content change
+        (see :meth:`sort`).
 
         ``stamp=False`` writes the model exactly as it stands. ``when`` supplies
-        the moment in place of the clock, normalized to UTC at seconds
-        precision, which is what makes stamped output byte-reproducible. See
+        the moment in place of the clock, which is what makes stamped output
+        byte-reproducible; it is normalized to UTC at seconds precision. See
         ``docs/en/fidelity.md`` for the rest of the contract.
 
         Raises :class:`ValueError` if no target path is available (none was
@@ -1037,8 +1045,8 @@ class Lexicon:
         (line numbers match the file on disk); otherwise serialization is a
         documented cost on large lexicons.
 
-        Read-only: it reports the document as it stands, before the
-        ``dateModified`` stamping :meth:`save` does. That is the one way these
+        Read-only: it reports the document as it stands, before :meth:`save`
+        stamps ``dateModified``. That stamping is the one way the validated
         bytes differ from the bytes written. A stamp is a well-formed date in a
         valid place, so nothing generated is ever a finding and validate-then-save
         is sound.
@@ -1048,11 +1056,11 @@ class Lexicon:
         are optional there), for workflows that re-import by a stable id.
 
         The companion-folder checks (``ambiguous-ranges-file``,
-        ``dangling-ranges-href``, and ``unreadable-ranges-file``) are reported
-        only when companion discovery ran: a lexicon loaded with
-        ``resolve_ranges=False`` put companions out of scope, so none is
-        reported for it, and attaching one afterwards with
-        :meth:`add_ranges_file` does not reinstate them. ``missing-media`` and
+        ``dangling-ranges-href``, and ``unreadable-ranges-file``) run only when
+        companion discovery ran. Loading with ``resolve_ranges=False`` puts
+        companions out of scope, so none of these is reported, and attaching a
+        companion afterwards with :meth:`add_ranges_file` does not reinstate
+        the checks. ``missing-media`` and
         ``media-href-mismatch`` are unaffected: media is never resolved into
         the model, so nothing was opted out of.
         """

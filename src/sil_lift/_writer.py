@@ -18,7 +18,7 @@ Snapshots are sha256 digests of canonical bytes, taken at parse time. The same
 digests decide, in :func:`stamp_entries`, which entries an edit has left with a
 stale ``dateModified``.
 
-Both paths refuse content XML cannot represent: see :func:`_guarded`.
+Both paths refuse content that XML cannot represent: see :func:`_guarded`.
 """
 
 from __future__ import annotations
@@ -217,8 +217,8 @@ def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> 
     """Whether the content moved since ``baseline`` while the date stayed put.
 
     Both halves matter. The digest covers the entry's whole subtree, so it
-    catches an edit at any depth; the date comparison is what leaves an entry
-    the caller dated by hand alone, since a deliberate value is not one to
+    catches an edit at any depth. The date comparison is what leaves alone an
+    entry the caller dated by hand, since a deliberate value is not one to
     overwrite.
 
     Without a baseline there is nothing to compare — an entry added since the
@@ -265,12 +265,12 @@ def note_caller_dates(lexicon: Lexicon) -> _StampUndo:
     Only an entry whose date moved off its baseline is noted, and only that
     entry is digested. An entry written unstamped under the date it was loaded
     with is left out on purpose: its content is now on disk under a date that
-    no longer describes it, and the next stamping save should still say so.
+    no longer describes it, and the next stamping save should still stamp it.
 
     The rest of the baseline carries over from the last save, less any entry
-    that has since left the lexicon — dropped for the same reason
-    :func:`stamp_entries` rebuilds its own dict each pass. That function adopts
-    the dates it writes the same way.
+    that has since left the lexicon (dropped for the same reason
+    :func:`stamp_entries` rebuilds its own dict each pass). :func:`stamp_entries`
+    likewise adopts the dates it writes as the new baseline.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps
@@ -310,19 +310,21 @@ def stamp_entries(lexicon: Lexicon, when: datetime) -> _StampUndo:
     it, for a caller whose write does not go through.
 
     Each save leaves behind the state it wrote, in ``lexicon._stamps``, and the
-    next save measures against that rather than against the load. Without it a
-    second round of edits on the same in-memory lexicon would ship unstamped.
-    Its content differs from the loaded content, but so does its date: the
-    first save's own stamp, which reads exactly like a date the caller set
-    deliberately. An entry still matching its parse-time record needs no such
-    override and is recorded nowhere, so a save of a few edited entries
-    remembers only those. Rebuilding the dict each pass also drops entries that
-    have since left the lexicon, which would otherwise stay alive here for a
-    baseline nothing will consult again.
+    next save measures against that rather than against the load. Without it, a
+    second round of edits on the same in-memory lexicon would ship unstamped:
+    an entry edited again differs from its loaded content, but so does its
+    date, which is the first save's own stamp and reads exactly like a date the
+    caller set deliberately.
+
+    An entry still matching its parse-time record needs no such override and is
+    recorded nowhere, so a save of a few edited entries remembers only those.
+    Rebuilding the dict each pass also drops entries that have since left the
+    lexicon, which would otherwise stay alive here for a baseline nothing will
+    consult again.
 
     Deciding comes before mutating because digesting is the only step that can
-    fail (see :func:`_guarded`). Content XML cannot represent is refused with
-    nothing stamped, rather than half-stamped at the entry it was found on.
+    fail (see :func:`_guarded`). Content that XML cannot represent is refused
+    with nothing stamped, rather than half-stamped at the entry it was found on.
     """
     at_parse = _parse_time_records(lexicon)
     previous = lexicon._stamps

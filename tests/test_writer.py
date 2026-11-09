@@ -362,8 +362,9 @@ def test_textual_residue_survives_touched_reserialization(tmp_path: Path) -> Non
         assert fragment in result, fragment
 
     # Survival is the promise; the sibling it lands next to is not. A recorded
-    # position maps onto whatever modelled children the writer finds, so this holds
-    # only while the number of children preceding the residue does.
+    # position maps onto whatever modelled children the writer finds, so this
+    # assertion holds only while the number of children preceding the residue
+    # stays the same.
     assert b"</gloss>trailing" in result
 
     # Text and PI residue is re-read as residue, not silently promoted or lost.
@@ -503,7 +504,7 @@ def _edit_entry(lexicon: sil_lift.Lexicon) -> None:
 
 
 def _edit_last_entry(lexicon: sil_lift.Lexicon) -> None:
-    """The entry scan stops at the first difference, so one it reaches last."""
+    """The entry scan stops at the first difference, so edit the entry it reaches last."""
     lexicon.entries[-1].lexical_unit["en"] = "edited"
 
 

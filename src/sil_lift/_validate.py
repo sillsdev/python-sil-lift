@@ -7,9 +7,9 @@ Three layers, all explicit-call (never implicit on load/save):
 
    - ``href`` attributes are masked before validation. libxml2's ``anyURI``
      check rejects the ``file://C:/...`` URIs that FieldWorks (FLEx)
-     systematically writes (the C# validator's engine never enforced anyURI),
-     which would flag virtually every real lexicon. Instead, sil-lift runs its
-     own URI plausibility check and reports offenders as *warnings*
+     systematically writes, so it would flag virtually every real lexicon;
+     the C# validator's engine never enforced anyURI. Instead, sil-lift runs
+     its own URI plausibility check and reports offenders as *warnings*
      (``uri-not-rfc``).
    - children are grouped by tag before validation. libxml2's interleave
      support rejects legally-interleaved documents once an element type
@@ -288,8 +288,8 @@ def _form_shape_problems(
     entries. The header and a companion ranges file have no entry to name, so
     their findings carry the file alone.
 
-    The RNG catches a lang-less form only while the document still holds one,
-    which a re-serialized node does not. It never catches a repeated language:
+    The RNG catches a lang-less form only in bytes that still hold one, and a
+    re-serialized node drops it. It never catches a repeated language:
     that's an embedded Schematron rule, which the parser ignores.
     """
     for label, form in _iter_instances(root, Form):
@@ -394,11 +394,11 @@ def _semantic_problems(
                         line=at(index),
                     )
 
-    # Duplicate GUIDs, mirroring the C# Validator.GetDuplicateGuidErrors. That
-    # scans every element carrying a guid, not just entries: the RNG allows one
-    # on <range> and <range-element> too. Scope is per rendered document,
-    # matching its per-file scan. So a guid shared by a .lift and its companion
-    # is not a duplicate.
+    # Duplicate GUIDs, mirroring the C# Validator.GetDuplicateGuidErrors. Like
+    # that method, this checks every element carrying a guid, not just entries:
+    # the RNG allows one on <range> and <range-element> too. Also like it, the
+    # scope is one rendered document, so a guid shared by a .lift and its
+    # companion is not a duplicate.
     def _range_guids(
         ranges: list[Range],
     ) -> Iterator[tuple[str, str, str | None, int | None]]:
@@ -551,8 +551,9 @@ def _semantic_problems(
     range_ids = id_lookup(lookups.keys())
 
     def range_named(name: str) -> str | None:
-        """The id of the range ``name`` keys, or None if no such range
-        enumerates elements. Records a name that reached one by normalizing.
+        """The id of the range that ``name`` keys, or None if no such range
+        enumerates elements. Records ``name`` if it reached the range only by
+        normalizing.
         """
         range_id = resolve(name, range_ids)
         if range_id is not None and range_id != name:
@@ -568,9 +569,9 @@ def _semantic_problems(
     # resolve_ranges=False the caller put companions out of scope for this
     # load, so a finding about one is unwanted whether or not it is accurate.
     # add_ranges_file attaches a companion without reading the folder, so it
-    # does not reinstate these: the checks below re-derive from a folder this
-    # load never looked at, where a sibling that supplies a header range went
-    # unloaded and so reads as a dangling href.
+    # does not reinstate these checks. They re-derive from the folder, which
+    # this load never looked at: a sibling companion there was never loaded,
+    # so the header range it supplies would read as a dangling href.
     rejected = lexicon._rejected_ranges
     if lexicon.path is not None and rejected is not None:
         base = lexicon.path.parent
@@ -584,7 +585,8 @@ def _semantic_problems(
             matches = _folded_matches(candidate.path, listings)
             if len(matches) < 2:
                 continue
-            # One of the colliding files loaded, named exactly by another candidate.
+            # Not ambiguous after all: another candidate named one of them exactly,
+            # and that file loaded.
             if any(_same_file(path, loaded) for path in matches for loaded in lexicon.ranges_files):
                 continue
             names = sorted(path.name for path in matches)
