@@ -7,13 +7,14 @@ import sil_lift
 def _annotation_strings(obj: object) -> list[str]:
     """Raw source annotations for a function or class.
 
-    Static (PEP 563 strings) rather than resolved: ``typing.get_type_hints``
-    raises on the TYPE_CHECKING-only imports several public signatures use
-    (``os``, ``Iterator``, ...), and silently skipping those members would let
-    the check pass without ever examining them. lxml only ever enters this
-    codebase as ``from lxml import etree``, so a leak is always visible in the
-    source text as an ``etree.`` (or ``lxml``) reference; no resolution is
-    needed to catch it.
+    Static (PEP 563 strings), not resolved. ``typing.get_type_hints`` raises
+    on the TYPE_CHECKING-only imports that several public signatures use
+    (``os``, ``Iterator``, ...). Silently skipping those members instead
+    would let the check pass without ever examining them.
+
+    Resolution isn't needed to catch a leak anyway. lxml only enters this
+    codebase as ``from lxml import etree``, so a leak always shows in the
+    source text as an ``etree.`` or ``lxml`` reference.
     """
     return [str(hint) for hint in getattr(obj, "__annotations__", {}).values()]
 
