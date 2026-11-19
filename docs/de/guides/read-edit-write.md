@@ -49,7 +49,7 @@ lex.save("elsewhere.lift")
 
 Einträge, die Sie nicht geändert haben, werden **byte-identisch** zurückgeschrieben; ein Dokument, das Sie überhaupt nicht geändert haben, ist vom ersten bis zum letzten Byte byte-identisch. Den genauen Vertragsinhalt finden Sie unter [Fidelity-Garantien](../fidelity.md).
 
-Die von Ihnen geänderten Einträge werden mit einem neuen `dateModified` (und einem `dateCreated`, falls noch kein Datum vorhanden war) ausgegeben, sodass eine Bearbeitung nicht unter dem Datum erfolgt, mit dem sie geladen wurde – die Tools, die LIFT zusammenführen, entscheiden anhand dieses Attributs, was sich geändert hat. `lex.save(stamp=False)` schreibt lediglich die im Modell gespeicherten Datumsangaben und sonst nichts; `lex.save(when=...)` legt den Zeitpunkt fest, anstatt die Uhrzeit abzulesen. Die übrigen Regeln finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
+Die von Ihnen geänderten Einträge werden mit einem neuen `dateModified`-Wert (und einem `dateCreated`-Wert, falls noch keiner vorhanden war) ausgegeben, sodass eine Bearbeitung nicht unter dem Datum erscheint, mit dem sie geladen wurde. Die Tools, die LIFT zusammenführen, entscheiden, was sich bei diesem Attribut geändert hat. `lex.save(stamp=False)` schreibt lediglich die im Modell gespeicherten Datumsangaben und sonst nichts; `lex.save(when=...)` legt den Zeitpunkt fest, anstatt die Uhrzeit abzulesen. Die übrigen Regeln finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
 
 Um ein Speichern zu überspringen, das keine Änderungen zur Folge hätte, schütze es mit `lex.changes()`:
 
@@ -58,7 +58,9 @@ if lex.changes():
     lex.save()
 ```
 
-Der Ausdruck ist nur dann falsch, wenn `save()` die Quellbytes reproduzieren würde, einschließlich der Einträge, des Headers, des Stammelements und aller zugehörigen `.lift-ranges`-Elemente. Da hier der Inhalt und nicht das Ziel verglichen wird, sollte man nur eine Speicherung am aktuellen Speicherort sicherstellen: `lex.save("elsewhere.lift")` schreibt das Dokument und die zugehörigen Dateien dorthin, unabhängig davon, was `changes()` zurückgibt. Es kostet mehr als das, was es schützt; was es schützt, ist der Schreibvorgang (eine unveränderte Änderungszeit, kein falscher Diff), nicht die Arbeit.
+Die Funktion gibt nur dann `False` zurück, wenn `save()` die Quellbytes reproduzieren würde, einschließlich der Einträge, des Headers, des Stammelements und aller zugehörigen `.lift-ranges`-Elemente. Es hört beim ersten Unterschied auf, sodass es bei einem bearbeiteten Lexikon fast nichts kostet. Ein unverändertes Lexikon muss vollständig serialisiert werden, um nachzuweisen, dass es unverändert ist, doch das kostet immer noch weniger als der Speichervorgang, der dadurch übersprungen wird. Wenn man den Schreibvorgang überspringt, bleibt auch der Änderungszeitstempel der Datei unverändert, wodurch ein falscher Diff vermieden wird.
+
+Da dabei der Inhalt und nicht das Ziel verglichen wird, sollte nur eine Speicherung am ursprünglichen Speicherort geschützt werden. `lex.save("elsewhere.lift")` schreibt das Dokument und die dazugehörigen Dateien dorthin, unabhängig davon, was `changes()` zurückgibt.
 
 ## Von Grund auf neu aufbauen
 
