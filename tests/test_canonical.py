@@ -105,7 +105,7 @@ def test_canonicalize_is_deterministic_and_idempotent(tmp_path: Path) -> None:
 
 
 def _entries_sorted(data: bytes) -> bytes:
-    """Comparer aid: normalize exactly the orderings canonicalize changes —
+    """Comparer aid: normalize exactly the orderings canonicalize changes:
     entries by (guid, id), ranges/range-elements by id, field defs by tag
     (all unordered/id-keyed collections per the LIFT spec)."""
     root = etree.fromstring(data)

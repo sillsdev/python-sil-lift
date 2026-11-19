@@ -70,7 +70,7 @@ class _ExtensibleNoFields:
         fresh ``dateModified``, it reads as a node modified before it existed.
 
         The one place either date is generated, so that the nine date-bearing
-        types share one policy — though only :class:`Entry` is stamped today
+        types share one policy, though only :class:`Entry` is stamped today
         (see :meth:`Lexicon.save`).
         """
         self.date_modified = when
@@ -95,7 +95,7 @@ class Field(_ExtensibleNoFields):
 
 @dataclass(slots=True)
 class GrammaticalInfo:
-    """A ``<grammatical-info value=...>``; the extensibility exception — traits only, no fields."""
+    """A ``<grammatical-info value=...>``; the extensibility exception: traits only, no fields."""
 
     value: str
     _: KW_ONLY
@@ -201,7 +201,7 @@ class Variant(_Extensible):
 
 @dataclass(slots=True, kw_only=True)
 class Sense(_Extensible):
-    """A ``<sense>`` (or ``<subsense>`` — same content model, recursive)."""
+    """A ``<sense>`` (or ``<subsense>``: same content model, recursive)."""
 
     id: str | None = None
     order: int | None = None
@@ -244,8 +244,8 @@ class Entry(_Extensible):
         """Every sense and subsense, depth-first in document order.
 
         LIFT nests senses arbitrarily deep, so anything asking a question of
-        "the entry's senses" — how many there are, what languages they gloss,
-        what media they reference — means this list rather than
+        "the entry's senses" (how many there are, what languages they gloss,
+        what media they reference) means this list rather than
         :attr:`senses`, which holds only the top level.
         """
         return list(_walk_senses(self.senses))
@@ -390,14 +390,14 @@ def _normalize_href(href: str) -> Path | None:
     """A relative filesystem path for an href, or None if it isn't one.
 
     Real-world hrefs use backslashes and literal spaces (WeSay) or dangling
-    absolute ``file://C:/...`` URIs from the exporting machine (FLEx) — for
-    the latter, only the basename is meaningful.
+    absolute ``file://C:/...`` URIs from the exporting machine (FLEx). For the
+    latter, only the basename is meaningful.
     """
     if "://" in href or href.startswith(("http:", "https:", "file:")):
         return None
     normalized = href.replace("\\", "/")
     # Absolute under either OS convention, independent of the host: PurePosixPath
-    # catches "/abs", PureWindowsPath catches a drive-letter "C:/..." — each
+    # catches "/abs", PureWindowsPath catches a drive-letter "C:/..."; each
     # reports the other's form as relative, misjudging hrefs on the opposite host.
     if PurePosixPath(normalized).is_absolute() or PureWindowsPath(normalized).is_absolute():
         return None
@@ -422,7 +422,7 @@ def _folded_matches(candidate: Path, listings: dict[Path, dict[str, list[Path]]]
     ``Dict.lift-ranges`` is a pair there but not everywhere.
 
     An exact hit is the only match: folding runs only after the exact name
-    misses, and then only on the final component — the hrefs this serves are
+    misses, and then only on the final component. The hrefs this serves are
     basenames or same-folder relatives.
 
     Several matches mean the folder holds names that could not have been told
@@ -457,7 +457,7 @@ def _existing_file(candidate: Path, listings: dict[Path, dict[str, list[Path]]])
     """The one file ``candidate`` names, or None if no file or several do.
 
     Guessing between several would pick a companion by a rule no exporter
-    knows, so an ambiguous name resolves to nothing at all — visibly, as
+    knows, so an ambiguous name resolves to nothing at all: visibly, as
     ``ambiguous-ranges-file`` from validation, rather than by silent choice.
     """
     matches = _folded_matches(candidate, listings)
@@ -592,7 +592,7 @@ def _ranges_candidates(lift_path: Path, ranges: Iterable[Range]) -> list[_Candid
     """
     base = lift_path.parent
     # with_name and with_suffix agree on every name that has an extension, but
-    # with_suffix would raise on a name that has none — which parse_document
+    # with_suffix would raise on a name that has none, which parse_document
     # accepts, since it never inspects the extension.
     candidates = [_Candidate(lift_path.with_name(lift_path.name + "-ranges"), None)]
     for range_ in ranges:
@@ -615,7 +615,7 @@ def _same_file(left: Path, right: Path) -> bool:
     """Whether two paths that fold together denote one file.
 
     ``Path.resolve()`` canonicalizes case on Windows but not on macOS, where
-    one file reached under two spellings yields two keys — tracked twice, and
+    one file reached under two spellings yields two keys: tracked twice, and
     written twice by :meth:`Lexicon.save`.
 
     Both sides resolve first, so ``..`` segments and symlinks compare alike;
@@ -818,8 +818,8 @@ class Lexicon:
         Raises :class:`ValueError` if no target path is available (none was
         passed and the lexicon was not loaded from a file) or if ``when`` is
         naive, and :class:`~sil_lift.LiftWriteError` if the lexicon or one of
-        its companions holds content XML cannot represent (a lone surrogate) —
-        nothing is written in that case, and nothing is stamped.
+        its companions holds content XML cannot represent (a lone surrogate).
+        Nothing is written in that case, and nothing is stamped.
         """
         from ._writer import render_document, render_ranges_document
 
@@ -868,7 +868,7 @@ class Lexicon:
         for key, ranges_file in self.ranges_files.items():
             if ranges_file.path is None:
                 # A from-scratch companion (see add_ranges_file): the dict key
-                # is its intended href — write it beside the saved .lift.
+                # is its intended href; write it beside the saved .lift.
                 targets.append((ranges_file, target.parent / Path(key).name))
             elif relocating:
                 targets.append((ranges_file, target.parent / ranges_file.path.name))
@@ -890,8 +890,8 @@ class Lexicon:
         fidelity (untouched entries byte-identical); any other files from the
         source package (media, ``WritingSystems/``, ``consent/``, ...) are
         carried through verbatim. ``wrap_folder`` controls the layout: ``True``
-        (default) nests everything under a folder named after the zip — the
-        convention FieldWorks and The Combine expect on import — ``False``
+        (default) nests everything under a folder named after the zip (the
+        convention FieldWorks and The Combine expect on import), ``False``
         writes the files at the archive root, and a string uses that folder
         name. The archive container itself is not byte-reproducible.
 
@@ -913,7 +913,7 @@ class Lexicon:
         """Sort into canonical order, in place: entries by (guid, id), header
         ranges/range-elements by id, field definitions by tag.
 
-        Sorting alone does not mark entries as modified — a subsequent
+        Sorting alone does not mark entries as modified: a subsequent
         :meth:`save` still emits untouched entries byte-identically, just in
         the new order. For fully re-serialized diff-ready output use
         :func:`sil_lift.canonicalize`.
@@ -925,8 +925,8 @@ class Lexicon:
     def changed_entries(self) -> list[Entry]:
         """Entries currently in the lexicon whose content differs from the document as loaded.
 
-        An entry's digest covers its whole subtree, so an edit at any depth —
-        a gloss on a nested subsense included — reports the containing entry.
+        An entry's digest covers its whole subtree, so an edit at any depth (a
+        gloss on a nested subsense included) reports the containing entry.
         Assigning a field the value it already had reports nothing, and neither
         does reordering (see :meth:`sort`).
 
@@ -1048,7 +1048,7 @@ class Lexicon:
         is sound.
 
         With ``require_ids``, entries missing a ``guid`` and senses missing an
-        ``id`` are reported as ``missing-id`` errors — stricter than LIFT (both
+        ``id`` are reported as ``missing-id`` errors, stricter than LIFT (both
         are optional there), for workflows that re-import by a stable id.
 
         The companion-folder checks (``ambiguous-ranges-file``,
@@ -1086,7 +1086,7 @@ class Lexicon:
         For every range already in ``ranges_file`` that the header does not
         list, a ``<range id=... href=...>`` reference is added to the header so
         LIFT consumers can find the companion. ``href`` is the reference as
-        written in the header — normally a filename beside the ``.lift`` (e.g.
+        written in the header, normally a filename beside the ``.lift`` (e.g.
         ``"mydict.lift-ranges"``); the companion is written next to the saved
         ``.lift`` under that basename. Populate the companion before calling
         (or call again to reference ranges added later).

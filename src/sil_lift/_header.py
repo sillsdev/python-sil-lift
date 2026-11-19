@@ -1,8 +1,8 @@
 """Header-side model: Header, FieldDefinition, Range, RangeElement.
 
 The header ``<field tag=...>`` (a field *definition*) is a structurally
-different element from the entry-level ``<field type=...>`` usage variant
-— hence ``FieldDefinition`` here vs ``Field`` in ``_model``. None of these
+different element from the entry-level ``<field type=...>`` usage variant,
+hence ``FieldDefinition`` here vs ``Field`` in ``_model``. None of these
 elements are extensible.
 """
 

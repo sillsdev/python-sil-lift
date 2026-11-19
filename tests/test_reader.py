@@ -156,8 +156,8 @@ def test_all_flex_fields_spot_check() -> None:
     assert header.ranges[0].id == "dialect"
     assert header.ranges[0].href is not None
     assert header.ranges[0].href.startswith("file://C:/")
-    # "import-residue" here is the LIFT field of that name — what a standard
-    # format import could not place — and has nothing to do with the LIFT
+    # "import-residue" here is the LIFT field of that name (what a standard
+    # format import could not place) and has nothing to do with the LIFT
     # residue this library carries in Extras. FieldWorks keeps them apart too.
     assert [f.tag for f in header.fields] == [
         "cv-pattern",
@@ -363,7 +363,7 @@ def test_untrustworthy_companion_bytes_load_but_save_canonically(
 
 
 # A junk date and a junk order: unparseable values a typed field cannot hold.
-# "2001-02-03 04:05:06" is the in-between case — not a date, but a valid datetime.
+# "2001-02-03 04:05:06" is the in-between case: not a date, but a valid datetime.
 UNPARSEABLE_ATTRS = b"""<?xml version="1.0" encoding="UTF-8"?>
 <lift version="0.13">
 <entry id="one"><lexical-unit><form lang="en"><text>one</text></form></lexical-unit>

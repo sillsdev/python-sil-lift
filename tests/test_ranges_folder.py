@@ -295,7 +295,7 @@ def _write_case_variant_pair(folder: Path, lift_name: str, ranges_name: str) -> 
     """A loadable .lift plus companion under arbitrary filename spellings.
 
     Deliberately not named after the fixture, so the header's ``range/@href``
-    basename candidate finds nothing — only the sibling candidate resolves these.
+    basename candidate finds nothing; only the sibling candidate resolves these.
     """
     folder.mkdir(parents=True, exist_ok=True)
     (folder / lift_name).write_bytes((PAIR_DIR / "test20080407.lift").read_bytes())
@@ -561,8 +561,8 @@ def test_normalization_folded_companions_resolve_to_neither(tmp_path: Path) -> N
     if not _normalization_sensitive(tmp_path):
         pytest.skip("needs a filesystem that keeps normalization forms apart")
     # Which accent is decomposed, rather than case, is what separates these two
-    # companions — the only way to reach the collision where the exact-name stat
-    # is itself case-insensitive, as it is on NTFS and APFS.
+    # companions; that is the only way to reach the collision where the
+    # exact-name stat is itself case-insensitive, as it is on NTFS and APFS.
     folder = tmp_path / "pkg"
     # The sibling candidate is fully composed and the href fully decomposed:
     # two names folding onto the same pair, so one finding covers both.
@@ -629,7 +629,7 @@ def test_lift_without_an_extension_loads(tmp_path: Path) -> None:
 
 def test_href_folding_onto_the_lift_itself_is_not_a_companion(tmp_path: Path) -> None:
     # Dict.lift beside a Dict.LIFT is the document being loaded, which is not
-    # its own ranges whatever it holds — identity settles it, not the root.
+    # its own ranges whatever it holds; identity settles it, not the root.
     lift = _write_lift_with_href(tmp_path / "pkg", "Dict.LIFT", "Dict.lift")
     lexicon = sil_lift.load(lift)
     assert lexicon.ranges_files == {}
@@ -654,7 +654,7 @@ def test_folder_shaped_href_stays_inside_the_folder(tmp_path: Path) -> None:
     assert sil_lift.load(lift).ranges_files == {}
 
 
-# Defines the range the header points at, but no elements — so the merged view
+# Defines the range the header points at, but no elements, so the merged view
 # cannot vouch for the href and the check falls through to the filesystem.
 ELEMENTLESS_RANGES = b"""<?xml version="1.0" encoding="UTF-8"?>
 <lift-ranges>

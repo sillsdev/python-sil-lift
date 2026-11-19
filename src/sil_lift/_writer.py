@@ -3,7 +3,7 @@
 Two paths out of a :class:`~sil_lift._model.Lexicon`:
 
 - **Canonical serialization** (``canonical_document``): deterministic,
-  documented shape — UTF-8, LF, 2-space indent, fixed child grouping and
+  documented shape: UTF-8, LF, 2-space indent, fixed child grouping and
   attribute order per element, LIFT residue from ``Extras`` re-emitted at
   (clamped) original positions.
 
@@ -82,7 +82,7 @@ def _guarded(what: str, build: Callable[[], bytes]) -> bytes:
 
     A Python string may hold a lone surrogate; XML may not, in any encoding.
     lxml reports it as a bare ``UnicodeEncodeError`` from wherever the text or
-    attribute was set — deep inside the builders below, naming no node. Every
+    attribute was set, deep inside the builders below, naming no node. Every
     entry point that builds and serializes a node passes through here so the
     failure arrives as a :class:`~sil_lift.LiftWriteError` that says which node
     and which codepoint. Nothing else in a ``str`` is unencodable as UTF-8, so
@@ -221,7 +221,7 @@ def _needs_stamp(entry: Entry, baseline: _EntryRecord | None, digest: bytes) -> 
     entry the caller dated by hand, since a deliberate value is not one to
     overwrite.
 
-    Without a baseline there is nothing to compare — an entry added since the
+    Without a baseline there is nothing to compare: an entry added since the
     load, or a lexicon built from scratch. A date already on such an entry is
     taken as deliberate too (a migration carrying dates in from another format
     is the case that matters), so only a blank one is filled.
@@ -846,7 +846,7 @@ def _indent(el: etree._Element, level: int = 0) -> None:
     """2-space indentation that never touches mixed content.
 
     lxml's pretty_print injects whitespace inside a ``<text>`` whose content
-    starts with a span — corrupting lexical data. This indenter stops at
+    starts with a span, corrupting lexical data. This indenter stops at
     ``<text>``/``<span>`` and at any element that already has non-whitespace
     text of its own (e.g. residue fragments).
     """
@@ -913,7 +913,7 @@ def canonical_document(
         chunks.insert(position, _guarded("root-level residue", node.xml.encode) + b"\n")
     parts = [b'<?xml version="1.0" encoding="UTF-8"?>\n', _root_open_bytes(lexicon), b"\n"]
     # Each chunk's trailing newline is the inter-chunk separator. Byte-reused
-    # (untouched) regions end at ">", so append the newline they lack — without
+    # (untouched) regions end at ">", so append the newline they lack; without
     # it the chunk would run straight into its neighbor.
     parts.extend(chunk if chunk.endswith(b"\n") else chunk + b"\n" for chunk in chunks)
     parts.append(b"</lift>\n")

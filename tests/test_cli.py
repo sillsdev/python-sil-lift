@@ -277,7 +277,7 @@ def test_check_media_absolute_href_does_not_mark_local_file_referenced(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # An absolute href (FLEx-style dangling path) must not mark a folder file
-    # as referenced — mirrors check_media(), which skips non-relative hrefs.
+    # as referenced, mirroring check_media(), which skips non-relative hrefs.
     audio = tmp_path / "audio"
     audio.mkdir()
     wav = audio / "one.wav"

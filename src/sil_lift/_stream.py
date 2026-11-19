@@ -3,12 +3,12 @@
 The reader wraps ``lxml.etree.iterparse`` with all ``clear()``/preceding-sibling
 bookkeeping internal; the writer emits the same bytes ``canonical_document``
 would produce for the same content, one entry chunk at a time (each entry's
-subtree is built normally, serialized, and flushed — the byte layout is shared
+subtree is built normally, serialized, and flushed; the byte layout is shared
 with the canonical serializer by construction, so full and streaming output
 never drift apart).
 
 Streaming mode reuses no source bytes: output is always canonical. Root-level
-LIFT residue (comments between entries) is not carried either — entries and the
+LIFT residue (comments between entries) is not carried either; entries and the
 header are.
 """
 
@@ -148,7 +148,7 @@ class LiftWriter:
     Open one with :func:`open_writer`; the class is exported for type
     annotations. Use as a context manager; the closing ``</lift>`` is written
     only on a clean exit (an exception leaves an unterminated file,
-    deliberately — a half-written lexicon must not look complete).
+    deliberately: a half-written lexicon must not look complete).
     """
 
     def __init__(

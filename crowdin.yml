@@ -2,7 +2,7 @@
 #
 # GitHub integration syncs `main`. Crowdin delivers translations on
 # service branch `crowdin_main` as PRs into `main` (merge, then delete
-# the branch — Crowdin recreates it).
+# the branch; Crowdin recreates it).
 #
 # docs/en/ is the only human-edited docs tree; translated trees
 # (docs/<lang>/) are machine-managed by Crowdin sync and must never be
