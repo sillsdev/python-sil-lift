@@ -49,7 +49,7 @@ lex.save("elsewhere.lift")
 
 As entradas que não foram modificadas são gravadas de volta **identicamente, ao nível do byte**; um documento que não tenha sido modificado de todo é idêntico, ao nível do byte, desde o primeiro byte até ao último. Consulte [Garantias da Fidelity](../fidelity.md) para conhecer o contrato na íntegra.
 
-Os registos que alteraste são enviados com um novo `dateModified` (e um `dateCreated`, caso não tivessem nenhum), pelo que uma edição não é enviada com a data com que foi carregada — as ferramentas que fazem a fusão do LIFT determinam o que mudou a partir desse atributo. `lex.save(stamp=False)` grava as datas que o modelo contém e nada mais; `lex.save(when=...)` fixa o momento em vez de ler o relógio. Consulte [Carimbos de data/hora gerados](../fidelity.md#generated-timestamps) para conhecer o resto das regras.
+Os registos que modificou são publicados com uma nova `dateModified` (e uma `dateCreated`, caso não tivessem nenhuma), pelo que uma edição não é publicada com a data com que foi carregada. As ferramentas que realizam a fusão do LIFT determinam o que mudou nesse atributo. `lex.save(stamp=False)` grava as datas que o modelo contém e nada mais; `lex.save(when=...)` fixa o momento em vez de ler o relógio. Consulte [Carimbos de data/hora gerados](../fidelity.md#generated-timestamps) para conhecer o resto das regras.
 
 Para ignorar um salvamento que não alteraria nada, proteja-o com `lex.changes()`:
 
@@ -58,7 +58,9 @@ if lex.changes():
     lex.save()
 ```
 
-Só é falso quando a função `save()` reproduzir os bytes de origem, incluindo as entradas, o cabeçalho, o elemento raiz e todos os elementos `.lift-ranges` associados. Como compara o conteúdo e não o destino, certifique-se de que guarda apenas no local atual: `lex.save("elsewhere.lift")` grava o documento e os seus ficheiros associados nesse local, independentemente do que `changes()` indicar. Custa mais do que aquilo que poupa; o que poupa é a gravação (um tempo de modificação inalterado, sem diferenças espúrias), não o trabalho.
+Retorna `False` apenas quando `save()` reproduzir os bytes de origem, abrangendo as entradas, o cabeçalho, o elemento raiz e todos os elementos `.lift-ranges` associados. Pára na primeira diferença, pelo que, num léxico editado, o custo é praticamente nulo. Um léxico inalterado tem de ser serializado na íntegra para comprovar que não sofreu alterações, mas isso ainda assim custa menos do que o processo de gravação que é omitido. Ignorar a gravação também mantém inalterada a data de modificação do ficheiro e evita um diff incorreto.
+
+Como compara o conteúdo e não o destino, certifique-se de que o arquivo é guardado no mesmo local. `lex.save("elsewhere.lift")` grava o documento e os seus ficheiros associados nesse local, independentemente do que `changes()` devolver.
 
 ## Construir do zero
 
