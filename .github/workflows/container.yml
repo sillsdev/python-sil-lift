@@ -25,3 +25,43 @@ jobs:
           EOF
           cd "$tmp"
           docker run --rm -v "$PWD:/work" -w /work sil-lift:ci validate smoke.lift --format json
+
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # Two warnings (duplicate-form-lang, missing-media), so under strict each
+      # passing step below depends on every input it sets reaching the CLI.
+      - name: Write fixture
+        run: |
+          cat > action-smoke.lift <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <lift version="0.13"><entry id="e1"><lexical-unit><form lang="en"><text>x</text></form><form lang="en"><text>y</text></form></lexical-unit><pronunciation><media href="missing.wav"/></pronunciation></entry></lift>
+          EOF
+      - name: Strict alone fails
+        id: strict
+        continue-on-error: true
+        uses: ./
+        with:
+          path: action-smoke.lift
+          strict: "true"
+      - name: Assert strict failed
+        if: steps.strict.outcome != 'failure'
+        run: exit 1
+      - name: no-check-media, allow, and format reach the CLI
+        uses: ./
+        with:
+          path: action-smoke.lift
+          strict: "true"
+          no-check-media: "true"
+          allow: "duplicate-form-lang"
+          format: json
+      - name: A multi-line allow list is split into codes
+        uses: ./
+        with:
+          path: action-smoke.lift
+          strict: "true"
+          allow: |
+            duplicate-form-lang
+            missing-media
