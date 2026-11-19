@@ -1,7 +1,7 @@
 """The text model: Span, Text, Form, Multitext, plus Trait and Annotation.
 
 ``<text>`` is mixed content with recursively nestable ``<span>``, so ``Text``
-is structured — an ordered list of ``str | Span`` fragments — with
+is structured: an ordered list of ``str | Span`` fragments, with
 ``str(...)`` as the flattening escape hatch. ``Multitext`` is the "one
 localized text per language" collection used all over LIFT; ``gloss`` is
 form-shaped rather than multitext-shaped, which is why ``Form`` is a public
@@ -91,8 +91,8 @@ class Form:
 class Multitext(Mapping[str, Text]):
     """An insertion-ordered collection of forms, keyed by language.
 
-    A ``Mapping[str, Text]`` — ``mt["en"]``, ``"en" in mt``, ``mt.get(...)``,
-    ``mt.keys()`` and the other views — plus assignment, which coerces plain
+    A ``Mapping[str, Text]`` (``mt["en"]``, ``"en" in mt``, ``mt.get(...)``,
+    ``mt.keys()`` and the other views) plus assignment, which coerces plain
     strings (``mt["en"] = "dog"``), and deletion.
 
     Both mutators act on the language, not on one form: assignment leaves a

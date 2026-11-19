@@ -4,23 +4,23 @@ The writer emits untouched entries verbatim from their original bytes, which
 requires knowing each top-level ``<entry>``'s (and ``<header>``'s) exact byte
 region in the source. lxml exposes no byte offsets, but the stdlib's expat
 binding does: ``CurrentByteIndex`` reports where the current event's markup
-begins, which is a region's start at the element's start event and — bar the
-empty-element wrinkle noted below — its end at the matching end event.
+begins, which is a region's start at the element's start event and (bar the
+empty-element wrinkle noted below) its end at the matching end event.
 
 "Region" rather than "span" throughout: LIFT has a ``<span>`` element for
 inline markup, modelled as :class:`~sil_lift.Span`, and the two would
-otherwise collide in the reader and writer — which handle both.
+otherwise collide in the reader and writer, which handle both.
 
-What it exists for is byte identity, not diagnostics — ``docs/en/fidelity.md``
+What it exists for is byte identity, not diagnostics; ``docs/en/fidelity.md``
 states the guarantee it underpins. Problem reporting needs only the line an
 element starts on and takes that from lxml's ``sourceline`` (see
 ``_validate._line``); a region needs the end offset too, which no tree API
 exposes.
 
 It is deliberately conservative: anything unexpected (DOCTYPE, malformed
-markup, non-ASCII-compatible encoding — checked by the caller) returns ``None``
-and the writer falls back to canonical serialization, which keeps the semantic
-guarantee and waives only byte identity.
+markup, or a non-ASCII-compatible encoding, which the caller checks)
+returns ``None`` and the writer falls back to canonical serialization, which
+keeps the semantic guarantee and waives only byte identity.
 """
 
 from __future__ import annotations
@@ -106,7 +106,7 @@ def scan(data: bytes) -> ScanResult | None:
             # An empty element's end event reports the offset just past the
             # whole element; every other element's reports the "<" of its end
             # tag. Which of the two this is was settled by the start tag, in
-            # the "/" before its ">" — not by the end event, whose two cases
+            # the "/" before its ">", not by the end event, whose two cases
             # are not distinguishable from the offset alone.
             self_closing = data[open_end - 2] == 0x2F  # /
             if self_closing:

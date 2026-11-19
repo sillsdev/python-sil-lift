@@ -14,7 +14,7 @@ Three layers, all explicit-call (never implicit on load/save):
    - children are grouped by tag before validation. libxml2's interleave
      support rejects legally-interleaved documents once an element type
      appears in more than one run (e.g. ``field, note, field, note`` inside a
-     sense — real FLEx output). Grouping same-tag siblings contiguously is
+     sense, as real FLEx output has). Grouping same-tag siblings contiguously is
      semantics-preserving here: every content model in the LIFT grammar is
      interleave-based except the root's (header before entries), which is
      left untouched.
@@ -106,15 +106,15 @@ def iter_lexicon_problems(lexicon: Lexicon, *, require_ids: bool = False) -> Ite
 
     # What save() would write, not the loaded bytes: edits must be visible to
     # validation. Untouched loaded documents render byte-identical to their
-    # source, so line numbers keep matching the file on disk — and rendered
-    # entry order always matches lexicon.entries, keeping the entry_lines
-    # table aligned for semantic addressing even after edits or sort().
+    # source, so line numbers keep matching the file on disk. Rendered entry
+    # order always matches lexicon.entries, keeping the entry_lines table
+    # aligned for semantic addressing even after edits or sort().
     #
     # A lone surrogate makes the document unrenderable, so it is reported as
     # the one finding and nothing else runs: every layer below needs the
     # rendered bytes (the schema layers parse them, and the semantic layer
     # addresses findings by their line numbers). Reporting it here is what
-    # makes it diagnosable at all — save() would raise the same refusal.
+    # makes it diagnosable at all; save() would raise the same refusal.
     try:
         data = render_document(lexicon)
     except LiftWriteError as exc:
@@ -604,7 +604,7 @@ def _semantic_problems(
                 file=lexicon.path,
             )
 
-        # Header <range href> references that resolve to no companion — an
+        # Header <range href> references that resolve to no companion: an
         # exporter that wrote the href but not the file. Absolute and file://
         # hrefs are skipped: FLEx writes those knowing they will not resolve,
         # and load reaches their companions by basename in the same folder

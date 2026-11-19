@@ -3,7 +3,7 @@
 A Python library for [LIFT](https://github.com/sillsdev/lift-standard) (Lexicon
 Interchange FormaT) 0.13: lossless read/write of the LIFT folder (`.lift` \+
 `.lift-ranges` \+ media references), RELAX NG and semantic validation, and
-canonical sorting — with streaming APIs for large lexicons.
+canonical sorting, plus streaming APIs for large lexicons.
 
 ```python
 import sil_lift
@@ -38,7 +38,7 @@ not understand.
   all out-of-schema content (unknown elements, attributes, comments) preserved,
   and are stamped with a fresh `dateModified` so the edit does not go out under
   the date it was loaded with.
-- Whitespace inside `<text>` is never altered — not even for indentation.
+- Whitespace inside `<text>` is never altered, not even for indentation.
 
 The precise rules and their few edge cases are documented in
 [docs/en/fidelity.md](docs/en/fidelity.md); they are enforced by corpus-wide
@@ -46,7 +46,7 @@ byte-identity tests and property-based (Hypothesis) round-trip tests.
 
 ## Scope
 
-- LIFT **0.13 only** — the de facto standard version. Other versions are
+- LIFT **0.13 only**, the de facto standard version. Other versions are
   rejected with a clear error; one-off migration of legacy files is possible
   with the XSLTs in the
   [lift-standard](https://github.com/sillsdev/lift-standard) repository.

@@ -225,7 +225,7 @@ def _leaf_senses(entry: Entry) -> list[Sense]:
     """The entry's senses that carry content, document order.
 
     A sense with subsenses is a LIFT grouping node (e.g. numbered "1a"/"1b"
-    under a bare "1") whose own gloss/definition are conventionally empty —
+    under a bare "1") whose own gloss/definition are conventionally empty;
     its subsenses carry the content and get the rows instead.
     """
     return [sense for sense in entry.all_senses() if not sense.subsenses]
@@ -241,7 +241,7 @@ class _Utf8Sink:
     csv writes CRLF row terminators, which a stdout that translates newlines
     doubles into a blank row between every data row; the byte layer translates
     nothing, so a redirected export is the file ``--output`` writes. Nothing
-    here closes or detaches the stream it borrowed — stdout has to stay usable
+    here closes or detaches the stream it borrowed: stdout has to stay usable
     after a write fails partway.
     """
 
@@ -257,7 +257,7 @@ def _abandon_borrowed_stdout(buffer: BinaryIO) -> None:
     """Send stdout's descriptor to the null device once its bytes cannot land.
 
     A write that fails partway leaves those bytes in the byte layer, and every
-    flush after it retries them — including the one the interpreter runs on
+    flush after it retries them, including the one the interpreter runs on
     ``sys.stdout`` on the way out, whose failure no handler can catch and whose
     exit status (120) replaces the one ``main`` chose. Redirecting the
     descriptor gives that retry somewhere harmless to go, so ``export | head``
@@ -336,14 +336,14 @@ def _cmd_export(args: argparse.Namespace) -> int:
 def _force_utf8(stream: TextIO) -> None:
     """Make one of the standard streams write UTF-8, whatever the locale is.
 
-    Off a console, a stream takes the locale encoding — cp1252 on Windows,
-    ASCII under a C/POSIX locale — which cannot hold LIFT content, so one
+    Off a console, a stream takes the locale encoding (cp1252 on Windows,
+    ASCII under a C/POSIX locale), which cannot hold LIFT content, so one
     unrepresentable character kills the command mid-output. ``-o`` has always
     forced UTF-8; this makes a redirect agree with it.
 
     Only the encoding changes: ``reconfigure`` resets the error handler to
     ``strict`` unless passed one, and the handler a stream arrives with is
-    deliberate — ``backslashreplace`` on stderr so a message always arrives,
+    deliberate: ``backslashreplace`` on stderr so a message always arrives,
     ``surrogateescape`` on some platforms' stdout so an undecodable filename
     round-trips.
     """

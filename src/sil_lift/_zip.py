@@ -6,7 +6,7 @@ archive root (``foo.lift`` beside ``WritingSystems/``, ``audio/``, ...), or
 nested one level under a single folder (``Foo/foo.lift`` ...). This module
 locates the single ``.lift`` member (its parent is the package root), extracts
 to a temporary directory, and hands off to the ordinary path-based
-reader/writer — so media resolution, companion discovery, and byte-fidelity all
+reader/writer, so media resolution, companion discovery, and byte-fidelity all
 work unchanged.
 
 Streaming reads (:func:`lift_source`) extract that one member and nothing else:
@@ -14,7 +14,7 @@ they resolve neither companions nor media, so writing the rest of an
 audio-heavy package to disk would cost gigabytes that nothing goes on to read.
 
 The archive *container* is not byte-reproducible (zip carries timestamps,
-compression, and ordering); the guarantee is at the file level — the ``.lift``
+compression, and ordering); the guarantee is at the file level: the ``.lift``
 and ``.lift-ranges`` keep their fidelity contract, and every other packaged
 file is carried through verbatim.
 """
@@ -58,7 +58,7 @@ def _select_lift_member(names: Iterable[str]) -> str:
 
     Handles both the flat and folder-wrapped layouts, and ignores junk such as
     ``__MACOSX`` and dotfile entries that some zip tools add. One path stored
-    multiple times counts once — some writers add a second listing entry rather
+    multiple times counts once: some writers add a second listing entry rather
     than replacing the first, and extraction overwrites, so what lands on disk
     is a single file.
 
@@ -146,8 +146,8 @@ def lift_source(path: Path) -> Iterator[Path]:
     """Yield a ``.lift`` path for ``path``, extracting a ``.zip`` to a temp dir.
 
     A non-zip path is yielded unchanged. From a zip only the ``.lift`` member
-    is extracted, for the duration of the ``with`` block — all a streaming
-    caller reads, since it resolves neither companions nor media.
+    is extracted, for the duration of the ``with`` block. That member is all a
+    streaming caller reads, since it resolves neither companions nor media.
     """
     if path.suffix.lower() != ".zip":
         yield path

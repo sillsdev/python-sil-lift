@@ -12,8 +12,9 @@ not map onto its model is serialized into a ``<lift-residue>`` blob held in a
 ``import-residue`` field, a user-visible LIFT field recording what a standard
 format import could not place, which is a different thing entirely.
 
-The public surface is deliberately tiny — equality, repr, emptiness, to_string()
-— so the internal representation stays swappable and no lxml type ever leaks.
+The public surface is deliberately tiny (equality, repr, emptiness,
+to_string()), so the internal representation stays swappable and no lxml type
+ever leaks.
 """
 
 from __future__ import annotations
@@ -27,8 +28,8 @@ __all__ = ["Extras"]
 class _ExtraNode:
     kind: str  # "element" | "comment" | "pi" | "text"
     xml: str  # serialized fragment (for "text": the raw character data)
-    # Child position in the original parent — a recorded position, not content:
-    # the same residue at a slightly different position is still equal.
+    # Child position in the original parent. It is a recorded position, not
+    # content: the same residue at a slightly different position is still equal.
     index: int = field(compare=False, default=0)
 
 

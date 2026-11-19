@@ -24,5 +24,5 @@ dist/
 # Docs build
 site/
 
-# Generated corpus (synthetic large files — regenerate with tests/tools/generate_large.py)
+# Generated corpus (synthetic large files; regenerate with tests/tools/generate_large.py)
 tests/corpus/generated/

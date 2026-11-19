@@ -22,7 +22,7 @@ def _normalize(el: etree._Element) -> bool:
     """Make interleave-equivalent documents compare equal.
 
     Outside mixed content: drop ignorable whitespace, then stable-sort children
-    by tag — the RELAX NG (RNG) grammar uses interleave everywhere, so
+    by tag. The RELAX NG (RNG) grammar uses interleave everywhere, so
     cross-type sibling order is not semantically significant, while relative
     order within one tag (a repeated list) is preserved by the stable sort.
 
@@ -368,7 +368,7 @@ def test_textual_residue_survives_touched_reserialization(tmp_path: Path) -> Non
     assert b"</gloss>trailing" in result
 
     # Text and PI residue is re-read as residue, not silently promoted or lost.
-    # (The form's two <text> siblings swap roles on the way back in — the model
+    # (The form's two <text> siblings swap roles on the way back in: the model
     # takes the first, the other becomes residue.)
     reloaded_entry = sil_lift.load(out).entries[0]
     assert reloaded_entry.extra == entry.extra
@@ -384,7 +384,7 @@ def _ids(items: Sequence[object]) -> list[int]:
     """Compare reported nodes by identity.
 
     ``Entry`` and ``Range`` are non-frozen dataclasses, so they have generated
-    content-based ``__eq__`` — two distinct nodes with equal content compare
+    content-based ``__eq__``: two distinct nodes with equal content compare
     equal. These tests care which object was reported, so they compare identity.
     """
     return [id(item) for item in items]
@@ -406,7 +406,7 @@ def test_changed_entries_reports_the_entry_for_an_edit_at_any_depth() -> None:
 
 
 def test_changed_entries_ignores_an_identical_rewrite() -> None:
-    """Assigning the value it already had is not a change — the digest is unmoved."""
+    """Assigning the value it already had is not a change; the digest is unmoved."""
     source = CORPUS_DIR / "spec-examples" / "0.13" / "subsenses.lift"
     lexicon = sil_lift.load(source)
     gloss = lexicon.entries[0].senses[0].subsenses[0].glosses[0]
@@ -454,7 +454,7 @@ def test_changed_entries_ignores_added_and_removed_entries() -> None:
 
 
 def test_changed_entries_reports_all_when_the_source_was_not_scannable(tmp_path: Path) -> None:
-    """No byte baseline means every entry is reported — and genuinely is rewritten.
+    """No byte baseline means every entry is reported, and genuinely is rewritten.
 
     _attach_source declines a source it cannot byte-scan, so a *loaded* document
     can have no source info too, not only a from-scratch lexicon.
@@ -517,7 +517,7 @@ def _remove_entry(lexicon: sil_lift.Lexicon) -> None:
 
 
 def _duplicate_entry(lexicon: sil_lift.Lexicon) -> None:
-    """Append an entry the document already has — the object, not a copy."""
+    """Append an entry the document already has: the object, not a copy."""
     lexicon.entries.append(lexicon.entries[0])
 
 
@@ -576,8 +576,8 @@ def test_changes_tracks_the_render_through_combined_mutations(
     """Conditions in combination still agree with what the writer emits.
 
     One at a time, a hand-written guard can match the writer by coincidence.
-    Pairs cover the interactions — a removal alongside a duplicate, a reorder
-    on top of an addition — where a set-based comparison starts cancelling
+    Pairs cover the interactions (a removal alongside a duplicate, a reorder
+    on top of an addition) where a set-based comparison starts cancelling
     itself out.
     """
     from sil_lift._writer import render_document

@@ -135,7 +135,7 @@ def _attach_stamp_baseline(lexicon: Lexicon) -> None:
 def _attach_source(lexicon: Lexicon, data: bytes, root: etree._Element) -> None:
     """Capture the original bytes needed for byte reuse; on any doubt, capture nothing.
 
-    Without source info the writer falls back to canonical serialization —
+    Without source info the writer falls back to canonical serialization:
     semantically complete, just not byte-preserving.
     """
     import copy
@@ -289,7 +289,7 @@ def _parse_mixed(el: etree._Element, host_extra: Extras) -> list[str | Span]:
     """Mixed content of <text>/<span>: text and nested spans, in order.
 
     Comments/PIs/unknown elements inside mixed content are moved to the
-    nearest host node's residue (position within the run is not preserved —
+    nearest host node's residue (position within the run is not preserved;
     untouched-entry passthrough covers exact bytes).
     """
     fragments: list[str | Span] = []

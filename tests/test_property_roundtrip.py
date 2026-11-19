@@ -26,8 +26,8 @@ from sil_lift._writer import canonical_document
 # non-characters; \r is excluded (parsers normalize it), \t and \n are added
 # back via explicit alternatives where allowed.
 _CHARS = st.characters(min_codepoint=0x20, codec="utf-8", exclude_characters="￾￿")
-# Non-BMP codepoints — 4-byte UTF-8, one surrogate pair each in a UTF-16 source
-# — drawn explicitly: they are what a byte scanner guessing at character
+# Non-BMP codepoints (4-byte UTF-8, one surrogate pair each in a UTF-16 source)
+# are drawn explicitly: they are what a byte scanner guessing at character
 # boundaries would break on, and _CHARS alone reaches them too rarely to count
 # as coverage. See tests/test_unicode.py for the deterministic cases.
 _NON_BMP = st.sampled_from("\U0001f389\U00020000\U0001e900\U0001d11e\U000e0021")

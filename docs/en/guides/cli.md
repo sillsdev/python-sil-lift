@@ -1,6 +1,6 @@
 # The command line
 
-Installing the package (`pip install sil-lift`) also installs the `sil-lift` command — a supported tool in the spirit of LiftTools that ships with the package.
+Installing the package (`pip install sil-lift`) also installs the `sil-lift` command, a supported tool in the spirit of LiftTools that ships with the package.
 
 ```
 sil-lift validate PATH [--format {text,json}] [--strict] [--no-check-media] [--allow CODE[,CODE...]]...
@@ -17,10 +17,10 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 `validate`'s options:
 
 - `--format json` writes a single JSON object to stdout (and nothing else) for CI/automation consumption; see the schema in the example below.
-- `--strict` treats warnings as errors, exiting 1 if any are found — use it to gate a build on no warnings at all rather than on errors alone.
+- `--strict` treats warnings as errors, exiting 1 if any are found. Use it to gate a build on no warnings at all rather than on errors alone.
 - `--no-check-media` skips the filesystem media-presence check, suppressing `missing-media` and `media-href-mismatch` findings. Useful when validating a freshly generated export whose audio/photo files live elsewhere rather than in the same folder.
 - `--allow CODE[,CODE...]` (repeatable) reports the given codes' findings but leaves them out of the pass/fail decision. It applies to errors and warnings alike, so an allowed warning does not trip `--strict` either. The summary line tallies allowed findings per code; the JSON summary's `allowed` gives their total. A code that never occurs is ignored, so an allow list keeps working after a check is retired.
-- `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id` — stricter than LIFT, for workflows that re-import by a stable id.
+- `--require-ids` additionally fails (a `missing-id` error) on any entry lacking a `guid` or sense lacking an `id`. That is stricter than LIFT, for workflows that re-import by a stable id.
 
 Passing `-` as the path reads the document from stdin. A piped document has no folder, so its companion `.lift-ranges` and media are not resolved.
 
@@ -32,7 +32,7 @@ Passing `-` as the path reads the document from stdin. A piped document has no f
 `sort` rewrites only the `.lift` file; companion `.lift-ranges` files are left
 untouched (sort those separately with the `RangesFile` API).
 
-`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout — files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes. The streaming commands `stats` and `export` extract only the `.lift` itself, so they stay cheap on media-heavy packages; `validate` and `check-media` need the whole folder and extract all of it.
+`validate`, `stats`, `check-media`, and `export` also accept a zipped LIFT package (a `.zip` in either layout: files at the archive root, or nested under one top-level folder); it is extracted to a temporary directory and discarded when the command finishes. The streaming commands `stats` and `export` extract only the `.lift` itself, so they stay cheap on media-heavy packages; `validate` and `check-media` need the whole folder and extract all of it.
 
 Examples:
 
@@ -79,6 +79,6 @@ senses:    4541
 $ sil-lift export dictionary.lift --langs en,fr -o dictionary.csv
 ```
 
-All output is UTF-8, on every platform and whether it goes to a console, a pipe, or a `>` redirect — never the locale encoding (cp1252 on Windows, ASCII under a C/POSIX locale), which cannot represent LIFT content. `sil-lift export dictionary.lift > dictionary.csv` therefore writes exactly the bytes `-o dictionary.csv` writes, CRLF row terminators included.
+All output is UTF-8, on every platform and whether it goes to a console, a pipe, or a `>` redirect. It is never the locale encoding (cp1252 on Windows, ASCII under a C/POSIX locale), which cannot represent LIFT content. `sil-lift export dictionary.lift > dictionary.csv` therefore writes exactly the bytes `-o dictionary.csv` writes, CRLF row terminators included.
 
-Exit codes: `0` success (warnings do not fail the run unless `--strict`), `1` findings (validation errors / missing or misspelled media / warnings under `--strict`, not counting codes given to `--allow`), `2` an I/O failure at either end — input that cannot be read, or output that cannot be written (a reader like `head` closing the pipe, a full disk).
+Exit codes: `0` success (warnings do not fail the run unless `--strict`), `1` findings (validation errors / missing or misspelled media / warnings under `--strict`, not counting codes given to `--allow`), `2` an I/O failure at either end, whether input that cannot be read or output that cannot be written (a reader like `head` closing the pipe, a full disk).

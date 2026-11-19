@@ -170,7 +170,7 @@ def test_lift_source_skips_the_whole_package_size_cap(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # The cap guards bytes written to disk, and a streaming read writes one
-    # member — so a package whose media is far larger than the limit still
+    # member, so a package whose media is far larger than the limit still
     # streams, while the full extraction behind load() refuses it.
     package = _package_with_media(tmp_path / "pkg.zip")
     monkeypatch.setattr("sil_lift._zip._MAX_UNCOMPRESSED_BYTES", 4000)

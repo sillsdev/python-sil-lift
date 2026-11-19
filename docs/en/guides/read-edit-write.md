@@ -8,7 +8,7 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` accepts any well-formed LIFT **0.13** document — including schema-invalid real-world files. Anything the model doesn't define (unknown elements/attributes, comments) is carried losslessly as LIFT residue in each node's opaque `extra` field. Other LIFT versions raise `LiftParseError` naming the version.
+`load()` accepts any well-formed LIFT **0.13** document, including schema-invalid real-world files. Anything the model doesn't define (unknown elements/attributes, comments) is carried losslessly as LIFT residue in each node's opaque `extra` field. Other LIFT versions raise `LiftParseError` naming the version.
 
 ## The model
 
@@ -27,7 +27,7 @@ list(entry.lexical_unit.keys())         # ["seh", "en"]
 
 A schema-valid document has nothing more, but real files sometimes repeat a language. `forms` holds every form in file order, reads answer with the first, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language. A form carrying no `lang` at all cannot be created through the mapping, is reported as `form-missing-lang`, and is dropped when its node re-serializes.
 
-`Text` is structured — an ordered list of `str` and `Span` fragments — because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
+`Text` is structured (an ordered list of `str` and `Span` fragments) because `<text>` can contain nested `<span>` markup. `str(text)` flattens to plain text; the fragments keep the markup for round-tripping.
 
 Glosses are _form-shaped_ in LIFT (each `<gloss>` carries its own language), so a sense has `glosses: list[Form]` plus helpers:
 
