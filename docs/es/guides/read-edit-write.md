@@ -49,7 +49,7 @@ lex.save("elsewhere.lift")
 
 Las entradas que no hayas modificado se vuelven a escribir **con los mismos bytes**; un documento que no hayas modificado en absoluto es idéntico, byte a byte, desde el primer byte hasta el último. Consulta [las garantías de Fidelity](../fidelity.md) para conocer los términos exactos del contrato.
 
-Las entradas que has modificado se envían con un nuevo `dateModified` (y un `dateCreated` si no tenían ninguno), por lo que una modificación no se envía con la fecha con la que se cargó; las herramientas que fusionan LIFT determinan qué ha cambiado a partir de ese atributo. `lex.save(stamp=False)` guarda las fechas que contiene el modelo y nada más; `lex.save(when=...)` fija el momento en lugar de leer la hora del reloj. Consulta [Marcas de tiempo generadas](../fidelity.md#generated-timestamps) para ver el resto de las reglas.
+Las entradas que has modificado se publican con una nueva `dateModified` (y una `dateCreated` si no tenían ninguna), por lo que una modificación no se publica con la fecha con la que se cargó. Las herramientas que fusionan LIFT determinan qué ha cambiado en ese atributo. `lex.save(stamp=False)` guarda las fechas que contiene el modelo y nada más; `lex.save(when=...)` fija el momento en lugar de leer la hora del reloj. Consulta [Marcas de tiempo generadas](../fidelity.md#generated-timestamps) para ver el resto de las reglas.
 
 Para omitir un guardado que no supondría ningún cambio, protégelo con `lex.changes()`:
 
@@ -58,7 +58,9 @@ si lex.changes():
     lex.save()
 ```
 
-Solo es falso cuando `save()` reproduciría los bytes de origen, incluyendo las entradas, el encabezado, el elemento raíz y todos los elementos `.lift-ranges` asociados. Compara el contenido, no el destino, por lo que solo garantiza un guardado en el mismo lugar: `lex.save("elsewhere.lift")` guarda el documento y sus archivos asociados en esa ubicación, independientemente de lo que indique `changes()`. Cuesta más de lo que protege; lo que ahorra es la escritura (una fecha de modificación sin cambios, sin diferencias espurias), no el trabajo.
+Devuelve `False` únicamente cuando `save()` reproduciría los bytes de origen, incluyendo las entradas, el encabezado, el elemento raíz y todos los elementos `.lift-ranges` asociados. Se detiene ante la primera diferencia, por lo que, con un léxico editado, no supone prácticamente ningún coste. Para demostrar que un léxico no ha sufrido cambios, es necesario serializarlo íntegramente, pero eso sigue costando menos que el proceso de guardado que se omite. Al omitir la escritura, tampoco se modifica la fecha de modificación del archivo y se evita que aparezcan diferencias falsas.
+
+Compara el contenido, no el destino, así que asegúrate de que solo se guarde en el mismo lugar. `lex.save("elsewhere.lift")` guarda el documento y sus archivos asociados en esa ubicación, independientemente de lo que devuelva `changes()`.
 
 ## Construir desde cero
 
