@@ -31,8 +31,10 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      # Two warnings (duplicate-form-lang, missing-media), so under strict each
-      # passing step below depends on every input it sets reaching the CLI.
+      # Two warnings (duplicate-form-lang, missing-media), so under strict a
+      # step passes only if its no-check-media and allow inputs reach the CLI.
+      # format does not change a valid run's exit code, so it is checked with
+      # a value the CLI rejects instead.
       - name: Write fixture
         run: |
           cat > action-smoke.lift <<'EOF'
@@ -49,7 +51,17 @@ jobs:
       - name: Assert strict failed
         if: steps.strict.outcome != 'failure'
         run: exit 1
-      - name: no-check-media, allow, and format reach the CLI
+      - name: Unknown format fails
+        id: format
+        continue-on-error: true
+        uses: ./
+        with:
+          path: action-smoke.lift
+          format: xml
+      - name: Assert unknown format failed
+        if: steps.format.outcome != 'failure'
+        run: exit 1
+      - name: no-check-media and allow reach the CLI
         uses: ./
         with:
           path: action-smoke.lift
