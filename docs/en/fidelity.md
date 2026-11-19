@@ -4,7 +4,12 @@ LIFT is an _interchange_ format, so the first rule is **never drop what you do n
 
 ## Reading
 
-Any well-formed LIFT 0.13 document loads, schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` container as _LIFT residue_ (FieldWorks' name for the same idea, which it stores in a `LiftResidue` field): unknown attributes and elements, XML comments and processing instructions, stray text, and malformed typed attributes (a bad date stays as the original string in `Extras`; the typed field is `None`).
+Any well-formed LIFT 0.13 document loads, schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` container as _LIFT residue_. (That is FieldWorks' name for the same idea, which it stores in a `LiftResidue` field.) Residue includes:
+
+- unknown attributes and elements;
+- XML comments and processing instructions;
+- stray text;
+- malformed typed attributes: a bad date stays as the original string in `Extras`, and the typed field is `None`.
 
 ## Saving an unchanged document
 
@@ -14,8 +19,10 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 
 - the source encoding is not ASCII-compatible (not UTF-8/US-ASCII), or
 - the source contains a DOCTYPE, or
-- the byte scanner and the parser disagree about the document's top-level structure, for instance an out-of-spec second `<header>`, which the parser keeps only once (the scanner is deliberately conservative: on any doubt it captures no source bytes at all), or
+- the byte scanner and the parser disagree about the document's top-level structure, for instance an out-of-spec second `<header>`, which the parser keeps only once, or
 - the source was built in memory rather than loaded from a file.
+
+The byte scanner is deliberately conservative: on any doubt it captures no source bytes at all.
 
 ## Saving an edited document
 
@@ -31,17 +38,24 @@ Exceptions (the writer falls back to full canonical serialization, which is sema
 - **A touched entry is stamped** with a fresh `dateModified`, and a `dateCreated` if it had none. See [Generated timestamps](#generated-timestamps).
 
 !!! note "&quot;Canonical&quot; here is not related to any other Canonical XML"
+
     Canonical form on this page means `sil-lift`'s own documented shape, described in a bullet above. It is unrelated to W3C's Canonical XML (C14N) process. It is unrelated to `SIL.Core`'s `CanonicalXmlSettings` class.
 
 ## Generated timestamps
 
 A generated stamp is the one thing in the output that is not a function of the input.
 
+### Which entries are stamped
+
 - **What is stamped.** Every entry whose content changed since it was read, with a fresh `dateModified` and, if it had none, a `dateCreated` of the same moment. An edit shipped under its loaded date looks unmodified to everything that reconciles on that attribute, FieldWorks and The Combine's LIFT import included.
 - **Entries only.** No node below an `<entry>`, and nothing in the header.
 - **What is left alone.** An entry whose date the caller set deliberately, and an entry created since the load that already carries one.
-- **Clearing a date is honored.** `entry.date_modified = None` on an entry read with one is a deliberate value like any other, so the entry goes out with no `dateModified` whether or not its content moved. An entry read without one is a different case: `None` there is the value already in place, indistinguishable from never touching the field, so an edit still stamps it.
-- **An unparseable date is replaced.** A date the model could not parse is [residue](#reading) rather than a date, so a stamp overwrites it and the original string is dropped; an edited entry is better off carrying a real date than `dateModified="whenever"`.
+- **Clearing a date is honored.** `entry.date_modified = None` on an entry read with one is a deliberate value like any other, so the entry goes out with no `dateModified` whether or not its content moved.
+    - An entry read without one is a different case: `None` there is the value already in place, indistinguishable from never touching the field, so an edit still stamps it.
+- **An unparseable date is replaced.** A date the model could not parse is [residue](#reading) rather than a date, so a stamp overwrites it and the original string is dropped. An edited entry is better off carrying a real date than `dateModified="whenever"`.
+
+### How the stamp is applied
+
 - **The moment.** UTC at seconds precision (`YYYY-MM-DDTHH:MM:SSZ`, the shape every surveyed FieldWorks export uses), read from the wall clock. One second holds one date, so an edit saved within a second of the previous one carries the same stamp.
 - **`save(when=...)`** supplies the moment instead of the wall clock, which is what keeps stamped output reproducible for a diff-based CI gate. It must be timezone-aware, and is normalized to UTC whole seconds.
 - **`save(stamp=False)`** writes the model exactly as it stands, residue included.
@@ -51,11 +65,14 @@ A generated stamp is the one thing in the output that is not a function of the i
 
 Non-BMP characters (emoji, CJK Extension B, Adlam, anything above U+FFFF) are ordinary content and round-trip byte-identically. A "surrogate pair" is a UTF-16 encoding detail: Python strings are sequences of codepoints, so nothing in the reader, the byte scanner, or the writer ever sees one.
 
-A _lone_ surrogate (U+D800–U+DFFF) is different: a Python string may hold one, an XML document may not, in any encoding. It can never arrive from a file (the parser rejects both spellings, a `&#xD800;` character reference and CESU-8/WTF-8 bytes), only from a string assigned through the API. Saving such a model raises `LiftWriteError` naming the node and the codepoint and writes nothing; validation reports it as a single `lone-surrogate` error, since the document cannot be serialized for the schema layers to check.
+A _lone_ surrogate (U+D800–U+DFFF) is different: a Python string may hold one, an XML document may not, in any encoding. It can never arrive from a file, because the parser rejects both spellings (a `&#xD800;` character reference and CESU-8/WTF-8 bytes). It can only come from a string assigned through the API.
+
+Saving such a model raises `LiftWriteError` naming the node and the codepoint, and writes nothing. Validation reports it as a single `lone-surrogate` error, since the document cannot be serialized for the schema layers to check.
 
 ## Known approximations (touched nodes only)
 
 - Comments _inside_ a `<text>` run are preserved but moved next to the run, not kept at their exact character offset.
 - Cross-type child order within an edited element is normalized to the canonical grouping (the LIFT schema's `interleave` makes this order semantically insignificant).
 - A `<form>` or `<gloss>` with no `lang` is not re-emitted, and neither is anything it held; validation reports the omission as `form-missing-lang`. An untouched node keeps its source bytes, so such a form survives until something in its entry is edited.
-- A multitext element that is present but carries nothing (no forms, no residue, e.g. `<definition></definition>`) is not re-emitted. The model represents these fields as an always-present `Multitext` (`lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header), so an empty one is indistinguishable from an absent one after parsing. Nothing semantic is lost.
+- A multitext element that is present but carries nothing (no forms, no residue, e.g. `<definition></definition>`) is not re-emitted. Nothing semantic is lost.
+    - The model represents these fields as an always-present `Multitext`, so an empty one is indistinguishable from an absent one after parsing. The fields are `lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header.

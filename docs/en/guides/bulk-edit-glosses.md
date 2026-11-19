@@ -42,16 +42,12 @@ A few things worth noting:
 - `entry.all_senses()` yields every sense _and subsense_, depth-first in document order.
     - `entry.senses` holds only the top level, so a bulk edit that walked it would silently skip any gloss nested under a subsense.
 - `gloss.text` is a `Text`, not a plain string: `str(gloss.text)` flattens it for matching, and the replacement is written back with `sil_lift.Text([new])` rather than mutating the string in place.
-- `lex.changed_entries()` reports which entries differ from the file as loaded. Since an entry's digest covers its whole subtree, an edit to a nested subsense reports the entry that contains it, while assigning a field the value it already had isn't reported.
+- `lex.changed_entries()` reports the entries whose content differs from the file as loaded. An edit anywhere inside an entry, even in a nested subsense, reports that entry. Assigning a field the value it already had reports nothing, since the content is unchanged.
 - `changed_entries()` covers entry content only, so it is a count, not a write guard. To skip a save that would change nothing, use `lex.changes()`; see [Saving](read-edit-write.md#saving).
 - Validating in memory (`lex.iter_problems()`) serializes the edited state first, so it correctly reflects the edit before anything is written to disk. Aborting on any `"error"`-level `Problem` (warnings are left for the caller to decide about) means a bad edit never reaches `save()`.
-- `lex.save()` stamps a fresh `dateModified` on exactly the entries this script changed, filling `dateCreated` where it was blank. Without it a lexicon this script has rewritten would look untouched to FieldWorks or to The Combine's LIFT import, both of which decide what to update from that attribute. It stamps `<entry>` only, however deep the edit went: the entry containing the edited subsense gloss, not the sense.
-
-Glosses aren't the only thing worth touching this way. The same `Multitext` mapping surface applies to definitions and every other multilingual field on an entry or sense:
-
-```python
-sense.definition["en"] = "the color of a thing"
-```
+- `lex.save()` stamps a fresh `dateModified` on exactly the entries this script changed, filling `dateCreated` where it was blank.
+    - FieldWorks and The Combine's LIFT import both decide what to update from `dateModified`, so without the fresh date they would treat the edited entries as untouched.
+    - Only `<entry>` elements are stamped. When a subsense gloss is edited, the date goes on the containing entry, not on the sense.
 
 ## Running it
 
@@ -63,4 +59,16 @@ edited 2 gloss(es) across 1 entry(ies)
 
 ## The fidelity payoff
 
-The guarantee is per _entry_: an entry whose model didn't change comes back out **byte-identical** to how it was read in, and only the entries you actually touched are re-serialized. In the run above, one entry had glosses edited; every other entry in the file kept its exact bytes. (Note the granularity: editing any part of an entry re-serializes that whole entry, including its untouched sibling senses.) Editing one gloss in a 50,000-entry lexicon therefore produces a diff touching one entry, not a reformatted file. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+The guarantee is per _entry_: an entry whose model didn't change comes back out **byte-identical** to how it was read in, and only the entries you actually touched are re-serialized. In the run above, one entry had glosses edited; every other entry in the file kept its exact bytes. Editing one gloss in a 50,000-entry lexicon therefore produces a diff touching one entry, not a reformatted file.
+
+Note the granularity: editing any part of an entry re-serializes that whole entry, including its untouched sibling senses. See [Fidelity guarantees](../fidelity.md) for the precise contract.
+
+## Beyond glosses
+
+The same approach works for other multilingual fields. Glosses are a list of `Form`s, but definitions and most other multilingual fields are `Multitext` mappings keyed by language, so an edit is a plain assignment:
+
+```python
+sense.definition["en"] = "the color of a thing"
+```
+
+See [Multilingual text](read-edit-write.md#multilingual-text) for how the mapping behaves.

@@ -1,26 +1,44 @@
 # Producing conformant LIFT
 
-This guide is for anyone writing a LIFT *exporter*: code in any language that turns another application's data model into LIFT 0.13. `sil-lift` serves two roles for that work: a conformance gate that checks the output against the schema and the semantics a schema can't express, and a reference for the shapes and text rules the output must follow.
+This guide is for anyone writing a LIFT *exporter*: code in any language that turns another application's data model into LIFT 0.13. `sil-lift` serves two roles for that work:
+
+- a conformance gate that checks the output against both the schema and the semantics a schema can't express;
+- a reference for the shapes and text rules the output must follow.
 
 Writing LIFT is much easier than parsing it: an exporter only emits the subset of constructs its own model produces, and never faces the full spec's optionality. The hard part is the details (the `.lift-ranges` companion, per-writing-system text, stable ids, and XML escaping), and those are exactly what the checks below catch.
 
 ## Zipped packages
 
-LIFT is usually moved around as a single `.zip` (FieldWorks and The Combine both import and export that way), so `sil-lift` reads and writes zipped packages directly, in either layout the ecosystem uses: the files at the archive root, or nested under one top-level folder.
+LIFT is usually moved around as a single `.zip`; FieldWorks and The Combine both import and export that way. `sil-lift` reads and writes zipped packages directly, in either layout the ecosystem uses: the files at the archive root, or nested under one top-level folder.
 
-- **Read:** `sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual).
-    - The `validate`, `stats`, `check-media`, and `export` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is.
-    - `stats` and `export` stream, and extract only the `.lift` rather than the whole package, so they stay cheap on a media-heavy one, and the extraction limit applies to the `.lift` alone rather than to everything beside it.
-    - Extraction is capped at 10 GiB and 100,000 members; a package over either limit is refused with a `LiftParseError`, as is one whose member paths escape the extraction directory.
-- **Write:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip.
-    - `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
-    - Entries whose content changed since the load are stamped with a fresh `dateModified` on the way out, exactly as on `save()`: a package is what an importing tool reconciles from, so a stale date there is what makes an updated lexicon look untouched. `stamp=False` and `when=` work the same way here.
+### Reading a package
+
+`sil_lift.load("package.zip")` extracts to a temp directory, locates the single `.lift`, and loads it (companions and media resolve as usual).
+
+- The `validate`, `stats`, `check-media`, and `export` CLI commands accept a `.zip` path too, so the gate below runs against a package as-is.
+- `stats` and `export` stream, and extract only the `.lift` rather than the whole package. They stay cheap on a media-heavy one, and the extraction limit applies to the `.lift` alone rather than to everything beside it.
+- Extraction is capped at 10 GiB and 100,000 members. A package over either limit is refused with a `LiftParseError`, as is one whose member paths escape the extraction directory.
+
+### Writing a package
+
+`Lexicon.save_zip("out.zip", wrap_folder="MyDict")` packages the `.lift`, its `.lift-ranges`, and every other file in the source folder (media, `WritingSystems/`, `consent/`, ...) into a zip.
+
+- `wrap_folder` defaults to a top-level folder named after the zip (the FieldWorks/Combine import convention); pass `False` for a flat archive.
+- Entries whose content changed since the load are stamped with a fresh `dateModified` on the way out, exactly as on `save()`.
+    - A package is what an importing tool reconciles from, so a stale date there would make an updated lexicon look untouched.
+    - It takes the same `stamp=` and `when=` options as `save()`; see [How the stamp is applied](../fidelity.md#how-the-stamp-is-applied).
 
 The `.lift` and `.lift-ranges` keep their byte-fidelity inside the package; the zip container itself is not byte-reproducible.
 
 ## Validate the output as a conformance gate
 
-Point `sil-lift validate` at the produced `.lift` file. It runs RELAX NG (over both the `.lift` and its `.lift-ranges` companion) plus semantic checks the grammar can't express: dangling `relation`/`variant` references, duplicate GUIDs, range-element parent integrity, trait and grammatical-info values not defined in their range, and header `range/@href` references that resolve to no companion.
+Point `sil-lift validate` at a `.lift` file. It runs RELAX NG over both the `.lift` and its `.lift-ranges` companion, plus semantic checks the grammar can't express:
+
+- dangling `relation`/`variant` references;
+- duplicate GUIDs;
+- range-element parent integrity;
+- trait and grammatical-info values not defined in their range;
+- header `range/@href` references that resolve to no companion.
 
 For CI, fail on anything and emit machine-readable findings:
 
@@ -34,7 +52,9 @@ sil-lift validate export.lift --strict --no-check-media --format json
 - `--allow CODE[,CODE...]` (repeatable) keeps a tolerated code, such as FLEx's `uri-not-rfc`, from failing the run. Its findings are printed but not counted.
 - `--require-ids` additionally errors on entries missing a `guid` or senses missing an `id`, which is useful when a later re-import must update rather than duplicate.
 
-Guard against silent data loss (the failure mode that makes flat CSV export lossy) by asserting counts with `stats --format json` against your source model:
+### Guarding against silent data loss
+
+Silent data loss is the failure mode that makes flat CSV export lossy. Guard against it by asserting counts with `stats --format json` against your source model:
 
 ```
 sil-lift stats export.lift --format json
@@ -95,7 +115,12 @@ The companion carries each range's full definition. Values are `<range-element>`
 </lift-ranges>
 ```
 
-An entry then refers to a value by id: a sense's part of speech is `<grammatical-info value="Noun"/>`, and a semantic domain is `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` warns (`undefined-range-value`) when a value isn't defined in its range and errors (`range-parent`) when a `parent` isn't a sibling id, so emit the ranges your data actually uses. Those comparisons are NFC-normalized, so an id and the value or `parent` referring to it may differ in Unicode normalization. That difference is a `normalization-mismatch` warning rather than an error, but write one consistent normalization if you can: consumers that compare raw strings will not resolve those references. See also [Ranges and media](folder-media.md).
+An entry then refers to a value by id: a sense's part of speech is `<grammatical-info value="Noun"/>`, and a semantic domain is `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` checks those references, so emit the ranges your data actually uses:
+
+- a value that isn't defined in its range is an `undefined-range-value` warning;
+- a `parent` that isn't a sibling id is a `range-parent` error.
+
+Those comparisons are NFC-normalized, so an id and the value or `parent` referring to it may differ in Unicode normalization. That difference is a `normalization-mismatch` warning rather than an error. Still, write one consistent normalization if you can: consumers that compare raw strings will not resolve those references. See also [Ranges and media](folder-media.md).
 
 If you build the export in Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, and `Range.add_element()` construct the companion and add the header references for you; `open_writer(..., ranges=...)` does the same on the streaming path.
 
@@ -112,4 +137,9 @@ Every human-language string in LIFT is a *multitext*: one `<form>` per writing s
 
 A model that keys strings by language code (a `MultiString`, a `Record<code, string>`, a `dict[str, str]`) maps onto this one-to-one: one entry per key becomes one `<form lang="…">`. At most one form per language is allowed in a single multitext; `sil-lift` warns `duplicate-form-lang` otherwise.
 
-XML escaping is the one genuinely correctness-sensitive part. In element text, `&`, `<`, and `>` must be escaped (`&amp;`, `&lt;`, `&gt;`); in attribute values, the quote character too. `sil-lift`'s writer applies exactly these rules and never alters whitespace inside `<text>`: it adds no indentation there, because that would corrupt the lexical data. If you aim to match its output, reuse a real XML serializer's escaping (not a hand-rolled replace that forgets `&`) and leave `<text>` content byte-for-byte as your source has it.
+XML escaping is the one genuinely correctness-sensitive part:
+
+- in element text, `&`, `<`, and `>` must be escaped (`&amp;`, `&lt;`, `&gt;`);
+- in attribute values, the quote character must be escaped too.
+
+`sil-lift`'s writer applies exactly these rules and never alters whitespace inside `<text>`: it adds no indentation there, because that would corrupt the lexical data. To match its output, use an XML library to do the escaping and leave `<text>` content byte-for-byte as your source has it.
