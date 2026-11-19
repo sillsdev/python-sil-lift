@@ -7,9 +7,9 @@ Three layers, all explicit-call (never implicit on load/save):
 
    - ``href`` attributes are masked before validation. libxml2's ``anyURI``
      check rejects the ``file://C:/...`` URIs that FieldWorks (FLEx)
-     systematically writes (the C# validator's engine never enforced anyURI),
-     which would flag virtually every real lexicon. Instead, sil-lift runs its
-     own URI plausibility check and reports offenders as *warnings*
+     systematically writes, so it would flag virtually every real lexicon;
+     the C# validator's engine never enforced anyURI. Instead, sil-lift runs
+     its own URI plausibility check and reports offenders as *warnings*
      (``uri-not-rfc``).
    - children are grouped by tag before validation. libxml2's interleave
      support rejects legally-interleaved documents once an element type
@@ -69,7 +69,7 @@ _SCHEMAS_DIR = Path(__file__).parent / "schemas"
 _PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, kw_only=True)
 class Problem:
     """One validation finding, addressable to a file/entry/line."""
 
@@ -118,7 +118,7 @@ def iter_lexicon_problems(lexicon: Lexicon, *, require_ids: bool = False) -> Ite
     try:
         data = render_document(lexicon)
     except LiftWriteError as exc:
-        yield Problem("error", "lone-surrogate", str(exc), file=lexicon.path)
+        yield Problem(level="error", code="lone-surrogate", message=str(exc), file=lexicon.path)
         return
     entry_lines, problems = _schema_problems(data, lift_schema, lexicon.path)
     yield from problems
@@ -126,7 +126,9 @@ def iter_lexicon_problems(lexicon: Lexicon, *, require_ids: bool = False) -> Ite
         try:
             rdata = render_ranges_document(ranges_file)
         except LiftWriteError as exc:
-            yield Problem("error", "lone-surrogate", str(exc), file=ranges_file.path)
+            yield Problem(
+                level="error", code="lone-surrogate", message=str(exc), file=ranges_file.path
+            )
             continue
         _, range_problems = _schema_problems(rdata, ranges_schema, ranges_file.path)
         yield from range_problems
@@ -190,9 +192,9 @@ def _schema_problems(
         if reason is not None:
             problems.append(
                 Problem(
-                    "warning",
-                    "uri-not-rfc",
-                    f"<{el.tag} href={href!r}>: {reason}",
+                    level="warning",
+                    code="uri-not-rfc",
+                    message=f"<{el.tag} href={href!r}>: {reason}",
                     file=file,
                     line=_line(el),
                 )
@@ -209,9 +211,9 @@ def _schema_problems(
             entry_id, guid = _nearest_entry(addressable, line)
             problems.append(
                 Problem(
-                    "error",
-                    "schema",
-                    error.message,
+                    level="error",
+                    code="schema",
+                    message=error.message,
                     file=file,
                     entry_id=entry_id,
                     guid=guid,
@@ -286,17 +288,17 @@ def _form_shape_problems(
     entries. The header and a companion ranges file have no entry to name, so
     their findings carry the file alone.
 
-    The RNG catches a lang-less form only while the document still holds one,
-    which a re-serialized node does not. It never catches a repeated language:
+    The RNG catches a lang-less form only in bytes that still hold one, and a
+    re-serialized node drops it. It never catches a repeated language:
     that's an embedded Schematron rule, which the parser ignores.
     """
     for label, form in _iter_instances(root, Form):
         if form.lang is None:
             tag = "gloss" if label == "glosses" else "form"
             yield Problem(
-                "error",
-                "form-missing-lang",
-                f"a {tag} has no lang, which the schema requires",
+                level="error",
+                code="form-missing-lang",
+                message=f"a {tag} has no lang, which the schema requires",
                 file=file,
                 entry_id=entry_id,
                 guid=guid,
@@ -306,9 +308,9 @@ def _form_shape_problems(
         langs = Counter(f.lang for f in multitext.forms if f.lang is not None)
         for lang in sorted(lang for lang, count in langs.items() if count > 1):
             yield Problem(
-                "warning",
-                "duplicate-form-lang",
-                f"{label} has more than one form with lang {lang!r}",
+                level="warning",
+                code="duplicate-form-lang",
+                message=f"{label} has more than one form with lang {lang!r}",
                 file=file,
                 entry_id=entry_id,
                 guid=guid,
@@ -373,9 +375,9 @@ def _semantic_problems(
         for index, entry in enumerate(lexicon.entries):
             if entry.guid is None:
                 yield Problem(
-                    "error",
-                    "missing-id",
-                    "entry has no guid (needed for re-import by a stable id)",
+                    level="error",
+                    code="missing-id",
+                    message="entry has no guid (needed for re-import by a stable id)",
                     file=file,
                     entry_id=entry.id,
                     line=at(index),
@@ -383,20 +385,20 @@ def _semantic_problems(
             for sense in entry.all_senses():
                 if sense.id is None:
                     yield Problem(
-                        "error",
-                        "missing-id",
-                        "sense has no id (needed for re-import by a stable id)",
+                        level="error",
+                        code="missing-id",
+                        message="sense has no id (needed for re-import by a stable id)",
                         file=file,
                         entry_id=entry.id,
                         guid=entry.guid,
                         line=at(index),
                     )
 
-    # Duplicate GUIDs, mirroring the C# Validator.GetDuplicateGuidErrors. That
-    # scans every element carrying a guid, not just entries: the RNG allows one
-    # on <range> and <range-element> too. Scope is per rendered document,
-    # matching its per-file scan. So a guid shared by a .lift and its companion
-    # is not a duplicate.
+    # Duplicate GUIDs, mirroring the C# Validator.GetDuplicateGuidErrors. Like
+    # that method, this checks every element carrying a guid, not just entries:
+    # the RNG allows one on <range> and <range-element> too. Also like it, the
+    # scope is one rendered document, so a guid shared by a .lift and its
+    # companion is not a duplicate.
     def _range_guids(
         ranges: list[Range],
     ) -> Iterator[tuple[str, str, str | None, int | None]]:
@@ -419,9 +421,9 @@ def _semantic_problems(
         for label, guid, entry_id, line in pairs:
             if guid in first_seen:
                 yield Problem(
-                    "error",
-                    "duplicate-guid",
-                    f"guid {guid} already used by {first_seen[guid]}",
+                    level="error",
+                    code="duplicate-guid",
+                    message=f"guid {guid} already used by {first_seen[guid]}",
                     file=doc_file,
                     entry_id=entry_id,
                     guid=guid,
@@ -462,9 +464,9 @@ def _semantic_problems(
         for ref in refs:
             if ref and ref not in targets:
                 yield Problem(
-                    "error",
-                    "dangling-ref",
-                    f"ref {ref!r} matches no entry id/guid or sense id",
+                    level="error",
+                    code="dangling-ref",
+                    message=f"ref {ref!r} matches no entry id/guid or sense id",
                     file=file,
                     entry_id=entry.id,
                     guid=entry.guid,
@@ -535,9 +537,9 @@ def _semantic_problems(
             target = resolve(element.parent, element_ids)
             if target is None:
                 yield Problem(
-                    "error",
-                    "range-parent",
-                    f"range {range_.id!r}: range-element {element.id!r} has "
+                    level="error",
+                    code="range-parent",
+                    message=f"range {range_.id!r}: range-element {element.id!r} has "
                     f"parent {element.parent!r} which is not a sibling id",
                     file=ranges_paths.get(range_.id) or file,
                 )
@@ -549,8 +551,9 @@ def _semantic_problems(
     range_ids = id_lookup(lookups.keys())
 
     def range_named(name: str) -> str | None:
-        """The id of the range ``name`` keys, or None if no such range
-        enumerates elements. Records a name that reached one by normalizing.
+        """The id of the range that ``name`` keys, or None if no such range
+        enumerates elements. Records ``name`` if it reached the range only by
+        normalizing.
         """
         range_id = resolve(name, range_ids)
         if range_id is not None and range_id != name:
@@ -566,9 +569,9 @@ def _semantic_problems(
     # resolve_ranges=False the caller put companions out of scope for this
     # load, so a finding about one is unwanted whether or not it is accurate.
     # add_ranges_file attaches a companion without reading the folder, so it
-    # does not reinstate these: the checks below re-derive from a folder this
-    # load never looked at, where a sibling that supplies a header range went
-    # unloaded and so reads as a dangling href.
+    # does not reinstate these checks. They re-derive from the folder, which
+    # this load never looked at: a sibling companion there was never loaded,
+    # so the header range it supplies would read as a dangling href.
     rejected = lexicon._rejected_ranges
     if lexicon.path is not None and rejected is not None:
         base = lexicon.path.parent
@@ -582,7 +585,8 @@ def _semantic_problems(
             matches = _folded_matches(candidate.path, listings)
             if len(matches) < 2:
                 continue
-            # One of the colliding files loaded, named exactly by another candidate.
+            # Not ambiguous after all: another candidate named one of them exactly,
+            # and that file loaded.
             if any(_same_file(path, loaded) for path in matches for loaded in lexicon.ranges_files):
                 continue
             names = sorted(path.name for path in matches)
@@ -593,9 +597,9 @@ def _semantic_problems(
             # Spellings differing only in normalization render identically.
             spellings = ", ".join(f"{name!a}" for name in names)
             yield Problem(
-                "warning",
-                "ambiguous-ranges-file",
-                f"companion {candidate.path.name!a} matches {spellings}; they differ only "
+                level="warning",
+                code="ambiguous-ranges-file",
+                message=f"companion {candidate.path.name!a} matches {spellings}; they differ only "
                 "in case or Unicode normalization, so none of them is loaded",
                 file=lexicon.path,
             )
@@ -618,9 +622,9 @@ def _semantic_problems(
             # href folding onto it supplies nothing and dangles too.
             if found is None or _same_file(found, lexicon.path):
                 yield Problem(
-                    "warning",
-                    "dangling-ranges-href",
-                    f"header range {range_.id!r} references {range_.href!r} "
+                    level="warning",
+                    code="dangling-ranges-href",
+                    message=f"header range {range_.id!r} references {range_.href!r} "
                     "but no companion file was found",
                     file=lexicon.path,
                 )
@@ -660,9 +664,11 @@ def _semantic_problems(
                 named_by, href = candidate.source
                 where = f"this file, named by header range {named_by!r} href {href!r},"
             yield Problem(
-                "warning",
-                "unreadable-ranges-file",
-                f"{where} could not be read as a ranges document, so it is not loaded: {reason}",
+                level="warning",
+                code="unreadable-ranges-file",
+                message=(
+                    f"{where} could not be read as a ranges document, so it is not loaded: {reason}"
+                ),
                 file=resolved,
             )
 
@@ -686,9 +692,9 @@ def _semantic_problems(
             target = resolve(value, lookups[range_id])
             if target is None:
                 yield Problem(
-                    "warning",
-                    "undefined-range-value",
-                    f"{label} value {value!r} is not defined in the range",
+                    level="warning",
+                    code="undefined-range-value",
+                    message=f"{label} value {value!r} is not defined in the range",
                     file=file,
                     entry_id=entry.id,
                     guid=entry.guid,
@@ -701,9 +707,9 @@ def _semantic_problems(
     # than with the !r other messages use.
     for (range_id, kind, id_), reference in sorted(mismatched.items()):
         yield Problem(
-            "warning",
-            "normalization-mismatch",
-            f"range {range_id!r}: {kind} {id_!a} is referenced as {reference!a}; "
+            level="warning",
+            code="normalization-mismatch",
+            message=f"range {range_id!r}: {kind} {id_!a} is referenced as {reference!a}; "
             "they match only under Unicode NFC normalization",
             file=ranges_paths.get(range_id) or file,
         )
@@ -714,9 +720,9 @@ def _semantic_problems(
         if resolution.status != "missing":
             continue
         yield Problem(
-            "warning",
-            "missing-media",
-            f"{resolution.ref.kind} file not found: {resolution.ref.href!r}",
+            level="warning",
+            code="missing-media",
+            message=f"{resolution.ref.kind} file not found: {resolution.ref.href!r}",
             file=file,
             entry_id=resolution.ref.entry_id,
             guid=resolution.ref.entry_guid,
@@ -727,18 +733,18 @@ def _semantic_problems(
     # The two spellings can render identically, so name them by code point.
     for written, on_disk in directories:
         yield Problem(
-            "warning",
-            "media-href-mismatch",
-            f"media hrefs name folder {written!a}, which is {on_disk!a} on disk; they "
+            level="warning",
+            code="media-href-mismatch",
+            message=f"media hrefs name folder {written!a}, which is {on_disk!a} on disk; they "
             "match only under case folding or Unicode normalization, so a "
             "case-sensitive host will not find any file under it",
             file=file,
         )
     for resolution, written, on_disk in files:
         yield Problem(
-            "warning",
-            "media-href-mismatch",
-            f"{resolution.ref.kind} href names {written!a}, which is {on_disk!a} on disk; "
+            level="warning",
+            code="media-href-mismatch",
+            message=f"{resolution.ref.kind} href names {written!a}, which is {on_disk!a} on disk; "
             "they match only under case folding or Unicode normalization, so a "
             "case-sensitive host will not find it",
             file=file,

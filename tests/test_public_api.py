@@ -7,13 +7,14 @@ import sil_lift
 def _annotation_strings(obj: object) -> list[str]:
     """Raw source annotations for a function or class.
 
-    Static (PEP 563 strings) rather than resolved: ``typing.get_type_hints``
-    raises on the TYPE_CHECKING-only imports several public signatures use
-    (``os``, ``Iterator``, ...), and silently skipping those members — as an
-    earlier ``try/except: return []`` did — let the check pass without ever
-    examining them. lxml only ever enters this codebase as ``from lxml import
-    etree``, so a leak is always visible in the source text as an ``etree.``
-    (or ``lxml``) reference; no resolution is needed to catch it.
+    Static (PEP 563 strings), not resolved. ``typing.get_type_hints`` raises
+    on the TYPE_CHECKING-only imports that several public signatures use
+    (``os``, ``Iterator``, ...). Silently skipping those members instead
+    would let the check pass without ever examining them.
+
+    Resolution isn't needed to catch a leak anyway. lxml only enters this
+    codebase as ``from lxml import etree``, so a leak always shows in the
+    source text as an ``etree.`` or ``lxml`` reference.
     """
     return [str(hint) for hint in getattr(obj, "__annotations__", {}).values()]
 
@@ -47,8 +48,8 @@ def test_all_names_exist_and_sorted() -> None:
 
 
 # Constructors and class patterns take keywords past the leading field(s), so
-# that a field can be added or reordered without breaking callers. Results the
-# library hands back rather than objects callers build are not held to this.
+# that a field can be added or reordered without breaking callers. That holds
+# for results the library hands back too: their constructors are public API.
 _POSITIONAL_FIELDS = {
     "Annotation": ["name"],
     "Form": ["lang", "text"],
@@ -57,23 +58,13 @@ _POSITIONAL_FIELDS = {
     "Trait": ["name", "value"],
     "URLRef": ["href"],
 }
-_NOT_CONSTRUCTED_BY_CALLERS = {
-    "Changes",
-    "Extras",
-    "MediaRef",
-    "MediaResolution",
-    "Problem",
-    "RangesChanges",
-}
 
 
-def test_model_constructors_and_patterns_are_keyword_only_past_leading_fields() -> None:
+def test_dataclass_constructors_and_patterns_are_keyword_only_past_leading_fields() -> None:
     checked = 0
     for name in sil_lift.__all__:
         public = getattr(sil_lift, name)
         if not inspect.isclass(public) or not dataclasses.is_dataclass(public):
-            continue
-        if name in _NOT_CONSTRUCTED_BY_CALLERS:
             continue
         positional = [
             p.name
