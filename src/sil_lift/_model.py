@@ -961,20 +961,16 @@ class Lexicon:
             if (digest := digests.get(id(entry))) is not None and entry_digest(entry) != digest
         ]
 
-    def _header_changed(self) -> bool:
+    def _header_changed(self, source: _SourceInfo) -> bool:
         from ._writer import header_digest
 
-        source = self._source
-        if source is None or source.header_digest is None:
+        if source.header_digest is None:
             # No header in the source: only a non-empty one now is a change,
             # matching what render_document emits.
             return bool(self.header)
         return header_digest(self.header) != source.header_digest
 
-    def _root_changed(self) -> bool:
-        source = self._source
-        if source is None:
-            return False
+    def _root_changed(self, source: _SourceInfo) -> bool:
         return (
             self.producer != source.producer
             or dict(self.extra._attrs) != source.root_extra_attrs
@@ -1021,7 +1017,7 @@ class Lexicon:
         source = self._source
         if source is None:
             return True
-        if self._root_changed() or self._header_changed():
+        if self._root_changed(source) or self._header_changed(source):
             return True
         if not nodes_aligned(
             [id(entry) for entry in self.entries],
