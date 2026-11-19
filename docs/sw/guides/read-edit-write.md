@@ -49,7 +49,7 @@ lex.save("elsewhere.lift")
 
 Maingizo ambayo hukuyabadilisha yamerudishwa **sawa kwa baiti**; hati ambayo hukuyabadilisha kabisa ni sawa kwa baiti kuanzia baiti ya kwanza hadi ya mwisho. Tazama [Dhamana za Fidelity](../fidelity.md) kwa mkataba sahihi.
 
-Maingizo uliyoyabadilisha yanatoka na `dateModified` mpya (na `dateCreated` ikiwa haikuwa na moja), hivyo uhariri hauwasilishwi chini ya tarehe iliyopakiwa nayo — zana zinazochanganya LIFT zinabaini kile kilichobadilika kutoka kwa sifa hiyo. `lex.save(stamp=False)` huandika tarehe ambazo mfano unazoshikilia na hakuna zaidi; `lex.save(when=...)` hushikilia wakati badala ya kusoma saa. Tazama [Generated timestamps](../fidelity.md#generated-timestamps) kwa sheria zilizobaki.
+Maingizo uliyoyabadilisha yanatoka na `dateModified` mpya (na `dateCreated` ikiwa haikuwa na moja), hivyo uhariri hauwasilishwi chini ya tarehe iliyopakiwa nayo. Zana zinazochanganya LIFT huamua ni nini kilichobadilika kutoka kwa sifa hiyo. `lex.save(stamp=False)` huandika tarehe ambazo mfano unazoshikilia na hakuna zaidi; `lex.save(when=...)` hushikilia wakati badala ya kusoma saa. Tazama [Generated timestamps](../fidelity.md#generated-timestamps) kwa sheria zilizobaki.
 
 Ili kuruka uhifadhi ambao hautabadilisha chochote, ulinde kwa kutumia `lex.changes()`:
 
@@ -58,7 +58,9 @@ ikiwa lex.changes():
     lex.save()
 ```
 
-Ni potofu tu wakati `save()` ingetengeneza tena baiti za chanzo, ikijumuisha maingizo, kichwa, kipengele msingi, na kila mwenza wa `.lift-ranges`. Inalinganisha yaliyomo, si mahali pa kuokoa, kwa hivyo linda tu uhifadhi mahali pake: `lex.save("elsewhere.lift")` huandika hati na viambatisho vyake huko, chochote kinachoripotiwa na `changes()`. Inagharimu zaidi kuliko inavyookoa; kinachookoa ni uandishi (muda wa mabadiliko haujabadilika, hakuna tofauti bandia), si kazi yenyewe.
+Inarudisha `False` tu wakati `save()` ingeweza kuzalisha tena baiti za chanzo, ikijumuisha maingizo, kichwa, kipengele msingi, na kila mwenza wa `.lift-ranges`. Inasimama tofauti ya kwanza, hivyo kwenye kamusi iliyohaririwa haigharimu karibu chochote. Kamusi isiyobadilika lazima iwekwe katika muundo wa mfululizo kikamilifu ili kuthibitisha kuwa haijabadilika, lakini bado gharama yake ni ndogo kuliko ile ya kuhifadhi inayokosa. Kupuuza kuandika pia huacha muda wa marekebisho ya faili ukiwa uleule na kuepuka tofauti isiyo ya kweli.
+
+Inalinganisha yaliyomo, sio mahali pa mwisho, kwa hivyo linda tu uhifadhi mahali pake. `lex.save("elsewhere.lift")` huandika hati na viambatisho vyake huko, bila kujali kile `changes()` kinachorudisha.
 
 ## Kujenga kutoka mwanzo
 
