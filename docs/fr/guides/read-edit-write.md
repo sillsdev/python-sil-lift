@@ -49,7 +49,7 @@ lex.save("elsewhere.lift")
 
 Les entrées que vous n'avez pas modifiées sont réécrites **à l'octet près** ; un document que vous n'avez pas du tout modifié est identique à l'octet près, du premier au dernier octet. Pour consulter le contrat dans son intégralité, voir [Garanties Fidelity](../fidelity.md).
 
-Les entrées que vous avez modifiées sont envoyées avec une nouvelle valeur `dateModified` (et une valeur `dateCreated` si elles n'en avaient pas) ; ainsi, une modification n'est pas transmise avec la date à laquelle elle a été chargée — ce sont les outils qui fusionnent LIFT qui déterminent ce qui a changé à partir de cet attribut. `lex.save(stamp=False)` enregistre uniquement les dates contenues dans le modèle, sans rien d'autre ; `lex.save(when=...)` fixe un instant précis au lieu de se baser sur l'heure. Consultez la page [Horodatages générés](../fidelity.md#generated-timestamps) pour connaître les autres règles.
+Les entrées que vous avez modifiées sont enregistrées avec une nouvelle valeur `dateModified` (et une valeur `dateCreated` si elles n'en avaient pas) ; ainsi, une modification n'est pas enregistrée avec la date à laquelle elle a été chargée. Ce sont les outils qui effectuent la fusion LIFT qui déterminent ce qui a changé par rapport à cet attribut. `lex.save(stamp=False)` enregistre uniquement les dates contenues dans le modèle, sans rien d'autre ; `lex.save(when=...)` fixe un instant précis au lieu de se baser sur l'heure. Consultez la page [Horodatages générés](../fidelity.md#generated-timestamps) pour connaître les autres règles.
 
 Pour ignorer une sauvegarde qui n'entraînerait aucun changement, protégez-la à l'aide de `lex.changes()` :
 
@@ -58,7 +58,9 @@ si lex.changes() :
     lex.save()
 ```
 
-Cette condition n'est fausse que si la fonction `save()` reproduisait les octets source, en incluant les entrées, l'en-tête, l'élément racine et tous les éléments `.lift-ranges` associés. Comme il compare le contenu et non la destination, veillez à n'enregistrer qu'en place : `lex.save("elsewhere.lift")` écrit le document et ses éléments associés à cet emplacement, quel que soit le résultat renvoyé par `changes()`. Cela coûte plus cher que ce que cela permet d'économiser ; ce que cela économise, c'est l'écriture (une date de modification inchangée, pas de différence erronée), pas le travail.
+Elle ne renvoie `False` que lorsque la fonction `save()` reproduirait les octets source, en incluant les entrées, l'en-tête, l'élément racine et chaque compagnon `.lift-ranges`. Il s'arrête dès la première différence ; ainsi, sur un lexique modifié, cela ne coûte pratiquement rien. Un lexique inchangé doit être sérialisé dans son intégralité pour prouver qu'il n'a pas changé, mais cela reste moins coûteux que l'opération de sauvegarde qu'il permet d'éviter. En omettant l'écriture, on conserve également la date de modification du fichier et on évite ainsi un diff erroné.
+
+Il compare le contenu, et non la destination ; veillez donc à n'enregistrer qu'en place. `lex.save("elsewhere.lift")` enregistre le document et ses fichiers associés à cet emplacement, quel que soit le résultat renvoyé par `changes()`.
 
 ## Construire à partir de zéro
 
