@@ -1,6 +1,6 @@
 # سيل-ليفت
 
-مكتبة Python لـ [LIFT](https://github.com/sillsdev/lift-standard) (Lexicon Interchange FormaT) 0.13: قراءة/كتابة بدون فقدان البيانات لمجلد LIFT (`.lift` + `.lift-ranges` + مراجع الوسائط)، والتحقق من صحة المخطط والسمات الدلالية، والفرز القياسي — مع واجهات برمجة تطبيقات (APIs) للتدفق المباشر للمعاجم الكبيرة.
+مكتبة برمجية بلغة بايثون لـ [LIFT](https://github.com/sillsdev/lift-standard) (Lexicon Interchange FormaT) الإصدار 0.13: قراءة وكتابة مجلد LIFT دون فقدان البيانات (`.lift` + `.lift-ranges` + مراجع الوسائط)، والتحقق من صحة المخطط والسمات الدلالية، والفرز القياسي، بالإضافة إلى واجهات برمجة تطبيقات (APIs) للبث المباشر للمعاجم الكبيرة.
 
 **الحالة: إصدار تجريبي، قيد التطوير النشط.**
 
@@ -16,17 +16,19 @@ pip install sil-lift   # المكتبة + الأمر sil-lift
 
 ## جولة مدتها 30 ثانية
 
+قم بتحميل قاموس، وابحث عن المدخلات المتعلقة باللغة الهوايية التي لا تحتوي على تفسير باللغة الإنجليزية، وقم بتعديل التعريف، ثم احفظه:
+
 ```python
 import sil_lift
 
-lex = sil_lift.load("thesaurus.lift")     # يتتبع أيضًا المرادفات ذات الـ .lift-ranges
+lex = sil_lift.load("thesaurus.lift")     # يتتبع أيضًا المرادفات ذات نطاقات .lift
 
 for entry in lex.entries:
     if "en" not in entry.gloss_langs():
-        print(entry.id, str(entry.lexical_unit.get("seh") or ""))
+        print(entry.id, str(entry.lexical_unit.get("haw") or ""))
 
-entry = lex.find(guid="0f5a9c3e-...")     # أو lex.find(id="hoofd_a1b2")
+entry = lex.find(guid="0f5a9c3e-...")     # أو lex.find(id="poʻo_a1b2")
 entry.senses[0].definition["en"] = "head (anatomy)"
 
-lex.save()   # تم إعادة تسلسل المدخل المعدل وإعادة ختمه؛ أما الباقي فهو مطابق تمامًا من حيث البايتات
+lex.save()   # تمت إعادة تسلسل المدخل المعدل وإعادة ختمه؛ أما الباقي فهو مطابق تمامًا من حيث البايتات
 ```
