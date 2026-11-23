@@ -1,38 +1,47 @@
 # Diferenças em relação às bibliotecas do C\#
 
-O sil-lift é, de certa forma, análogo às ferramentas LIFT da SIL para C# — principalmente o `SIL.Lift` em [libpalaso](https://github.com/sillsdev/libpalaso) (analisador sintático, validador, migrador, `LiftSorter`) e o `SIL.DictionaryServices` no mesmo repositório (o modelo `LexEntry`/`LexSense`, com o seu próprio leitor/gravador LIFT, que o The Combine e o WeSay utilizam). Trata-se de uma nova implementação, não de uma adaptação. Esta página resume os casos em que o comportamento difere deliberadamente.
+O sil-lift é, de certa forma, análogo às ferramentas LIFT da SIL para C#, consistindo principalmente em duas partes da [libpalaso](https://github.com/sillsdev/libpalaso):
+
+- `SIL.Lift`: analisador, validador, migrador, `LiftSorter`.
+- `SIL.DictionaryServices`: o modelo `LexEntry`/`LexSense`, com o seu próprio leitor/gravador LIFT, utilizado pelo The Combine e pelo WeSay.
+
+O sil-lift é uma implementação nova, não uma adaptação. Esta página resume os casos em que o comportamento difere deliberadamente.
 
 ## Âmbito
 
 | Capacidade         | Bibliotecas C#                                           | sil-lift                                                                                  |
 | ------------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Versões do LIFT    | 0,10–0,13 (migração integrada)        | **Apenas 0.13**; as versões mais antigas são rejeitadas com um erro claro |
-| Migração de versão | `Migrator` (cadeia XSLT)              | nenhuma — utilizar os XSLT do «lift-standard» para atualizações pontuais                  |
+| Migração de versão | `Migrator` (cadeia XSLT)              | nenhuma; utilize os XSLTs do «lift-standard» para atualizações pontuais                   |
 | Validação          | Apenas RELAX NG (`Validator`)         | RELAX NG + verificações de esquema e semânticas                                           |
 | Streaming          | análise sintática com granularidade interna das entradas | API pública `open_reader` / `open_writer`                                                 |
 
 ## Estrutura da API
 
-O analisador do `SIL.Lift` é orientado por callbacks (`ILexiconMerger`): envia eventos de análise a um consumidor. Em vez disso, o sil-lift devolve um gráfico de objetos simples — classes de dados tipadas para cada elemento LIFT — porque os programadores de Python querem objetos, e não callbacks. O `SIL.DictionaryServices` sobrepõe um modelo de objetos `LexEntry`/`LexSense` ao `SIL.Lift`, mas, enquanto modelo de aplicação, representa apenas as construções que essas aplicações utilizam — pelo que a resserialização através dele não consegue preservar o conteúdo fora do modelo da mesma forma que o tratamento de resíduos LIFT e a fidelidade de bytes do sil-lift o fazem (ver abaixo). A API de streaming devolve o _mesmo_ tipo `Entry`, pelo que não há um segundo modelo simplificado para aprender.
+O analisador do `SIL.Lift` é orientado por callbacks (`ILexiconMerger`): envia eventos de análise a um consumidor. sil-lift instead returns a plain object graph (typed dataclasses for every LIFT element) because Python scripters want objects, not callbacks.
+
+`SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but it is an application model: it represents only the constructs those apps use. Re-serializing through it therefore can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below).
+
+A API de streaming devolve o _mesmo_ tipo `Entry`, pelo que não há um segundo modelo simplificado para aprender.
 
 ## Fidelidade de ida e volta
 
 A diferença deliberada mais marcante. Ao guardar com o `SIL.Lift`, todo o documento é novamente serializado. A sil-lift garante:
 
 - um documento inalterado é guardado com **identidade de bytes**, e
-- As entradas que não são alteradas mantêm os seus bytes de origem exatos, mesmo quando outras entradas são alteradas — divisão em blocos de bytes por entrada, aplicada automaticamente.
+- untouched entries keep their exact source bytes even when other entries change: per-entry byte chunking, applied automatically.
 
 Consulte [Garantias da Fidelity](fidelity.md).
 
 ## Validação
 
-O `Validator` do C# executa uma passagem RELAX NG e apresenta os primeiros erros sob a forma de cadeias de caracteres. O sil-lift apresenta um fluxo estruturado de `Problemas`, cada um contendo o ficheiro, a entrada e a linha a que se refere, e a sua camada de esquema diverge deliberadamente em três pontos:
+O `Validator` do C# executa uma passagem RELAX NG e apresenta os primeiros erros sob a forma de cadeias de caracteres. sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns. Its schema layer knowingly diverges in three places:
 
 - **Os URIs inválidos são avisos, não erros.** O motor RELAX NG do C# nunca impôs o tipo de dados `anyURI`, pelo que o FieldWorks (FLEx) tem vindo a inserir hrefs do tipo `file://C:/...` em léxicos reais há anos. A rejeição desses ficheiros faria com que praticamente todas as exportações do FLEx fossem sinalizadas.
-- **As regras do Schematron são aplicadas** (como verificações semânticas): as linguagens de formulário duplicadas e as co-restrições semelhantes na gramática LIFT foram ignoradas silenciosamente tanto pela validação em C# como pela validação direta do lxml.
-- **As comparações de `id` de intervalos são normalizadas segundo o Unicode** (NFC), porque a exportação do FLEx nem sempre era internamente consistente: normaliza para NFC na saída, mas algumas gravações de `.lift-ranges` costumavam contornar essa etapa e emitir NFD, pelo que um `id` de um elemento de intervalo `grammatical-info` ou `lexical-relation` pode estar em NFD, enquanto os seus rótulos, o atributo `parent` nesse mesmo elemento e o valor `.lift` que se refere a ele estão todos em NFC. A normalização diz respeito apenas à comparação: o sil-lift nunca reescreve os IDs, e as referências que só são resolvidas após a normalização são indicadas como avisos de `normalization-mismatch` — uma verificação que não tem equivalente em C# —, pelo que a divisão de codificação permanece visível para quem fizer comparações exatas.
+- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by C# validation.
+- **Range id comparisons are Unicode-normalized** (NFC), because FLEx exports mix NFC and NFD ids. References that resolve only after normalizing are reported as `normalization-mismatch` warnings, a check with no C# counterpart. See [Real-world FieldWorks (FLEx) output](guides/validate.md#real-world-fieldworks-flex-output).
 
-O sil-lift também valida os ficheiros `.lift-ranges` associados a um léxico carregado, comparando-os com um esquema para documentos de intervalos autónomos (fornecido pelo `lift-standard` juntamente com a gramática LIFT de base) — todos os ficheiros de intervalos externos monitorizados são verificados sempre que o `.lift` é validado — sem que exista tal esquema (ou verificação) no mundo do C#. (Não existe um ponto de entrada para validar um ficheiro `.lift-ranges` por si só, separado de um ficheiro `.lift`.)
+When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companions against a schema for standalone ranges documents, vendored from `lift-standard`. The C# `Validator` does not check `.lift-ranges` files.
 
 ## Ordenação canónica
 
@@ -40,12 +49,12 @@ O `Lexicon.sort()` reflete as regras fundamentais do `LiftSorter` (entradas por 
 
 - as entradas sem um GUID são ordenadas de forma determinística por ID (o `LiftSorter` pressupõe a existência de um GUID);
 - a ordenação é independente da configuração regional (pontos de código com maiúsculas e minúsculas ignoradas, e não a ordenação de cultura invariante do .NET);
-- As listas do mesmo tipo, como notas, relações e formulários, mantêm a ordem do documento em vez de serem reordenadas por chave — o agrupamento já é determinístico e reordená-las apenas acrescenta ruído às diferenças.
+- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key; grouping is already deterministic, and reordering them only adds diff noise.
 
 O ficheiro `canonicalizeLift.xsl` do repositório de especificações não é utilizado de todo: elimina os espaços em branco no texto lexical (de forma destrutiva) e os identificadores gerados variam em cada execução.
 
 ## Não transitado
 
 - Funcionalidades específicas do WeSay (painel de controlo/gestão de configurações relacionadas com ficheiros LIFT).
-- `SynchronicMerger` (fusão de ficheiros de atualização do LIFT) — o conceito de divisão em blocos de bytes mantém-se na camada de fidelidade, mas a fusão já não.
+- `SynchronicMerger` (LIFT update-file merging): the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - Análise do sistema de escrita LDML: os ficheiros na pasta `WritingSystems/` são tratados como conteúdo opaco da pasta.
