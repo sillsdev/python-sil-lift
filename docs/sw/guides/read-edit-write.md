@@ -8,34 +8,44 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` hukubali hati yoyote ya LIFT **0.13** iliyopangwa vizuri — ikiwa ni pamoja na faili halisi zisizoendana na skema. Chochote ambacho mfano haujafafanua (vipengele/sifa zisizojulikana, maoni) huhifadhiwa bila kupoteza kama mabaki ya LIFT katika uwanja wa `extra` usio wazi wa kila node. Toleo zingine za LIFT hutoa `LiftParseError` ikitaja toleo.
+`load()` accepts any well-formed LIFT **0.13** document, including schema-invalid real-world files. Chochote ambacho mfano haujafafanua (vipengele/sifa zisizojulikana, maoni) huhifadhiwa bila kupoteza kama mabaki ya LIFT katika uwanja wa `extra` usio wazi wa kila node. Toleo zingine za LIFT hutoa `LiftParseError` ikitaja toleo.
 
 ## Mfano
 
-Kila kipengele cha LIFT ni dataclass iliyotengwa aina: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, na kadhalika. Maandishi ya lugha nyingi ni `Multitext`, ambayo ni `Mapping` kutoka kwa msimbo wa lugha hadi `Text`:
+Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on.
+
+### Multilingual text
+
+Maandishi ya lugha nyingi ni `Multitext`, ambayo ni `Mapping` kutoka kwa msimbo wa lugha hadi `Text`:
 
 ```python
-entry = lex.find(id="abat")
+entry = lex.find(id="poʻo_a1b2")
 
-str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # nyuzi rahisi zinageuzwa
-"en" in entry.citation                  # Si kweli
-list(entry.lexical_unit.keys())         # ["seh", "en"]
+str(entry.lexical_unit["haw"])          # "poʻo"
+entry.lexical_unit["en"] = "head"       # plain strings are coerced
+"en" in entry.citation                  # False
+list(entry.lexical_unit.keys())         # ["haw", "en"]
 ```
 
-`keys()`, `values()` na `items()` ni mitazamo, ufunguo mmoja kwa kila lugha, na `len()` huhesabu lugha badala ya fomu. Mutator zote mbili zinafanya kazi kwenye lugha badala ya kwenye fomu moja: `del entry.lexical_unit["en"]` huondoa kila fomu ya Kiingereza, na kuweka thamani kwenye `"en"` huacha moja tu.
+`Text` is structured (an ordered list of `str` and `Span` fragments) because `<text>` can contain nested `<span>` markup. `str(text)` inageuza kuwa maandishi ya kawaida; vipande vinabaki na alama za uandishi ili kuruhusu kurudi nyuma.
 
-Hati iliyothibitishwa na schema haina zaidi ya hivyo, lakini faili halisi wakati mwingine hurudia lugha. `forms` huhifadhi kila fomu kwa mpangilio wa faili, husoma jibu la kwanza, na [`validate`](validate.md#problem-codes) huripoti `duplicate-form-lang` hadi utakapoiwekea lugha hiyo. Fomu isiyo na `lang` kabisa haiwezi kuundwa kupitia upangaji, inaripotiwa kama `form-missing-lang`, na inaachwa wakati node yake inapopangwa tena.
+The mapping shows one value per language. Underneath, `forms` holds every `<form>` in file order. A schema-valid document has at most one form per language, but real files sometimes repeat one.
 
-`Text` imepangwa — orodha iliyopangwa ya vipande vya `str` na `Span` — kwa sababu `<text>` inaweza kuwa na markup ya `<span>` iliyojificha ndani yake. `str(text)` inageuza kuwa maandishi ya kawaida; vipande vinabaki na alama za uandishi ili kuruhusu kurudi nyuma.
+Because the mapping is keyed by language, `len()` counts languages rather than forms, and the `keys()`, `values()` and `items()` views list each language once. Both mutators also act on the whole language: `del entry.lexical_unit["en"]` removes every English form, and assigning to `"en"` leaves exactly one.
+
+For a repeated language, `entry.lexical_unit["en"]`, `get()`, `values()` and `items()` all answer with its first form, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language.
+
+A form carrying no `lang` at all cannot be created through the mapping. It is reported as `form-missing-lang`, and is dropped when its node re-serializes.
+
+### Senses and glosses
 
 Glosses ni _form-shaped_ katika LIFT (kila `<gloss>` lina lugha yake mwenyewe), hivyo sense ina `glosses: list[Form]` pamoja na vifaa vya msaada:
 
 ```python
-sense = entry.senses[0]                 # ngazi ya juu tu
-sense.gloss("en")                       # maandishi | hakuna
-entry.all_senses()                      # kila maana na maana ndogo, mpangilio wa hati
-entry.gloss_langs()                     # {"en", "id"}, maana ndogo zimejumuishwa
+sense = entry.senses[0]       # top level only
+sense.gloss("en")             # Text | None
+entry.all_senses()            # every sense and subsense, document order
+entry.gloss_langs()           # {"en", "id"}, subsenses included
 ```
 
 Tumia `all_senses()` kila unapouliza swali linalohusu kijumla kiingizo: kuhesabu maana, kukusanya lugha, kupata vyombo vya habari. `entry.senses` hutoa ngazi ya juu, ambayo ni kile unachotaka tu wakati muingiliano wenyewe ndio muhimu.
@@ -43,13 +53,22 @@ Tumia `all_senses()` kila unapouliza swali linalohusu kijumla kiingizo: kuhesabu
 ## Akiba
 
 ```python
-lex.save()                # kurudi mahali ilipopakiwa kutoka
+lex.save()                    # back to where it was loaded from
 lex.save("elsewhere.lift")
 ```
 
 Maingizo ambayo hukuyabadilisha yamerudishwa **sawa kwa baiti**; hati ambayo hukuyabadilisha kabisa ni sawa kwa baiti kuanzia baiti ya kwanza hadi ya mwisho. Tazama [Dhamana za Fidelity](../fidelity.md) kwa mkataba sahihi.
 
-Maingizo uliyoyabadilisha yanatoka na `dateModified` mpya (na `dateCreated` ikiwa haikuwa na moja), hivyo uhariri hauwasilishwi chini ya tarehe iliyopakiwa nayo. Zana zinazochanganya LIFT huamua ni nini kilichobadilika kutoka kwa sifa hiyo. `lex.save(stamp=False)` huandika tarehe ambazo mfano unazoshikilia na hakuna zaidi; `lex.save(when=...)` hushikilia wakati badala ya kusoma saa. Tazama [Generated timestamps](../fidelity.md#generated-timestamps) kwa sheria zilizobaki.
+### Alama za muda
+
+Maingizo uliyoyabadilisha yanatoka na `dateModified` mpya (na `dateCreated` ikiwa haikuwa na moja), hivyo uhariri hauwasilishwi chini ya tarehe iliyopakiwa nayo. Tools that merge LIFT decide what changed from that attribute. Two arguments adjust the stamping:
+
+- `lex.save(stamp=False)` writes the dates the model holds and nothing more.
+- `lex.save(when=...)` pins the moment instead of reading the clock.
+
+Tazama [Generated timestamps](../fidelity.md#generated-timestamps) kwa sheria zilizobaki.
+
+### Skipping a save that changes nothing
 
 Ili kuruka uhifadhi ambao hautabadilisha chochote, ulinde kwa kutumia `lex.changes()`:
 
@@ -58,9 +77,11 @@ ikiwa lex.changes():
     lex.save()
 ```
 
-Inarudisha `False` tu wakati `save()` ingeweza kuzalisha tena baiti za chanzo, ikijumuisha maingizo, kichwa, kipengele msingi, na kila mwenza wa `.lift-ranges`. Inasimama tofauti ya kwanza, hivyo kwenye kamusi iliyohaririwa haigharimu karibu chochote. Kamusi isiyobadilika lazima iwekwe katika muundo wa mfululizo kikamilifu ili kuthibitisha kuwa haijabadilika, lakini bado gharama yake ni ndogo kuliko ile ya kuhifadhi inayokosa. Kupuuza kuandika pia huacha muda wa marekebisho ya faili ukiwa uleule na kuepuka tofauti isiyo ya kweli.
+Inarudisha `False` tu wakati `save()` ingeweza kuzalisha tena baiti za chanzo, ikijumuisha maingizo, kichwa, kipengele msingi, na kila mwenza wa `.lift-ranges`. Skipping the write leaves the file's modification time alone and avoids a spurious diff.
 
-Inalinganisha yaliyomo, sio mahali pa mwisho, kwa hivyo linda tu uhifadhi mahali pake. `lex.save("elsewhere.lift")` huandika hati na viambatisho vyake huko, bila kujali kile `changes()` kinachorudisha.
+The check is cheap. Inasimama tofauti ya kwanza, hivyo kwenye kamusi iliyohaririwa haigharimu karibu chochote. Kamusi isiyobadilika lazima iwekwe katika muundo wa mfululizo kikamilifu ili kuthibitisha kuwa haijabadilika, lakini bado gharama yake ni ndogo kuliko ile ya kuhifadhi inayokosa.
+
+Inalinganisha yaliyomo, sio mahali pa mwisho, kwa hivyo linda tu uhifadhi mahali pake. `lex.save("elsewhere.lift")` writes the document and its companions to the new path even when `changes()` is `False`, so guarding it would skip that copy.
 
 ## Kujenga kutoka mwanzo
 
