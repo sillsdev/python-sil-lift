@@ -8,34 +8,44 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-تقبل الدالة `load()` أي مستند LIFT **0.13** صحيح التكوين — بما في ذلك الملفات الواقعية التي لا تتوافق مع المخطط. يتم نقل أي شيء لا يحدده النموذج (العناصر/السمات غير المعروفة، التعليقات) دون أي فقدان للبيانات باعتباره «بقايا LIFT» في الحقل غير الشفاف `extra` لكل عقدة. أما الإصدارات الأخرى من LIFT، فتُحدث استثناءً من نوع `LiftParseError` مع ذكر اسم الإصدار.
+`load()` accepts any well-formed LIFT **0.13** document, including schema-invalid real-world files. يتم نقل أي شيء لا يحدده النموذج (العناصر/السمات غير المعروفة، التعليقات) دون أي فقدان للبيانات باعتباره «بقايا LIFT» في الحقل غير الشفاف `extra` لكل عقدة. أما الإصدارات الأخرى من LIFT، فتُحدث استثناءً من نوع `LiftParseError` مع ذكر اسم الإصدار.
 
 ## النموذج
 
-كل عنصر في LIFT هو فئة بيانات محددة النوع: `Entry`، `Sense`، `Example`، `Pronunciation`، `Variant`، `Relation`، `Etymology`، `Reversal`، وهكذا دواليك. النص متعدد اللغات هو `Multitext`، وهو عبارة عن `Mapping` يربط رمز اللغة بـ `Text`:
+Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on.
+
+### Multilingual text
+
+النص متعدد اللغات هو `Multitext`، وهو عبارة عن `Mapping` يربط رمز اللغة بـ `Text`:
 
 ```python
-entry = lex.find(id="abat")
+entry = lex.find(id="poʻo_a1b2")
 
-str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # يتم تحويل السلاسل العادية
+str(entry.lexical_unit["haw"])          # "poʻo"
+entry.lexical_unit["en"] = "head"       # plain strings are coerced
 "en" in entry.citation                  # False
-list(entry.lexical_unit.keys())         # ["seh", "en"]
+list(entry.lexical_unit.keys())         # ["haw", "en"]
 ```
 
-تُعدّ `keys()` و`values()` و`items()` طرق عرض، بحيث يمثل كل مفتاح لغة واحدة، بينما تُحسب `len()` عدد اللغات وليس عدد النماذج. يعمل كلا المُغيّرين على اللغة ككل وليس على شكل واحد: `del entry.lexical_unit["en"]` يزيل كل الأشكال الإنجليزية، أما التعيين إلى `"en"` فيترك شكلاً واحداً فقط.
+`Text` is structured (an ordered list of `str` and `Span` fragments) because `<text>` can contain nested `<span>` markup. يُحول `str(text)` النص إلى نص عادي؛ بينما تحتفظ الأجزاء بعلامات الترميز لضمان إمكانية العودة إلى الصيغة الأصلية.
 
-لا يحتوي المستند الصالح من حيث المخطط على أي شيء آخر، لكن الملفات الفعلية قد تتضمن أحيانًا تكرارًا للغة. يحتوي `forms` على جميع النماذج مرتبة حسب ترتيب الملفات، ويقرأ الإجابة من النموذج الأول، ويقوم [`validate`](validate.md#problem-codes) بالإبلاغ عن خطأ `duplicate-form-lang` حتى تقوم بتعيين تلك اللغة. لا يمكن إنشاء نموذج لا يحتوي على سمة `lang` على الإطلاق من خلال عملية التعيين، ويتم الإبلاغ عنه باعتباره `form-missing-lang`، ويتم استبعاده عند إعادة تسلسل العقدة الخاصة به.
+The mapping shows one value per language. Underneath, `forms` holds every `<form>` in file order. A schema-valid document has at most one form per language, but real files sometimes repeat one.
 
-يتم تنظيم `Text` — كقائمة مرتبة من أجزاء `str` و`Span` — لأن `<text>` يمكن أن تحتوي على علامات `<span>` متداخلة. يُحول `str(text)` النص إلى نص عادي؛ بينما تحتفظ الأجزاء بعلامات الترميز لضمان إمكانية العودة إلى الصيغة الأصلية.
+Because the mapping is keyed by language, `len()` counts languages rather than forms, and the `keys()`, `values()` and `items()` views list each language once. Both mutators also act on the whole language: `del entry.lexical_unit["en"]` removes every English form, and assigning to `"en"` leaves exactly one.
+
+For a repeated language, `entry.lexical_unit["en"]`, `get()`, `values()` and `items()` all answer with its first form, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language.
+
+A form carrying no `lang` at all cannot be created through the mapping. It is reported as `form-missing-lang`, and is dropped when its node re-serializes.
+
+### Senses and glosses
 
 تكون «التفسيرات» في LIFT على شكل _نماذج_ (حيث يحمل كل `<gloss>` لغته الخاصة)، لذا فإن «المعنى» يحتوي على `glosses: list[Form]` بالإضافة إلى وظائف مساعدة:
 
 ```python
-sense = entry.senses[0]                 # المستوى الأعلى فقط
-sense.gloss("en")                       # نص | لا شيء
-entry.all_senses()                      # كل المعاني والمعاني الفرعية، بترتيب الوثيقة
-entry.gloss_langs()                     # {"en", "id"}, بما في ذلك المعاني الفرعية
+sense = entry.senses[0]       # top level only
+sense.gloss("en")             # Text | None
+entry.all_senses()            # every sense and subsense, document order
+entry.gloss_langs()           # {"en", "id"}, subsenses included
 ```
 
 استخدم دالة `all_senses()` كلما تعلق السؤال بالمدخل بأكمله: سواء كان ذلك لحساب المعاني، أو جمع اللغات، أو البحث عن الوسائط. تُقدم `entry.senses` المستوى الأعلى، وهو ما تريده فقط عندما يكون التداخل بحد ذاته أمرًا مهمًا.
@@ -43,13 +53,22 @@ entry.gloss_langs()                     # {"en", "id"}, بما في ذلك ال�
 ## الحفظ
 
 ```python
-lex.save()                # العودة إلى المكان الذي تم التحميل منه
+lex.save()                    # back to where it was loaded from
 lex.save("elsewhere.lift")
 ```
 
 يتم إعادة كتابة الإدخالات التي لم تقم بتعديلها **بشكل مطابق تمامًا على مستوى البايت**؛ أما المستند الذي لم تقم بتعديله على الإطلاق، فهو مطابق تمامًا على مستوى البايت من البايت الأول وحتى الأخير. انظر [ضمانات فيديليتي](../fidelity.md) للاطلاع على نص العقد الدقيق.
 
-يتم إرسال السجلات التي قمت بتعديلها مع قيمة جديدة لـ `dateModified` (وكذلك قيمة لـ `dateCreated` إذا لم تكن موجودة من قبل)، لذا لا يتم إرسال التعديل بتاريخ التحميل الأصلي. تحدد الأدوات التي تقوم بدمج LIFT التغييرات التي طرأت على تلك السمة. تقوم `lex.save(stamp=False)` بتسجيل التواريخ الموجودة في النموذج دون أي شيء آخر؛ أما `lex.save(when=...)` فتحدد اللحظة بدلاً من قراءة الساعة. انظر [الطوابع الزمنية التي تم إنشاؤها](../fidelity.md#generated-timestamps) للاطلاع على بقية القواعد.
+### الطوابع الزمنية
+
+يتم إرسال السجلات التي قمت بتعديلها مع قيمة جديدة لـ `dateModified` (وكذلك قيمة لـ `dateCreated` إذا لم تكن موجودة من قبل)، لذا لا يتم إرسال التعديل بتاريخ التحميل الأصلي. Tools that merge LIFT decide what changed from that attribute. Two arguments adjust the stamping:
+
+- `lex.save(stamp=False)` writes the dates the model holds and nothing more.
+- `lex.save(when=...)` pins the moment instead of reading the clock.
+
+انظر [الطوابع الزمنية التي تم إنشاؤها](../fidelity.md#generated-timestamps) للاطلاع على بقية القواعد.
+
+### Skipping a save that changes nothing
 
 لتخطي عملية حفظ لن تؤدي إلى أي تغيير، قم بحمايتها باستخدام `lex.changes()`:
 
@@ -58,9 +77,11 @@ lex.save("elsewhere.lift")
     lex.save()
 ```
 
-لا تُرجع القيمة `False` إلا عندما تكون دالة `save()` قادرة على إعادة إنتاج البايتات المصدرية، بما في ذلك الإدخالات، والرأس، والعنصر الجذري، وجميع العناصر المصاحبة من نوع `.lift-ranges`. إنه يتوقف عند أول اختلاف، لذا فإن تكلفته تكاد تكون معدومة عند استخدام معجم مُعدَّل. يجب تسلسل المعجم الذي لم يتغير بالكامل لإثبات أنه لم يتغير، لكن تكلفة ذلك تظل أقل من تكلفة عملية الحفظ التي يتم تخطيها. كما أن تخطي عملية الكتابة يحافظ على وقت تعديل الملف كما هو، ويمنع ظهور اختلافات زائفة.
+لا تُرجع القيمة `False` إلا عندما تكون دالة `save()` قادرة على إعادة إنتاج البايتات المصدرية، بما في ذلك الإدخالات، والرأس، والعنصر الجذري، وجميع العناصر المصاحبة من نوع `.lift-ranges`. Skipping the write leaves the file's modification time alone and avoids a spurious diff.
 
-فهي تقارن المحتوى، وليس الوجهة، لذا احرص فقط على الحفظ في المكان نفسه. تقوم `lex.save("elsewhere.lift")` بكتابة المستند وملحقاته في ذلك المكان، بغض النظر عما ترجعه الدالة `changes()`.
+The check is cheap. إنه يتوقف عند أول اختلاف، لذا فإن تكلفته تكاد تكون معدومة عند استخدام معجم مُعدَّل. يجب تسلسل المعجم الذي لم يتغير بالكامل لإثبات أنه لم يتغير، لكن تكلفة ذلك تظل أقل من تكلفة عملية الحفظ التي يتم تخطيها.
+
+فهي تقارن المحتوى، وليس الوجهة، لذا احرص فقط على الحفظ في المكان نفسه. `lex.save("elsewhere.lift")` writes the document and its companions to the new path even when `changes()` is `False`, so guarding it would skip that copy.
 
 ## البناء من الصفر
 
