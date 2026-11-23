@@ -1,6 +1,6 @@
 # The LIFT folder: ranges and media
 
-A LIFT lexicon is usually a _folder_: the `.lift` file, one or more `.lift-ranges` companions (sidecar files), and `audio/` / `pictures/` media.
+A LIFT lexicon is usually a _folder_: the `.lift` file, one or more `.lift-ranges` companions (sidecar files), and media in `audio/` and `pictures/` folders.
 
 ## Ranges
 
@@ -26,10 +26,10 @@ ranges.save()
 Several candidates are tried, and every distinct file among them is loaded.
 
 - A header `range/@href` that points at an existing file is used as given.
-- An href that resolves to nothing falls back to its basename next to the `.lift` — FieldWorks writes dangling absolute `file://C:/...` paths from the exporting machine, and that fallback is what makes them work locally.
+- An href that resolves to nothing falls back to its basename next to the `.lift`. FieldWorks writes dangling absolute `file://C:/...` paths from the exporting machine, and that fallback is what makes them work locally.
 - The conventional `<name>.lift-ranges` sibling is picked up even when nothing references it.
 
-Names that differ only in case or Unicode normalization still match — `Dict.LIFT` finds `Dict.lift-ranges` — unless several files match one name, which loads none of them and is reported as [`ambiguous-ranges-file`](validate.md#problem-codes).
+Names that differ only in case or Unicode normalization still match (`Dict.LIFT` finds `Dict.lift-ranges`) unless several files match one name, which loads none of them and is reported as [`ambiguous-ranges-file`](validate.md#problem-codes).
 
 A candidate that cannot be read as a `<lift-ranges>` document (e.g., a zero-byte file from an interrupted export) is skipped rather than failing the load, and is reported as [`unreadable-ranges-file`](validate.md#problem-codes). Loading one directly with `RangesFile.load()` raises instead.
 
@@ -44,15 +44,15 @@ for ref in lex.media_refs():        # every <media> and <illustration>
 lex.check_media()                   # refs that don't resolve cleanly
 ```
 
-Resolution follows the conventional layout: a relative href is checked as given (backslashes normalized — WeSay writes `pictures\photo with space.png`) and under `audio/` (for pronunciation media) or `pictures/` (for illustrations). Remote/absolute hrefs can't be checked and are skipped.
+Resolution follows the conventional layout: a relative href is checked as given and under `audio/` (for pronunciation media) or `pictures/` (for illustrations). Backslashes are treated as forward slashes, since WeSay writes hrefs like `pictures\photo with space.png`. Remote and absolute hrefs can't be checked and are skipped.
 
 `check_media()` reports only the references that did not resolve cleanly, one `MediaResolution` each:
 
-- `status="missing"` — no file answered the href under any spelling.
-- `status="mismatch"` — one did, but only under case folding or NFC; `found` names the file on disk.
+- `status="missing"`: no file answered the href under any spelling.
+- `status="mismatch"`: one did, but only under case folding or NFC; `found` names the file on disk.
 
-A href that spells its file exactly is not reported. Unlike a companion name, which folds silently, a media href is also read by whatever serves the folder afterwards, so the fold is reported as [`media-href-mismatch`](validate.md#problem-codes).
+A mismatch is reported even though the file was found. A companion name is matched loosely without comment, but a media href is also read by whatever serves the folder afterwards, and a case-sensitive host will not find the file. Validation reports the same case as [`media-href-mismatch`](validate.md#problem-codes).
 
 ## Other folder contents
 
-A LIFT folder often holds files sil-lift doesn't model — writing-system LDML under `WritingSystems/`, The Combine's speaker consent audio/image files under `consent/`, and the like; `load()`/`save()` leave these untouched, and [`Lexicon.save_zip()`](lift-export-interop.md) carries them through verbatim when packaging the folder.
+A LIFT folder often holds files sil-lift doesn't model, such as writing-system LDML under `WritingSystems/` or The Combine's speaker consent files under `consent/`. `load()` and `save()` leave these untouched, and [`Lexicon.save_zip()`](lift-export-interop.md) carries them through verbatim when packaging the folder.

@@ -45,7 +45,7 @@ def test_open_writer_leaves_a_supplied_header_alone(tmp_path: Path) -> None:
             writer.write(entry)
 
     # The new reference belongs to the written document, not to the source's
-    # header — that companion sits beside stream.lift, not beside the original.
+    # header; that companion sits beside stream.lift, not beside the original.
     assert [(r.id, r.href) for r in source.header.ranges] == before
     written = sil_lift.load(tmp_path / "stream.lift", resolve_ranges=False)
     assert ("semantic-domain-ddp4", "stream.lift-ranges") in [

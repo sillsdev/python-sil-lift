@@ -2,7 +2,7 @@
 
 Every corpus XML file must be well-formed; RELAX NG (RNG) validity must match
 the documented lists (see "Known RNG-invalid fixtures" in
-tests/corpus/PROVENANCE.md) — a change in either direction means the corpus or
+tests/corpus/PROVENANCE.md). A change in either direction means the corpus or
 the vendored schema drifted.
 """
 
@@ -64,5 +64,5 @@ def test_rng_validity_matches_provenance(path: Path) -> None:
     expected = corpus_id(path) not in EXPECTED_INVALID
     assert valid == expected, (
         f"{corpus_id(path)}: RELAX NG validity changed (now valid={valid}); "
-        "corpus fixtures or vendored schema drifted — see PROVENANCE.md"
+        "corpus fixtures or vendored schema drifted; see PROVENANCE.md"
     )

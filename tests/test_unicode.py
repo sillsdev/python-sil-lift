@@ -3,7 +3,7 @@
 Python strings are sequences of codepoints, not UTF-16 code units, so a
 "surrogate pair" in a UTF-16 source is just one non-BMP codepoint by the time
 the model sees it. Nothing in the reader, the byte-region scanner, or the writer
-pairs code units — and these tests pin that down, because the fidelity contract
+pairs code units, and these tests pin that down, because the fidelity contract
 (``docs/en/fidelity.md``) is a byte-level promise and 4-byte UTF-8 sequences are
 exactly the input that would break a scanner that guessed at character
 boundaries.
@@ -12,7 +12,7 @@ Three parts:
 
 - **Non-BMP content is ordinary content**: byte-identical round trips, exact
   scanner regions, verbatim untouched entries under edit, streaming reads and
-  writes, and clean validation — in element text, in a span, and in an
+  writes, and clean validation, each in element text, in a span, and in an
   attribute value.
 - **A lone surrogate never reaches the model from a file**: neither as a
   numeric character reference (invalid XML) nor as CESU-8/WTF-8 bytes, which
@@ -24,8 +24,8 @@ Three parts:
   ``LiftWriteError`` naming the node and the codepoint, and validation reports
   it as a ``lone-surrogate`` error rather than crashing.
 
-UTF-16 sources are covered here too: they load, and — being non-ASCII-compatible
-— re-serialize canonically as UTF-8 rather than byte-identically, which is the
+UTF-16 sources are covered here too: they load, and (being non-ASCII-compatible)
+re-serialize canonically as UTF-8 rather than byte-identically, which is the
 documented exception, not a defect.
 """
 
@@ -121,7 +121,7 @@ def test_non_bmp_round_trips_byte_identically(tmp_path: Path) -> None:
 
 def test_scanner_regions_land_on_four_byte_utf8_boundaries() -> None:
     """The scanner only ever matches ASCII structural bytes, which no UTF-8
-    continuation byte can impersonate — so a 4-byte sequence in an attribute
+    continuation byte can impersonate, so a 4-byte sequence in an attribute
     value cannot shift a region's start or end."""
     result = scan(NON_BMP_LIFT)
     assert result is not None
@@ -149,7 +149,7 @@ def test_untouched_non_bmp_entry_stays_verbatim_under_edit(tmp_path: Path) -> No
     region = result.children[0]
     assert NON_BMP_LIFT[region.start : region.end] in written
     # The re-serialized entry carries raw UTF-8, not a numeric character
-    # reference — the canonical path escapes markup, never non-ASCII text.
+    # reference; the canonical path escapes markup, never non-ASCII text.
     assert CJK_B.encode() in written
     assert b"&#x" not in written
 
@@ -316,7 +316,7 @@ def test_lone_surrogate_in_the_root_or_a_range_names_that_node(tmp_path: Path) -
 
 def test_validation_reports_a_lone_surrogate_instead_of_crashing() -> None:
     """Validation renders the document first, so it cannot check an unrenderable
-    one — it reports the reason as its single finding."""
+    one; it reports the reason as its single finding."""
     (problem,) = _lexicon_with_lone_surrogate().iter_problems()
     assert problem.level == "error"
     assert problem.code == "lone-surrogate"

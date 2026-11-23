@@ -11,7 +11,7 @@ against the vendored 0.13 RELAX NG schema; failures are reported but still writt
 (so they can be inspected).
 
 Some source files are inherently schema-invalid in ways migration cannot (and must
-not) fix — see "Known RNG-invalid fixtures" in tests/corpus/PROVENANCE.md. Those are
+not) fix; see "Known RNG-invalid fixtures" in tests/corpus/PROVENANCE.md. Those are
 listed in EXPECTED_INVALID; the script exits nonzero only on unexpected results.
 
 Usage: python tests/tools/migrate_corpus.py

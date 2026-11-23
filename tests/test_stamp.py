@@ -56,7 +56,7 @@ def test_an_untouched_save_stamps_nothing_and_stays_byte_identical(tmp_path: Pat
     assert _dates(lexicon) == before
     assert out.read_bytes() == DATED.read_bytes()
     # Every entry still matches its parse-time record, so nothing had to be
-    # remembered for the next save — the bookkeeping tracks edits, not entries.
+    # remembered for the next save; the bookkeeping tracks edits, not entries.
     assert lexicon._stamps == {}
 
 
@@ -217,7 +217,7 @@ def test_the_same_instant_in_another_offset_is_the_caller_touching_the_date(
     """Dates are compared as the document will carry them, not as moments.
 
     Rewriting `2008-12-12T09:42:48+10:00` as the same instant at `-05:00` is an
-    edit — the file changes — and it is an edit to the date itself, so it is the
+    edit (the file changes), and it is an edit to the date itself, so it is the
     one thing a stamp must not overwrite. Comparing the two as moments would
     call them equal and take the entry for content edited without its date.
     """
@@ -348,7 +348,7 @@ def test_an_unscannable_document_stamps_only_what_changed(tmp_path: Path) -> Non
 
     Note what `changed_entries()` says here by contrast: every entry, because
     `save()` does re-serialize the whole file. Stamping asks the narrower
-    question — what the caller modified — and answers it exactly.
+    question (what the caller modified) and answers it exactly.
     """
     text = UNDATED.read_text(encoding="utf-8").replace('encoding="UTF-8"', 'encoding="UTF-16"')
     source = tmp_path / "utf16.lift"
@@ -404,7 +404,7 @@ def test_a_refused_write_leaves_nothing_stamped(tmp_path: Path) -> None:
     """Stamping commits with the write: no file, no modification date.
 
     The refusal comes from the last entry, so this also pins that the entries
-    ahead of it are not left half-stamped — deciding happens before mutating.
+    ahead of it are not left half-stamped: deciding happens before mutating.
     """
     lexicon = sil_lift.load(DATED)
     edited, offending = lexicon.entries[0], lexicon.entries[-1]
@@ -526,7 +526,7 @@ def test_a_re_added_entry_keeps_the_date_it_left_with(tmp_path: Path) -> None:
 
 
 def test_an_aliased_entry_is_stamped_once(tmp_path: Path) -> None:
-    """One entry object, one pair of dates — however many list slots point at it."""
+    """One entry object, one pair of dates, however many list slots point at it."""
     lexicon = sil_lift.load(UNDATED)
     entry = lexicon.entries[0]
     lexicon.entries.append(entry)  # the same object, written out twice
