@@ -1,38 +1,47 @@
 # C# लाइब्रेरियों से अंतर
 
-sil-lift मोटे तौर पर SIL के C# LIFT टूलिंग के समान है — मुख्य रूप से [libpalaso](https://github.com/sillsdev/libpalaso) में `SIL.Lift` (पार्सर, वैलिडेटर, माइग्रेटर, `LiftSorter`) और `SIL.DictionaryServices` उसी रिपॉजिटरी में (`LexEntry`/`LexSense` मॉडल, अपने स्वयं के LIFT रीडर/राइटर के साथ, जिसका उपयोग The Combine और WeSay करते हैं)। यह एक नया कार्यान्वयन है, पोर्ट नहीं। यह पृष्ठ उन स्थानों का सारांश प्रस्तुत करता है जहाँ व्यवहार जानबूझकर भिन्न होता है।
+सिल-लिफ्ट, SIL के C# LIFT टूलिंग से ढीले तौर पर मिलता-जुलता है, मुख्य रूप से [libpalaso](https://github.com/sillsdev/libpalaso) के दो भागों से:
+
+- `SIL.Lift`: पार्सर, वैलिडेटर, माइग्रेटर, `LiftSorter`.
+- `SIL.DictionaryServices`: `LexEntry`/`LexSense` मॉडल, अपने स्वयं के LIFT रीडर/राइटर के साथ, जिसका उपयोग The Combine और WeSay करते हैं।
+
+sil-lift एक नया कार्यान्वयन है, पोर्ट नहीं। यह पृष्ठ उन स्थानों का सारांश प्रस्तुत करता है जहाँ व्यवहार जानबूझकर भिन्न होता है।
 
 ## दायरा
 
 | क्षमता            | सी# लाइब्रेरीज़                                                                      | सिल-लिफ्ट                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | लिफ्ट संस्करण     | 0.10–0.13 (स्थानांतरण अंतर्निहित) | केवल **0.13**; पुराने संस्करणों को एक स्पष्ट त्रुटि के साथ अस्वीकार कर दिया जाता है। |
-| संस्करण माइग्रेशन | `Migrator` (XSLT श्रृंखला)                                        | कोई नहीं — एकमुश्त अपग्रेड के लिए लिफ्ट-स्टैंडर्ड में मौजूद XSLTs का उपयोग करें।                     |
+| संस्करण माइग्रेशन | `Migrator` (XSLT श्रृंखला)                                        | कोई नहीं; एकबारगी अपग्रेड के लिए लिफ्ट-स्टैंडर्ड में मौजूद XSLTs का उपयोग करें।                      |
 | प्रमाणीकरण        | केवल RELAX NG (`Validator`)                                       | RELAX NG + रेंज स्कीमा + सेमांटिक जाँच                                                               |
 | स्ट्रीमिंग        | आंतरिक प्रविष्टि-कणिकीय पार्सिंग                                                     | सार्वजनिक `open_reader` / `open_writer` एपीआई                                                        |
 
 ## एपीआई आकार
 
-`SIL.Lift` का पार्सर कॉलबैक-चालित (`ILexiconMerger`) है: यह पार्स इवेंट्स को एक कंज्यूमर पर पुश करता है। sil-lift इसके बजाय एक सादा ऑब्जेक्ट ग्राफ़ लौटाता है — प्रत्येक LIFT एलिमेंट के लिए टाइप्ड डेटाक्लासेस — क्योंकि पाइथन स्क्रिप्टर को कॉलबैक नहीं, ऑब्जेक्ट्स चाहिए। `SIL.DictionaryServices` `SIL.` पर एक `LexEntry`/`LexSense` ऑब्जेक्ट मॉडल की परत चढ़ाता है।Lift`पर एक`LexEntry`/`LexSense`ऑब्जेक्ट मॉडल की परत चढ़ाता है, लेकिन एक एप्लिकेशन मॉडल के रूप में यह केवल उन संरचनाओं का प्रतिनिधित्व करता है जिनका उपयोग वे एप्लिकेशन करते हैं — इसलिए इसके माध्यम से पुनः सीरियलाइज़ करने पर मॉडल के बाहर की सामग्री को sil-lift के LIFT अवशेष प्रबंधन और बाइट निष्ठा की तरह संरक्षित नहीं किया जा सकता (नीचे देखें)। स्ट्रीमिंग एपीआई वही`Entry\` प्रकार देता है, इसलिए सीखने के लिए कोई दूसरा, संक्षिप्त मॉडल नहीं है।
+`SIL.Lift` का पार्सर कॉलबैक-चालित (`ILexiconMerger`) है: यह पार्स इवेंट्स को एक कंज्यूमर पर पुश करता है। sil-lift instead returns a plain object graph (typed dataclasses for every LIFT element) because Python scripters want objects, not callbacks.
+
+`SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but it is an application model: it represents only the constructs those apps use. Re-serializing through it therefore can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below).
+
+स्ट्रीमिंग एपीआई वही `Entry` प्रकार देता है, इसलिए सीखने के लिए कोई दूसरा, संक्षिप्त मॉडल नहीं है।
 
 ## गमन-आगमन निष्ठा
 
 सबसे मजबूत जानबूझकर किया गया अंतर। `SIL.Lift` के साथ सेव करने पर पूरा दस्तावेज़ पुनः सीरियलाइज़ हो जाता है। सिल-लिफ्ट गारंटियाँ:
 
 - एक अपरिवर्तित दस्तावेज़ **बाइट-समान रूप से** सहेजता है, और
-- अछूटी प्रविष्टियाँ अपने सटीक स्रोत बाइट्स को तब भी बनाए रखती हैं जब अन्य प्रविष्टियाँ बदलती हैं — प्रत्येक प्रविष्टि के लिए बाइट चंकिंग, स्वचालित रूप से लागू।
+- untouched entries keep their exact source bytes even when other entries change: per-entry byte chunking, applied automatically.
 
 देखें [फिडेलिटी गारंटी](fidelity.md)।
 
 ## प्रमाणीकरण
 
-C# `Validator` एक RELAX NG पास चलाता है और पहली त्रुटियों को स्ट्रिंग्स के रूप में रिपोर्ट करता है। sil-lift एक संरचित `Problem` स्ट्रीम रिपोर्ट करता है, जिनमें से प्रत्येक में संबंधित फ़ाइल, प्रविष्टि और पंक्ति होती है, और इसकी स्कीमा परत जानबूझकर तीन स्थानों पर विचलित होती है:
+C# `Validator` एक RELAX NG पास चलाता है और पहली त्रुटियों को स्ट्रिंग्स के रूप में रिपोर्ट करता है। sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns. Its schema layer knowingly diverges in three places:
 
 - अमान्य URI चेतावनियाँ हैं, त्रुटियाँ नहीं। C# RELAX NG इंजन ने कभी भी `anyURI` डेटाटाइप को लागू नहीं किया, इसलिए FieldWorks (FLEx) वर्षों से वास्तविक शब्दकोशों में `file://C:/...` hrefs लिख रहा है। उन फ़ाइलों को अस्वीकार करने से लगभग हर FLEx एक्सपोर्ट पर निशान लग जाएगा।
-- **Schematron नियम लागू किए जाते हैं** (सेमांटिक जांच के रूप में): LIFT व्याकरण में डुप्लिकेट फॉर्म भाषाओं और समान सह-बाधाओं को C# और कच्चे lxml सत्यापन दोनों द्वारा चुपचाप अनदेखा किया गया था।
-- रेंज आईडी की तुलना यूनिकोड-नॉर्मलाइज़्ड (NFC) होती है, क्योंकि FLEx का एक्सपोर्ट हमेशा आंतरिक रूप से सुसंगत नहीं था: यह आउटपुट के समय NFC में नॉर्मलाइज़ हो जाता है, लेकिन कुछ `.lift-ranges` राइट्स उस चरण को बाईपास कर देते थे और NFD उत्पन्न करते थे, इसलिए एक `grammatical-info` या `lexical-relation` रेंज-एलिमेंट `id` NFD हो सकता है, जबकि इसके लेबल, उसी एलिमेंट पर `parent` एट्रिब्यूट, और इसे संदर्भित करने वाला `.lift` मान सभी NFC होते हैं। नॉर्मलाइज़ेशन केवल तुलना से संबंधित है: sil-lift कभी भी आईडी को फिर से नहीं लिखता, और वे संदर्भ जो केवल नॉर्मलाइज़ेशन के बाद ही हल होते हैं, उन्हें `normalization-mismatch` चेतावनियों के रूप में रिपोर्ट किया जाता है — एक ऐसा चेक जिसका C# में कोई समकक्ष नहीं है — इसलिए एन्कोडिंग विभाजन उन सभी के लिए दिखाई देता रहता है जिनकी अपनी तुलनाएँ सटीक होती हैं।
+- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by C# validation.
+- **Range id comparisons are Unicode-normalized** (NFC), because FLEx exports mix NFC and NFD ids. References that resolve only after normalizing are reported as `normalization-mismatch` warnings, a check with no C# counterpart. See [Real-world FieldWorks (FLEx) output](guides/validate.md#real-world-fieldworks-flex-output).
 
-sil-lift एक लोडेड लेक्सिकन के `.lift-ranges` साथियों को स्टैंडअलोन रेंज दस्तावेज़ों के लिए एक स्कीमा के विरुद्ध भी मान्य करता है (जो बेस LIFT व्याकरण के साथ `lift-standard` से विकी हुई है) — हर ट्रैक की गई बाहरी रेंज फ़ाइल की जाँच तब की जाती है जब भी `.lift` का मान्यकरण किया जाता है — C# दुनिया में ऐसा कोई स्कीमा (या जाँच) नहीं है। (`.lift` से अलग, अकेले `.lift-ranges` फ़ाइल को मान्य करने का कोई एंट्री पॉइंट नहीं है।)
+When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companions against a schema for standalone ranges documents, vendored from `lift-standard`. The C# `Validator` does not check `.lift-ranges` files.
 
 ## कैनोनिकल क्रमबद्धकरण
 
@@ -40,12 +49,12 @@ sil-lift एक लोडेड लेक्सिकन के `.lift-ranges` �
 
 - guid के बिना प्रविष्टियाँ id के अनुसार क्रमबद्ध रूप से व्यवस्थित होती हैं (`LiftSorter` मानता है कि guid मौजूद है);
 - ऑर्डरिंग लोकेल-स्वतंत्र है (साधारण केस-फोल्ड किए गए कोड पॉइंट्स, .NET इन्वेरिएंट-कल्चर कोलेशन नहीं);
-- नोट्स, रिलेशन्स, और फॉर्म जैसी समान-प्रकार की सूचियाँ अपनी दस्तावेज़ व्यवस्था बनाए रखती हैं, बजाय इसके कि उन्हें कुंजी के अनुसार फिर से क्रमबद्ध किया जाए — समूहबद्धता पहले से ही निर्धारक है, और उन्हें पुनः क्रमबद्ध करने से केवल diff शोर बढ़ता है।
+- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key; grouping is already deterministic, and reordering them only adds diff noise.
 
 spec रिपॉजिटरी का `canonicalizeLift.xsl` बिल्कुल भी उपयोग नहीं किया जाता है: यह लेक्सिकल टेक्स्ट के भीतर रिक्त स्थान को संकुचित कर देता है (विनाशकारी) और इसके उत्पन्न आईडी हर रन पर भिन्न होते हैं।
 
 ## आगे नहीं बढ़ाया गया
 
 - WeSay-विशिष्ट सुविधाएँ (LIFT फ़ाइलों के संबंध में डैशबोर्ड/कॉन्फ़िग हैंडलिंग)
-- `SynchronicMerger` (LIFT अपडेट-फ़ाइल मर्जिंग) — बाइट-चंकिंग का विचार फ़िडेलिटी लेयर में जीवित है, मर्जिंग नहीं।
+- `SynchronicMerger` (LIFT update-file merging): the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - LDML लेखन-प्रणाली पार्सिंग: `WritingSystems/` में मौजूद फ़ाइलों को अपारदर्शी फ़ोल्डर सामग्री के रूप में माना जाता है।
