@@ -4,18 +4,25 @@ LIFT 是一种_交换_格式，因此第一条规则是：**切勿省略你不�
 
 ## 阅读
 
-任何格式正确的 LIFT 0.13 文档都能加载——即使其中包含不符合模式的内容。模型未定义的内容将作为_LIFT残余_存储在最近节点的非透明`Extras`容器中——这是FieldWorks对这一概念的称谓，它将这些内容存储在`LiftResidue`字段中：未知属性和元素、XML注释和处理指令、散落的文本以及格式错误的类型化属性 （一个无效的日期将作为原始字符串保留在 `Extras` 中；其类型化字段为 `None`）。
+Any well-formed LIFT 0.13 document loads, schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` container as _LIFT residue_. (That is FieldWorks' name for the same idea, which it stores in a `LiftResidue` field.) Residue includes:
+
+- unknown attributes and elements;
+- XML comments and processing instructions;
+- stray text;
+- malformed typed attributes: a bad date stays as the original string in `Extras`, and the typed field is `None`.
 
 ## 保存未作修改的文档
 
-`load()` → `save()`（未进行任何编辑）将生成**字节完全相同的输出**——不进行重新格式化、不进行重新转义、不重新排序，并包含字节序标记和XML声明。目前没有规范化列表：恒等式是精确的。时间戳是根据内容生成的，因此未作修改的文档也不会生成时间戳。
+`load()` → `save()` with no edits writes **byte-identical output**: no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. 目前没有规范化列表：恒等式是精确的。时间戳是根据内容生成的，因此未作修改的文档也不会生成时间戳。
 
 例外情况（写入器将回退到完整的规范序列化，这种序列化在语义上完整，但无法保留字节顺序）：
 
 - 源编码与 ASCII 不兼容（非 UTF-8/US-ASCII），或者
 - 源文件中包含 DOCTYPE 声明，或者
-- 字节扫描器和解析器对文档的顶级结构存在分歧——例如，出现了一个不符合规范的第二个 `<header>`，解析器只保留了其中一个（扫描器则故意采取保守策略：一旦有疑问，它就完全不捕获任何源代码字节），或者
+- the byte scanner and the parser disagree about the document's top-level structure, for instance an out-of-spec second `<header>`, which the parser keeps only once, or
 - 源代码是在内存中构建的，而不是从文件中加载的。
+
+The byte scanner is deliberately conservative: on any doubt it captures no source bytes at all.
 
 ## 保存已编辑的文档
 
@@ -26,22 +33,29 @@ LIFT 是一种_交换_格式，因此第一条规则是：**切勿省略你不�
   - 每个元素对应一组有记录的子项；以 `<entry>` 为例：词汇单元、引文、读音、变体、词义、注释、关系、词源、标注、特征、领域。
   - 修复了属性的顺序。
   - ISO-8601格式的日期（`Z` 表示协调世界时）。
-- **所有残留项都会被重新发出。** 其位置将恢复到原始子索引处，并限定在新的子列表范围内——这是一种近似处理，因为只有未被修改的条目才能保证其精确的字节位置。
+- **All residue is re-emitted.** Its position is restored to the original child index, clamped to the new child list; that is an approximation, since exact byte positions are only guaranteed for untouched entries.
 - 添加、删除或重新排序条目会重新序列化文档结构，但仍会原样输出每个未更改条目的字节。
-- **被修改的条目会被标记**一个新的 `dateModified`，如果之前没有 `dateCreated`，则会生成一个——详见 [生成的时间戳](#generated-timestamps)。
+- **A touched entry is stamped** with a fresh `dateModified`, and a `dateCreated` if it had none. See [Generated timestamps](#generated-timestamps).
 
 !!! note "&quot;此处的规范&quot; 与任何其他规范XML均无关"
+
     本页所指的“规范形式”是指 `sil-lift` 自身文档中记载的形态，如上文项目符号中所述。这与 W3C 的规范 XML（C14N）流程无关。这与 `SIL.Core` 中的 `CanonicalXmlSettings` 类无关。
 
 ## 生成的时间戳
 
 生成的标记是输出中唯一不取决于输入的内容。
 
+### Which entries are stamped
+
 - **标记对象。** 所有自上次读取以来内容发生变化的条目，这些条目会带有新的 `dateModified` 字段；如果原本没有 `dateModified` 字段，则其 `dateCreated` 字段将设置为同一时间点。在加载日期之后发布的编辑，对于所有对该属性进行对账的系统（包括 FieldWorks 和 The Combine 的 LIFT 导入功能）而言，都显示为未修改。
 - **仅限条目。** `<entry>` 下方不得有节点，且标题中不得包含任何内容。
 - **被保留的条目。** 调用方刻意设置了日期的条目，以及在加载后创建且已包含日期的条目。
-- **清除日期操作将被执行。** 对于使用 `one` 读取的条目，`entry.date_modified = None` 与其他任何值一样都是一个预设值，因此无论其内容是否发生变化，该条目在输出时都不会包含 `dateModified` 字段。如果该字段的值是 `None`，情况则不同：此时该字段已有值，且与从未修改过该字段的情况无法区分，因此编辑操作仍会对其进行标记。
-- **无法解析的日期已被替换。** 模型无法解析的日期实际上是 [残留值](#reading) 而非日期，因此时间戳会覆盖它，而原始字符串则被丢弃——经过编辑的条目最好包含一个真实的日期，而不是 `dateModified="whenever"`。
+- **清除日期操作将被执行。** 对于使用 `one` 读取的条目，`entry.date_modified = None` 与其他任何值一样都是一个预设值，因此无论其内容是否发生变化，该条目在输出时都不会包含 `dateModified` 字段。
+  - 如果该字段的值是 `None`，情况则不同：此时该字段已有值，且与从未修改过该字段的情况无法区分，因此编辑操作仍会对其进行标记。
+- **An unparseable date is replaced.** A date the model could not parse is [residue](#reading) rather than a date, so a stamp overwrites it and the original string is dropped. An edited entry is better off carrying a real date than `dateModified="whenever"`.
+
+### How the stamp is applied
+
 - **该时刻。** 以秒为单位的协调世界时（UTC）（格式为 `YYYY-MM-DDTHH:MM:SSZ`，即所有经调查的 FieldWorks 导出文件均采用的格式），从墙上时钟读取。一秒钟对应一个日期，因此与前一次编辑相隔不到一秒保存的编辑将带有相同的日期戳。
 - **`save(when=...)`** 提供的是时间戳而非墙上时钟的时间，正是这一点使得带时间戳的输出在基于 diff 的 CI 检查点中具有可重复性。它必须支持时区，并被标准化为以UTC为基准的整秒。
 - **`save(stamp=False)`** 会将模型按当前状态原样保存，包括残差。
@@ -49,13 +63,16 @@ LIFT 是一种_交换_格式，因此第一条规则是：**切勿省略你不�
 
 ## 内容 XML 无法表示
 
-非BMP字符——表情符号、CJK扩展B、阿德拉姆文，以及 U+FFFF 以上的所有字符——均视为普通内容，且在往返传输过程中字节完全一致。“代理对”是 UTF-16 编码中的一个细节：Python 字符串是由码点组成的序列，因此读取器、字节扫描器或写入器在任何情况下都不会接触到它。
+Non-BMP characters (emoji, CJK Extension B, Adlam, anything above U+FFFF) are ordinary content and round-trip byte-identically. “代理对”是 UTF-16 编码中的一个细节：Python 字符串是由码点组成的序列，因此读取器、字节扫描器或写入器在任何情况下都不会接触到它。
 
-一个 _孤立_ 的占位符（U+D800–U+DFFF）则有所不同：在任何编码下，Python 字符串可能包含一个，而 XML 文档则可能不包含。它绝不可能来自文件——解析器会拒绝这两种写法，无论是字符引用 `&#xD800;` 还是 CESU-8/WTF-8 字节——只能来自通过 API 赋值的字符串。保存此类模型会引发一个名为 `LiftWriteError` 的错误，其中包含节点和码点的信息，且不会写入任何内容；验证过程会将其报告为一个 `lone-surrogate` 错误，因为无法将文档序列化以便模式层进行检查。
+一个 _孤立_ 的占位符（U+D800–U+DFFF）则有所不同：在任何编码下，Python 字符串可能包含一个，而 XML 文档则可能不包含。 It can never arrive from a file, because the parser rejects both spellings (a `&#xD800;` character reference and CESU-8/WTF-8 bytes). It can only come from a string assigned through the API.
+
+Saving such a model raises `LiftWriteError` naming the node and the codepoint, and writes nothing. Validation reports it as a single `lone-surrogate` error, since the document cannot be serialized for the schema layers to check.
 
 ## 已知的近似值（仅限已访问节点）
 
 - `<text>` 运行块`内部`的注释会被保留，但会移至运行块旁边，而非保留在原有的精确字符偏移位置。
 - 在已编辑元素内的交叉型子元素顺序会被规范化为规范分组（LIFT 模式中的 `interleave` 使得该顺序在语义上不具意义）。
 - 没有 `lang` 属性的 `<form>` 或 `<gloss>` 不会被重新生成，其包含的内容也不会被重新生成；验证时会将此遗漏报告为 `form-missing-lang`。未被修改的节点会保留其源字节，因此这种形式会一直保留，直到其条目中的内容被编辑为止。
-- 一个虽然存在但不包含任何内容（既无形式，也无残留）的多文本元素——例如 `<definition></definition>` ——不会被重新输出。该模型将这些字段表示为始终存在的 `Multitext`（包括 `lexical-unit`、`citation`、`definition`、关系的 `usage` 以及 `label` / `abbrev` / `description`，这些字段分别位于 URL 引用、范围、范围元素以及标题中），因此解析后，空字段与缺失字段无法区分。没有任何语义上的损失。
+- A multitext element that is present but carries nothing (no forms, no residue, e.g. `<definition></definition>`) is not re-emitted. 没有任何语义上的损失。
+  - The model represents these fields as an always-present `Multitext`, so an empty one is indistinguishable from an absent one after parsing. The fields are `lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header.
