@@ -1,6 +1,10 @@
 # Exemple pratique : créer une exportation LIFT à partir de zéro
 
-Si vous exportez les données d'une autre application au format LIFT — ce qui correspond à la tâche décrite dans [« Produire un LIFT conforme »](lift-export-interop.md) —, `sil-lift` peut construire le document objet par objet et le sérialiser, au lieu de générer manuellement du code XML. Ce guide présente un script qui construit une entrée comprenant les éléments caractéristiques d'un véritable dictionnaire (plusieurs systèmes d'écriture, une prononciation, un sens accompagné d'un exemple, une illustration, un trait de domaine sémantique et un champ spécifique à l'application), écrit les vocabulaires contrôlés dans un fichier compagnon `.lift-ranges`, effectue une validation, puis enregistre le tout.
+Si vous exportez les données d'une autre application au format LIFT (tâche décrite dans [Produire un fichier LIFT conforme](lift-export-interop.md)), `sil-lift` peut construire le document objet par objet et le sérialiser, au lieu de générer manuellement du code XML. Ce guide présente un script qui :
+
+- crée une entrée comportant les éléments caractéristiques d'un véritable dictionnaire : plusieurs systèmes d'écriture, une prononciation, un sens accompagné d'un exemple, une illustration, une caractéristique du domaine sémantique et un champ spécifique à l'application ;
+- enregistre les vocabulaires contrôlés dans un fichier compagnon `.lift-ranges` ;
+- valide et enregistre.
 
 ## Le scénario
 
@@ -156,14 +160,27 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 
 ## Remarques sur l'API
 
-- Champs multitexte (`lexical_unit`, `definition`, une étiquette `Form`/`URLRef`, le contenu d'un `Field`, etc.) Prendre une chaîne par système d'écriture via l'interface de mappage : `entry.lexical_unit["seh"] = "nkhuku"` ajoute un `<form lang="seh">`. Un modèle source qui indexe les chaînes de caractères par code de langue s'adapte parfaitement à cette structure.
-- `RangesFile.add_range()` / `Range.add_element()` permettent de créer les vocabulaires contrôlés, tandis que `Lexicon.add_ranges_file(ranges, href=...)` associe le fichier correspondant et ajoute les références d’en-tête `<range href>`, de sorte que les entrées `<grammatical-info value="Noun">` et `<trait name="semantic-domain-ddp4" value="1.6.1.2">` renvoient aux plages que vous avez définies.
-- Un `URLRef` est un attribut `href` accompagné d'un texte multiple facultatif (légende ou étiquette) — utilisé à la fois pour `<media>` (audio) et `<illustration>` (photos). La prononciation suivie ici respecte la convention de The Combine, qui prévoit une forme « en » se lisant « Intervenant : <name> ».
+### Création du document
+
+- Les champs multitexte (`lexical_unit`, `definition`, le libellé d'une `URLRef`, le contenu d'un `Field`) associent des codes de langue à du texte ; ainsi, les chaînes de caractères par langue d'un modèle source sont transposées selon un rapport biunivoque.
+- La fonction `Lexicon.add_ranges_file(ranges, href=...)` associe le compagnon et génère automatiquement les références d'en-tête `<range href>`, de sorte que les valeurs `Noun` et `1.6.1.2` de l'entrée correspondent aux plages que vous avez définies.
+- Une `URLRef` est un attribut `href` accompagné d'un texte multiple facultatif (légende ou étiquette), utilisé à la fois pour `<media>` (audio) et `<illustration>` (photos). La prononciation suivie ici respecte la convention de The Combine, qui prévoit une forme « en » se lisant « Intervenant : <name> ».
 - Les données spécifiques à l'application ne comportant pas de trajets de retour LIFT natifs, sous la forme «<field> » (ou «<trait> ») : FieldWorks les interprète comme des champs personnalisés et The Combine les conserve.
-- Attribuez à chaque entrée un `guid` réel et stable (généré par exemple par `uuid.uuid4()`, réutilisé d'une exportation à l'autre) : une réimportation ultérieure mettra à jour l'entrée sur place plutôt que de la dupliquer. La commande `sil-lift validate --require-ids` garantit le respect de cette règle.
-- Les champs `dateCreated`/`dateModified` figurant dans le résultat ci-dessus ne proviennent pas du script : la fonction `save()` leur a attribué la date et l'heure de son exécution, car une entrée créée pour la première fois ne comporte pas de date propre. `when=` fournit cet instant au lieu de lire l'heure, ce qui permet de garantir la reproductibilité au niveau des octets d'un fichier d'exportation généré pour qu'une tâche d'intégration continue puisse comparer les différences ; `stamp=False` n'écrit aucune date. Pour consulter le reste du contrat, voir [Horodatages générés](../fidelity.md#generated-timestamps).
-- La fonction `lex.iter_problems()` valide le document en mémoire avant que quoi que ce soit ne soit enregistré sur le disque ; ici, il est correct. Comme le lexique ne dispose pas encore de dossier, les vérifications « media-presence » et « companion-href » sont ignorées — exécutez [`sil-lift validate`](cli.md) sur le fichier de sortie enregistré (ou avec l'option `--no-check-media`) une fois que les fichiers audio et photo sont en place.
+- Attribuez à chaque entrée un `guid` réel et stable (par exemple, généré par `uuid.uuid4()`, réutilisé d'une exportation à l'autre) ; une réimportation ultérieure mettra à jour l'entrée sur place plutôt que de la dupliquer. La commande `sil-lift validate --require-ids` garantit le respect de cette règle.
+
+### Horodatages
+
+Les champs `dateCreated`/`dateModified` figurant dans le résultat ci-dessus ne figurent pas dans le script. La fonction `save()` leur a attribué la date et l'heure de son exécution, car une entrée créée pour la première fois ne comporte pas de date en soi.
+
+- `when=` fournit cette date et cette heure au lieu de se baser sur l'horloge système, ce qui permet de garantir la reproductibilité au niveau des octets d'un fichier d'exportation généré, afin qu'un job d'intégration continue puisse comparer les différences.
+- `stamp=False` n'ajoute aucune date.
+
+Pour consulter le reste du contrat, voir [Horodatages générés](../fidelity.md#generated-timestamps).
+
+### Validation
+
+La fonction `lex.iter_problems()` valide le document en mémoire avant que quoi que ce soit ne soit enregistré sur le disque ; ici, il est correct. Comme le lexique ne dispose pas encore de dossier, les vérifications « media-presence » et « companion-href » sont ignorées. Une fois que les fichiers audio et photo sont en place, exécutez la commande [`sil-lift validate`](cli.md) sur le fichier de sortie enregistré (ou avec l'option `--no-check-media`).
 
 ## Emballage
 
-La commande `lex.save("export/birds.lift")` enregistre le dossier sous la forme (fichiers `.lift` et `.lift-ranges` côte à côte). Pour générer un seul fichier compressé que FieldWorks et The Combine importent directement, utilisez plutôt `lex.save_zip("birds.zip")` — voir [Création de fichiers LIFT conformes](lift-export-interop.md).
+La commande `lex.save("export/birds.lift")` enregistre le dossier sous la forme (fichiers `.lift` et `.lift-ranges` côte à côte). Pour générer un seul fichier compressé que FieldWorks et The Combine peuvent importer directement, utilisez plutôt `lex.save_zip("birds.zip")`. Voir [Création d'un fichier LIFT conforme](lift-export-interop.md).
