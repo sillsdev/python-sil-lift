@@ -26,22 +26,13 @@ sil-lift export PATH [-o OUT] [--langs L] [--tsv]
 
 ```
 $ sil-lift validate dictionary.lift
-error [dangling-ref] dictionary.lift:88 (entry poʻo_a1b2): ref 'nope' matches no entry id/guid or sense id
 warning [uri-not-rfc] dictionary.lift:6: <range href='file://C:/...'>: Windows drive letter used as URI authority (FLEx-style file://C:/)
+error [dangling-ref] dictionary.lift:88 (entry poʻo_a1b2): ref 'nope' matches no entry id/guid or sense id
 1 error(s), 1 warning(s)
 
 $ sil-lift validate dictionary.lift --format json
 {
   "problems": [
-    {
-      "level": "error",
-      "code": "dangling-ref",
-      "message": "ref 'nope' matches no entry id/guid or sense id",
-      "file": "dictionary.lift",
-      "entry_id": "po\u02bbo_a1b2",
-      "guid": null,
-      "line": 88
-    },
     {
       "level": "warning",
       "code": "uri-not-rfc",
@@ -50,6 +41,15 @@ $ sil-lift validate dictionary.lift --format json
       "entry_id": null,
       "guid": null,
       "line": 6
+    },
+    {
+      "level": "error",
+      "code": "dangling-ref",
+      "message": "ref 'nope' matches no entry id/guid or sense id",
+      "file": "dictionary.lift",
+      "entry_id": "po\u02bbo_a1b2",
+      "guid": null,
+      "line": 88
     }
   ],
   "summary": {

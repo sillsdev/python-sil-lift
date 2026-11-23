@@ -75,7 +75,7 @@ The three companion-folder codes (`ambiguous-ranges-file`, `dangling-ranges-href
 
 ### Media codes
 
-sil-lift looks for each media file at its href as given, as well as under `audio/` (pronunciation media) or `pictures/` (illustrations), allowing for any capitalization of those two folder names.
+sil-lift looks for each media file at its href as given, as well as under `audio/` (pronunciation media) or `pictures/` (illustrations). That folder is sil-lift's own guess, not something the document wrote, so it matches any capitalization and its spelling is never reported.
 
 `missing-media` and `media-href-mismatch` divide the media check between them: the first means no file answered the href under any spelling, the second that one did but the href does not name it exactly. The second is the portability finding: the file is here, and a case-sensitive host serving this folder will not find it.
 
