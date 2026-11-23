@@ -1,6 +1,10 @@
 # 示例：从零开始构建 LIFT 导出
 
-如果你正在将另一个应用程序的数据导出为 LIFT 格式——这正是 [生成符合规范的 LIFT](lift-export-interop.md) 背后的任务——`sil-lift` 可以逐个构建文档对象并将其序列化，而无需手动生成 XML。本文将逐步演示一个脚本，该脚本利用真实词典所包含的各项要素（多种书写系统、发音、带例句的词义、插图、语义领域特征以及应用程序特定字段）来构建词条，将受控词汇写入 `.lift-ranges` 伴生文件，进行验证并保存。
+如果你要将另一个应用程序的数据导出为 LIFT 格式（即 [生成符合规范的 LIFT](lift-export-interop.md) 背后的任务），`sil-lift` 可以逐个构建文档对象并将其序列化，而无需手动生成 XML。本文将详细介绍一个脚本，该脚本：
+
+- 构建一个包含真实词典所具备各项要素的词条：多种书写系统、发音、词义及例句、插图、语义领域特征，以及一个应用程序专用的字段；
+- 将受控词汇表写入一个 `.lift-ranges` 伴生文件中；
+- 进行验证并保存。
 
 ## 剧本
 
@@ -156,14 +160,27 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 
 ## API说明
 
-- 多文本字段（`lexical_unit`、`definition`、`Form`/`URLRef` 的标签、`Field` 的内容等）通过映射接口，为每个书写系统取一条字符串：`entry.lexical_unit["seh"] = "nkhuku"` 会添加一个 `<form lang="seh">`。一个以语言代码为键对字符串进行索引的源模型可以直接映射到此处。
-- `RangesFile.add_range()` / `Range.add_element()` 用于构建受控词汇表，而 `Lexicon.add_ranges_file(ranges, href=...)` 则关联相应的范围文件并添加 `<range href>` 引用——这样，条目的 `<grammatical-info value="Noun">` 和 `<trait name="semantic-domain-ddp4" value="1.6.1.2">` 就能解析为您定义的范围。
-- `URLRef` 由 href 以及可选的标题/标签多文本组成——既适用于 `<media>`（音频），也适用于 `<illustration>`（照片）。此处的发音遵循“The Combine”的惯例，即采用读作“<name> ”的`en`形式。
+### 创建文档
+
+- 多文本字段（`lexical_unit`、`definition`、`URLRef` 的标签、`Field` 的内容）将语言代码与文本建立映射关系，因此源模型中按语言划分的字符串会以一对一的方式继承过来。
+- `Lexicon.add_ranges_file(ranges, href=...)` 会附加该伴生对象，并自动为您写入 `<range href>` 引用，因此该条目的 `Noun` 和 `1.6.1.2` 值将与您定义的范围对应。
+- `URLRef` 由 href 以及可选的标题/标签多文本组成，既适用于 `<media>`（音频），也适用于 `<illustration>`（照片）。此处的发音遵循“The Combine”的惯例，即采用读作“<name> ”的`en`形式。
 - 不包含原生 LIFT 回家行程的应用程序专用数据，格式为 `<field>`（或 `<trait>`）：FieldWorks 会将其识别为自定义字段，而 The Combine 会保留这些数据。
-- 为每个条目分配一个真实且稳定的 `guid`（例如通过 `uuid.uuid4()` 生成，并在不同导出之间复用）——这样，后续重新导入时会就地更新该条目，而非创建重复条目。 `sil-lift validate --require-ids` 会强制执行此要求。
-- 上文输出中的 `dateCreated`/`dateModified` 并未出现在脚本中：`save()` 函数将其标记为运行时的日期，因为首次写入的条目本身不包含日期信息。 `when=` 提供该时间点，而非读取系统时间，这使得生成的导出文件在字节级可重现，以便 CI 任务进行差异比较；`stamp=False` 则完全不写入日期信息。有关合约的其余部分，请参见[生成的时间戳](../fidelity.md#generated-timestamps)。
-- `lex.iter_problems()` 在任何数据写入磁盘之前会先对内存中的文档进行验证；这里该文档是干净的。由于词汇表目前还没有文件夹，因此会跳过媒体存在性检查和关联链接检查——待音频和照片文件就位后，请对保存的输出结果运行 [`sil-lift validate`](cli.md)（或使用 `--no-check-media` 选项）。
+- 为每个条目分配一个真实且稳定的 `guid`（例如通过 `uuid.uuid4()` 生成，并在不同导出中重复使用）；后续重新导入时，会就地更新该条目，而非创建副本。 `sil-lift validate --require-ids` 会强制执行此要求。
+
+### 时间戳
+
+上文输出中的 `dateCreated`/`dateModified` 并未出现在脚本中。 `save()` 方法会为这些条目标注其运行时的时刻，因为首次写入的条目本身并不包含日期。
+
+- `when=` 提供了该时间点，而无需读取时钟，这使得生成的导出文件在字节级别可重现，以便 CI 任务进行差异比较。
+- `stamp=False` 表示完全不写入日期。
+
+有关合约的其余部分，请参见[生成的时间戳](../fidelity.md#generated-timestamps)。
+
+### 验证
+
+`lex.iter_problems()` 在任何数据写入磁盘之前会先对内存中的文档进行验证；这里该文档是干净的。由于词汇表目前还没有文件夹，因此跳过了对 media-presence 和 companion-href 的检查。在音频和照片文件准备就绪后，对保存的输出运行 [`sil-lift validate`](cli.md)（或使用 `--no-check-media` 选项）。
 
 ## 包装
 
-`lex.save("export/birds.lift")` 会生成文件夹结构（`.lift` 和 `.lift-ranges` 并列存放）。若要生成一个可被 FieldWorks 和 The Combine 直接导入的单个压缩包，请改用 `lex.save_zip("birds.zip")` —— 参见 [生成符合规范的 LIFT 文件](lift-export-interop.md)。
+`lex.save("export/birds.lift")` 会生成文件夹结构（`.lift` 和 `.lift-ranges` 并列存放）。若要生成一个可被 FieldWorks 和 The Combine 直接导入的单个压缩包，请改用 `lex.save_zip("birds.zip")`。请参阅 [生成符合规范的 LIFT](lift-export-interop.md)。
