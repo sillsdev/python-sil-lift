@@ -8,34 +8,44 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-Функция `load()` принимает любой корректно сформированный документ LIFT **0.13** — в том числе реальные файлы, не соответствующие схеме. Все, что не определено в модели (неизвестные элементы/атрибуты, комментарии), передается без потерь в виде остаточного данных LIFT в непрозрачном поле `extra` каждого узла. Другие версии LIFT вызывают исключение `LiftParseError`, указывая номер версии.
+`load()` accepts any well-formed LIFT **0.13** document, including schema-invalid real-world files. Все, что не определено в модели (неизвестные элементы/атрибуты, комментарии), передается без потерь в виде остаточного данных LIFT в непрозрачном поле `extra` каждого узла. Другие версии LIFT вызывают исключение `LiftParseError`, указывая номер версии.
 
 ## Модель
 
-Каждый элемент LIFT представляет собой типизированный класс данных: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal` и т. д. Многоязычный текст представляет собой объект `Multitext`, который является `Mapping`, сопоставляющим код языка с объектом `Text`:
+Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on.
+
+### Multilingual text
+
+Многоязычный текст представляет собой объект `Multitext`, который является `Mapping`, сопоставляющим код языка с объектом `Text`:
 
 ```python
-entry = lex.find(id="abat")
+entry = lex.find(id="poʻo_a1b2")
 
-str(entry.lexical_unit["seh"])          # «abat»
-entry.lexical_unit["en"] = "grove"      # простые строки преобразуются
+str(entry.lexical_unit["haw"])          # "poʻo"
+entry.lexical_unit["en"] = "head"       # plain strings are coerced
 "en" in entry.citation                  # False
-list(entry.lexical_unit.keys())         # ["seh", "en"]
+list(entry.lexical_unit.keys())         # ["haw", "en"]
 ```
 
-`keys()`, `values()` и `items()` — это представления, в каждом из которых содержится по одному ключу на каждый язык, а функция `len()` подсчитывает количество языков, а не форм. Оба мутатора действуют на язык в целом, а не на какую-то конкретную форму: `del entry.lexical_unit["en"]` удаляет все формы на английском языке, а присваивание значения `"en"` оставляет ровно одну.
+`Text` is structured (an ordered list of `str` and `Span` fragments) because `<text>` can contain nested `<span>` markup. `str(text)` преобразует текст в обычный текст; фрагменты сохраняют разметку для обратного преобразования.
 
-Документ, соответствующий схеме, не содержит ничего лишнего, однако в реальных файлах иногда встречаются повторения языковых конструкций. `forms` содержит все формы в порядке их расположения в файле, считывает ответ из первой формы, а [`validate`](validate.md#problem-codes) выдает ошибку `duplicate-form-lang`, пока вы не укажете соответствующий язык. Форма, в которой полностью отсутствует атрибут `lang`, не может быть создана посредством преобразования, регистрируется как `form-missing-lang` и удаляется при повторной сериализации её узла.
+The mapping shows one value per language. Underneath, `forms` holds every `<form>` in file order. A schema-valid document has at most one form per language, but real files sometimes repeat one.
 
-`Text` имеет структуру — это упорядоченный список фрагментов `str` и `Span` — поскольку `<text>` может содержать вложенную разметку `<span>`. `str(text)` преобразует текст в обычный текст; фрагменты сохраняют разметку для обратного преобразования.
+Because the mapping is keyed by language, `len()` counts languages rather than forms, and the `keys()`, `values()` and `items()` views list each language once. Both mutators also act on the whole language: `del entry.lexical_unit["en"]` removes every English form, and assigning to `"en"` leaves exactly one.
+
+For a repeated language, `entry.lexical_unit["en"]`, `get()`, `values()` and `items()` all answer with its first form, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language.
+
+A form carrying no `lang` at all cannot be created through the mapping. It is reported as `form-missing-lang`, and is dropped when its node re-serializes.
+
+### Senses and glosses
 
 В LIFT глоссы имеют форму _form_ (каждый `<gloss>` содержит свой собственный язык), поэтому сенс имеет `glosses: list[Form]`, а также вспомогательные функции:
 
 ```python
-sense = entry.senses[0]                 # только верхний уровень
-sense.gloss("en")                       # Text | None
-entry.all_senses()                      # все значения и подзначения, в порядке, указанном в документе
-entry.gloss_langs()                     # {"en", "id"}, включая подзначения
+sense = entry.senses[0]       # top level only
+sense.gloss("en")             # Text | None
+entry.all_senses()            # every sense and subsense, document order
+entry.gloss_langs()           # {"en", "id"}, subsenses included
 ```
 
 Используйте функцию `all_senses()` всякий раз, когда вопрос касается всей записи: подсчёт значений, сбор данных по языкам, поиск медиафайлов. `entry.senses` возвращает верхний уровень, что нужно только в тех случаях, когда само вложение имеет значение.
@@ -43,13 +53,22 @@ entry.gloss_langs()                     # {"en", "id"}, включая подз�
 ## Сохранение
 
 ```python
-lex.save()                # сохранить в том же месте, откуда было загружено
+lex.save()                    # back to where it was loaded from
 lex.save("elsewhere.lift")
 ```
 
 Записи, которые вы не изменяли, записываются обратно **байт за байтом**; документ, который вы не изменяли вообще, остается байт за байтом идентичным от первого до последнего байта. Точные условия договора см. в разделе [Гарантии Fidelity](../fidelity.md).
 
-Записи, которые вы изменили, отправляются с новым значением `dateModified` (а также с `dateCreated`, если у них его не было), поэтому отредактированная запись не отправляется с датой, с которой она была загружена. Инструменты, выполняющие слияние LIFT, определяют, что именно изменилось в данном атрибуте. `lex.save(stamp=False)` записывает только даты, хранящиеся в модели, и ничего больше; `lex.save(when=...)` фиксирует конкретный момент времени, а не использует данные системного времени. Остальные правила см. в разделе [Сгенерированные временные метки](../fidelity.md#generated-timestamps).
+### Временные метки
+
+Записи, которые вы изменили, отправляются с новым значением `dateModified` (а также с `dateCreated`, если у них его не было), поэтому отредактированная запись не отправляется с датой, с которой она была загружена. Tools that merge LIFT decide what changed from that attribute. Two arguments adjust the stamping:
+
+- `lex.save(stamp=False)` writes the dates the model holds and nothing more.
+- `lex.save(when=...)` pins the moment instead of reading the clock.
+
+Остальные правила см. в разделе [Сгенерированные временные метки](../fidelity.md#generated-timestamps).
+
+### Skipping a save that changes nothing
 
 Чтобы пропустить сохранение, которое ничего не изменит, защитите его с помощью `lex.changes()`:
 
@@ -58,9 +77,11 @@ if lex.changes():
     lex.save()
 ```
 
-Она возвращает `False` только в том случае, если функция `save()` воспроизведет исходные байты, включая записи, заголовок, корневой элемент и каждый сопутствующий объект `.lift-ranges`. Он останавливается при обнаружении первого различия, поэтому при работе с отредактированным словарем это практически ничего не стоит. Чтобы подтвердить, что лексикон не изменился, его необходимо сериализовать полностью, но это всё равно обходится дешевле, чем пропуск операции сохранения. Отказ от записи также позволяет сохранить время изменения файла без изменений и избежать ложного результата сравнения.
+Она возвращает `False` только в том случае, если функция `save()` воспроизведет исходные байты, включая записи, заголовок, корневой элемент и каждый сопутствующий объект `.lift-ranges`. Skipping the write leaves the file's modification time alone and avoids a spurious diff.
 
-Он сравнивает содержимое, а не место назначения, поэтому следует обеспечивать защиту только при сохранении на месте. `lex.save("elsewhere.lift")` записывает документ и сопутствующие файлы в указанное место независимо от того, что возвращает функция `changes()`.
+The check is cheap. Он останавливается при обнаружении первого различия, поэтому при работе с отредактированным словарем это практически ничего не стоит. Чтобы подтвердить, что лексикон не изменился, его необходимо сериализовать полностью, но это всё равно обходится дешевле, чем пропуск операции сохранения.
+
+Он сравнивает содержимое, а не место назначения, поэтому следует обеспечивать защиту только при сохранении на месте. `lex.save("elsewhere.lift")` writes the document and its companions to the new path even when `changes()` is `False`, so guarding it would skip that copy.
 
 ## Создание с нуля
 
