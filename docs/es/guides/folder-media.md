@@ -26,10 +26,10 @@ ranges.save()
 Se prueban varios candidatos y se carga cada uno de los archivos distintos que hay entre ellos.
 
 - Un encabezado `range/@href` que apunte a un archivo existente se utiliza tal cual.
-- Un enlace `href` que no resuelve nada recurre a su nombre base junto al `.lift`: FieldWorks escribe rutas absolutas «colgantes» del tipo `file://C:/...` desde el equipo de exportación, y ese recurso alternativo es lo que hace que funcionen localmente.
+- Un atributo `href` que no resuelve a nada recurre a su nombre base junto a `.lift`. FieldWorks escribe rutas absolutas incompletas `file://C:/...` desde el equipo de exportación, y esa solución alternativa es lo que hace que funcionen a nivel local.
 - El elemento hermano convencional «<name>.lift-ranges» se detecta incluso cuando no hay ninguna referencia a él.
 
-Los nombres que solo difieren en mayúsculas y minúsculas o en la normalización Unicode siguen coincidiendo —`Dict.LIFT` encuentra `Dict.lift-ranges`—, a menos que varios archivos coincidan con un mismo nombre, en cuyo caso no se carga ninguno de ellos y se muestra el mensaje [`ambiguous-ranges-file`](validate.md#problem-codes).
+Los nombres que solo difieren en mayúsculas y minúsculas o en la normalización Unicode siguen coincidiendo (`Dict.LIFT` encuentra `Dict.lift-ranges`), a menos que varios archivos coincidan con un mismo nombre, en cuyo caso no se carga ninguno de ellos y se notifica como [`ambiguous-ranges-file`](validate.md#problem-codes).
 
 Un candidato que no se pueda leer como un documento `<lift-ranges>` (por ejemplo, un archivo de cero bytes procedente de una exportación interrumpida) se omite, en lugar de provocar un error en la carga, y se notifica como [`unreadable-ranges-file`](validate.md#problem-codes). Sin embargo, al cargar uno directamente con `RangesFile.load()`, se produce un error.
 
@@ -44,15 +44,15 @@ for ref in lex.media_refs():        # todos los <media> y <illustration>
 lex.check_media()                   # referencias que no se resuelven correctamente
 ```
 
-La resolución sigue el esquema convencional: se comprueba un enlace «href» relativo tal y como se ha indicado (con las barras invertidas normalizadas — WeSay escribe «pictures\photo con espacio.png») y dentro de «audio/» (para archivos de audio con pronunciación) o «pictures/» (para ilustraciones). Los enlaces «href» remotos o absolutos no se pueden comprobar y se omiten.
+La resolución sigue el esquema convencional: se comprueba que un enlace «href» relativo se haya especificado correctamente y se encuentre en la carpeta «audio/» (para archivos de audio con la pronunciación) o en la carpeta «pictures/» (para ilustraciones). Las barras invertidas se interpretan como barras normales, ya que WeSay escribe los enlaces `pictures\photo with space.png`. Los enlaces «href» remotos y absolutos no se pueden comprobar y se omiten.
 
 La función `check_media()` solo muestra las referencias que no se han resuelto correctamente, una `MediaResolution` por cada una:
 
-- `status="missing"`: no se ha encontrado ningún archivo que corresponda al enlace «href», independientemente de cómo se escriba.
-- `status="mismatch"`: se encontró uno, pero solo tras la conversión de mayúsculas y minúsculas o en formato NFC; `found` indica el nombre del archivo en el disco.
+- `status="missing"`: ningún archivo se correspondía con el enlace «href», independientemente de la ortografía utilizada.
+- `status="mismatch"`: uno sí lo hizo, pero solo con conversión de mayúsculas y minúsculas o NFC; `found` indica el nombre del archivo en el disco.
 
-No se notifica ningún enlace `a href` cuyo nombre de archivo coincida exactamente. A diferencia de un nombre de acompañante, que se pliega de forma silenciosa, un enlace «href» multimedia también es leído por cualquier elemento que sirva la carpeta posteriormente, por lo que el plegado se notifica como [`media-href-mismatch`](validate.md#problem-codes).
+Se notifica una discrepancia aunque se haya encontrado el archivo. Un nombre de archivo asociado se empareja de forma aproximada sin comentarios, pero el enlace «href» del archivo multimedia también es leído por cualquier servidor que alimente la carpeta posteriormente, y un servidor que distinga entre mayúsculas y minúsculas no encontrará el archivo. La validación señala el mismo caso que [`media-href-mismatch`](validate.md#problem-codes).
 
 ## Otros contenidos de la carpeta
 
-Una carpeta LIFT suele contener archivos que sil-lift no modela —el sistema de escritura LDML en `WritingSystems/`, los archivos de audio e imagen de consentimiento de los hablantes de The Combine en `consent/`, y similares—; Las funciones `load()` y `save()` no modifican estos archivos, y [`Lexicon.save_zip()`](lift-export-interop.md) los incluye tal cual al empaquetar la carpeta.
+Una carpeta LIFT suele contener archivos que sil-lift no modela, como el sistema de escritura LDML en `WritingSystems/` o los archivos de consentimiento de los hablantes de The Combine en `consent/`. Las funciones `load()` y `save()` no modifican estos archivos, y [`Lexicon.save_zip()`](lift-export-interop.md) los incluye tal cual al empaquetar la carpeta.
