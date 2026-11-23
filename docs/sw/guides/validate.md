@@ -1,35 +1,42 @@
 # Thibitisha
 
-Uthibitishaji daima ni wazi — kupakia na kuhifadhi kamwe havithibitishi kwa njia fiche.
+Uthibitishaji daima ni wazi: upakiaji na uhifadhi kamwe hauthibitishi kwa njia fiche.
 
 ```python
 import sil_lift
 
-# Exhaustive: mtiririko wa uvivu wa Matatizo (schema + tabaka za semantiki).
+# Kamilifu: mtiririko wa uvivu wa Matatizo (schema + tabaka za semantiki).
 for problem in sil_lift.iter_problems("dictionary.lift"):
     print(problem)
-    # kosa [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' inalingana ...
+    # hitilafu [dangling-ref] dictionary.lift:88 (entry apu): ref 'nope' inalingana ...
 
 # Fail-fast: simama mara tu unapopata tatizo la kiwango cha kosa.
 if any(p.level == "error" for p in sil_lift.iter_problems("dictionary.lift")):
     raise SystemExit(1)
 
-# Hali ya kumbukumbu (inayosafirishwa kwanza — gharama iliyodokezwa kwa kamusi kubwa):
+# Hali ndani ya kumbukumbu (inayosafirishwa kwanza, gharama iliyoorodheshwa kwa kamusi kubwa):
 lex = sil_lift.load("dictionary.lift")
 problems = list(lex.iter_problems())
 ```
 
-Kila `Problem` hubeba `level` (`"error"`/`"warning"`), `code` thabiti, `message`, na anwani yoyote ile ambayo ugunduzi unao: `file` (`None` wakati kamusi haina njia), `entry_id` linapohusu kipengee kimoja, `guid` linapohusu kitu kinachohusika kikiwa nacho (kipengee, au kipengele cha safu), na `line` linapohusiana na mstari katika hati. Matokeo kuhusu safu huelekezwa kwa kiongozi mwenza `.lift-ranges` unaoifafanua, na haina kipengee. Sehemu zisizowekwa ni `None` — `null` katika `--format json`, ambapo kila ufunguo daima upo.
+Kila `Problem` huambatana na `level` (`"error"`/`"warning"`), `code` thabiti, na `message`, pamoja na anwani kadri upataji ulivyo nayo:
+
+- `file`: `None` wakati kamusi haina njia.
+- `entry_id`: weka wakati upataji unahusu kipengee kimoja.
+- `guid`: weka wakati kitu kinachohusika kina moja (kipengee, au kipengele cha wigo).
+- `line`: weka wakati upatikanaji unapoendana na mstari katika hati.
+
+Matokeo kuhusu safu huelekezwa kwa kiongozi mwenza `.lift-ranges` unaoifafanua, na haina kipengee. Sehemu zisizowekwa ni `None` (`null` katika `--format json`, ambapo kila ufunguo daima upo).
 
 ## Tabaka
 
-1. **RELAX NG** dhidi ya sarufi ya LIFT 0.13 (iliyotolewa kutoka lift-standard — nakala inayofanana byte kwa byte iliyowekwa katika kifurushi hiki).
-2. **Rangi za schema** — `lift-ranges-0.13.rng` ya mradi huu — juu ya kila mwenzi wa `.lift-ranges` unaofuatiliwa, ikielekezwa kwa mwenzi badala ya `.lift`.
-3. **Ukaguzi wa semanti** ambao sarufi haiwezi kuonyesha — kumi na tatu, kila moja ikiwa na msimbo wake.
+1. **LIFT schema** (`lift-0.13.rng`, sarufi ya LIFT 0.13 RELAX NG, iliyotolewa na vendored ikiwa sawa kabisa kwa baiti kutoka lift-standard) juu ya `.lift`.
+2. **Rangi za schema** (`lift-ranges-0.13.rng`, pia imewekwa kama vendor kutoka lift-standard) juu ya kila `.lift-ranges` companion inayofuatiliwa, ikielekezwa kwa companion badala ya `.lift`.
+3. **Ukaguzi wa semanti** ambao schemas haziwezi kueleza: kumi na tatu kati yao, kila moja ikiwa na msimbo mmoja.
 
 ## Misimbo ya matatizo
 
-Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha — `schema` na `uri-not-rfc` hutoka kwenye safu za schema, na zile kumi na tatu zingine ni ukaguzi wa semanti. Vifungo ni kiolesura kinachotumika; `--strict` huibadilisha kila onyo kuwa kosa. `sil-lift validate --allow CODE` huacha msimbo nje ya uamuzi wa kupita/kushindwa.
+Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha: `schema` na `uri-not-rfc` hutoka kwenye safu za schema, zingine ni ukaguzi wa semantiki. Kila kodi huchunguzwa kwa chaguo-msingi isipokuwa `missing-id`, ambayo ni ya hiari: tumia `require_ids=True` (au `--require-ids`) ili kuiwasha. Misimbo ni thabiti, hivyo skiripti zinaweza kuendana nayo. `--strict` huibadilisha kila onyo kuwa kosa. `sil-lift validate --allow CODE` huacha msimbo nje ya uamuzi wa kupita/kushindwa.
 
 | msimbo                             | kiwango  | kinachoashiria                                                                                         |
 | ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
@@ -40,36 +47,49 @@ Kila ugunduzi huambatana na mojawapo ya hizi, kulingana na safu iliyouzalisha �
 | nakala-ya-guid                     | Hitilafu | mwongozo unaotumika tena miongoni mwa maingizo, au miongoni mwa wigo/vipengele-vya-wigo vya hati moja  |
 | Fomu inakosa lugha                 | Hitilafu | <form>` au `<gloss>` bila `lang` inayohitajika na schema                                               |
 | kutofautiana kwa kiungo cha media  | Onyo     | href ya media inayofikia faili yake tu chini ya urekebishaji wa herufi au NFC                          |
-| kitambulisho-kinachokosekana       | Hitilafu | kuingia kwa hiari kupitia `require_ids`: kipengee kisicho na guid, hisia kisicho na id |
+| kitambulisho-kinachokosekana       | Hitilafu | [opt-in] ingizo lisilo na guid, hisia lisilo na id |
 | Vyombo vya habari vinakosekana     | Onyo     | Faili ya sauti au picha iliyorejelewa haipo kwenye diski                                               |
 | kutopatana kwa urekebishaji        | Onyo     | Jina linalofikia kitambulisho kinachorejelewa tu kupitia NFC                                           |
 | eneo-mzazi                         | Hitilafu | Hakuna id ya ndugu inayotambuliwa na `range-element/@parent`.                          |
 | `shemia`                           | Hitilafu | ukiukaji wa sarufi ya RELAX NG, katika `.lift` au katika faili rafiki                                  |
 | Thamani-ya-wigo-isiyoainishwa      | Onyo     | Thamani ya sifa ya taarifa ya kisarufi au yenye funguo za wigo ambayo wigo haitaorodhesha              |
 | faili la masafa yasiyoweza kusomwa | Onyo     | mgombea mwenza uliopo lakini si hati ya masafa inayoweza kusomeka                                      |
-| URL si RFC                         | Onyo     | href ambayo si URI halali — `file://C:/...` ya FLEx                                                    |
+| URL si RFC                         | Onyo     | href ambayo si URI halali (kama vile `file://C:/...` ya FLEx)                       |
 
-Tabaka zote tatu hufanya kazi kwa hati iliyoseriwa kama ilivyo, hivyo ile ambayo haiwezi kuseriwa kabisa huripotiwa kama kosa moja la `lone-surrogate` badala yake — angalia [Dhamana za Uaminifu](../fidelity.md#content-xml-cannot-represent). Uthibitishaji ni wa kusoma tu: unaripoti hati kama ilivyo, kabla ya kulewa alama ya `dateModified` inayofanywa na uhifadhi. Hakuna kinachotengenezwa kinachoweza kuwa matokeo ya utafutaji, kwa hivyo uthibitishe kisha uhifadhi ni njia sahihi.
+### Kinachoonekana katika uthibitishaji
+
+Tabaka zote tatu hufanya kazi kwa hati iliyoseriwaliswa kama ilivyo, hivyo ile ambayo haiwezi kuseriwaliswa kabisa huripotiwa kama kosa moja la `lone-surrogate`. Tazama [Dhamana za Fidelity](../fidelity.md#content-xml-cannot-represent).
+
+Uthibitishaji ni wa kusoma tu: unaripoti hati kama ilivyo, kabla ya uhifadhi kuweka alama ya tarehe ya mabadiliko. Stampu hazisababishi hitilafu, hivyo hati inayopita uthibitishaji bado inapita hata baada ya kuhifadhiwa.
+
+### Misimbo ya folda-mwenza
 
 Jina la kiashiria linalolingana na faili kadhaa halipaki yoyote kati yao: vipimo wanavyovibainisha havionekani hadi faili zote isipokuwa moja ziitwe tena au ziondolewe.
 
-Misimbo mitatu ya folda-wenza (`ambiguous-ranges-file`, `dangling-ranges-href`, na `unreadable-ranges-file`) huripotiwa tu wakati ugunduzi wa folda-wenza ulipofanyika. Kupakia kwa kutumia `resolve_ranges=False` kunawaweka wenzao nje ya wigo, hivyo hakuna hata mmoja wao anayeripotiwa; kuambatanisha mmoja baadaye kwa `add_ranges_file()` hakuwaleti tena, kwa sababu haisomi kamwe folda ambayo misimbo hii inaripoti. `missing-media` na `media-href-mismatch` hazijaathirika: media haisombwi kamwe kwenye modeli, kwa hivyo hakuna kilichojitengwa.
+Misimbo mitatu ya folda-wenza (`ambiguous-ranges-file`, `dangling-ranges-href`, na `unreadable-ranges-file`) huripotiwa tu wakati ugunduzi wa folda-wenza ulipofanyika:
 
-`missing-media` na `media-href-mismatch` hugawanya ukaguzi wa media kati yao: ya kwanza ina maana hakuna faili lililojibu href kwa tahajia yoyote, ya pili ina maana faili lilijibu href lakini href haitaji jina lake kwa usahihi. Ya pili ni ugunduzi wa kubebeka — faili iko hapa, na seva inayotumika kwa kesi nyeti haitaipata.
+- Upakiaji kwa kutumia `resolve_ranges=False` huwafanya wenzake kuwa nje ya wigo, hivyo hakuna hata mmoja wao anayeripotiwa.
+- Kuambatanisha moja baadaye kwa kutumia `add_ranges_file()` hakurejeshi ripoti hizo, kwa sababu haisomi kamwe folda ambayo misimbo hii inaripoti.
 
-Kanuni mbili zinatawala kile ambacho `media-href-mismatch` inaripoti:
+`resolve_ranges=False` haibadilishi `missing-media` au `media-href-mismatch`: media haisombwi kamwe kwenye modeli, kwa hivyo hakuna kitu cha kujiondoa.
 
-- _folder_ iliyotajwa vibaya ni moja tu, hata kama inatajwa tena mara nyingi; kwa hivyo inaripotiwa mara moja na haina kiingilio. Jina la faili lililoandikwa vibaya linaripotiwa kwa kila rejeleo, likielekezwa kwa kipengee kilicholiandika.
-- Folda ndogo ya kawaida `audio/`/`pictures/` ni dhana ya sil-lift mwenyewe badala ya kile hati ilichoandika, hivyo folda iliyotajwa kwa tahajia tofauti hutatuliwa bila kuripotiwa.
+### Misimbo ya vyombo vya habari
+
+sil-lift hutafuta kila faili ya media katika href yake kama ilivyotolewa, pamoja na chini ya `audio/` (media ya matamshi) au `pictures/` (michoro). Folda hiyo ni dhana binafsi ya sil-lift, si kitu kilichoandikwa kwenye hati, kwa hivyo inalingana na uandishi wowote wa herufi kubwa na tahajia yake haijawahi kuripotiwa.
+
+`missing-media` na `media-href-mismatch` hugawanya ukaguzi wa media kati yao: ya kwanza ina maana hakuna faili lililojibu href kwa tahajia yoyote, ya pili ina maana faili lilijibu href lakini href haitaji jina lake kwa usahihi. Ya pili ni ugunduzi wa uhamaji: faili iko hapa, na seva inayohudumia folda hii na kutambua herufi kubwa na ndogo haitaipata.
+
+Folda iliyotajwa vibaya ni moja tu; hata kama inatajwa tena mara nyingi, inaripotiwa mara moja na haina kiingilio. Jina la faili lililoandikwa vibaya linaripotiwa kwa kila rejeleo, likielekezwa kwenye kipengee kilichoandika.
 
 ## Matokeo halisi ya FieldWorks (FLEx)
 
 FieldWorks kwa utaratibu huandika baadhi ya maudhui ambayo zana kali hupinga. Hapa kuna sera ya sil-lift, ili kamusi halisi ziwe na manufaa:
 
-- Viungo vya `file://C:/...` (URI zisizofaa) huripotiwa kama **maonyo** (`uri-not-rfc`), si makosa ya skema — mhakiki wa C# haujawahi kuzikataa.
-- Watoto waliopangwa kisheria (kwa mfano `field, note, field, note`) hawapati alama, hivyo kuepuka matokeo ya uongo chanya katika libxml2.
+- Viungo vya `file://C:/...` (URI zisizofaa) huripotiwa kama **maonyo** (`uri-not-rfc`), si makosa ya schema; mhakiki wa C# haujawahi kuzikataa.
+- Watoto walioambatanishwa kisheria (kwa mfano `field, note, field, note`) hawapati alama; hii hupuuza utambuzi potofu katika libxml2.
 - Nyongeza za `trait`/`field` za FLEx ndani ya `range-element` zinaripotiwa (makosa ya schema dhidi ya schema ya rangi): ni upotovu halisi wa vipimo.
-- Majina yanatafsiriwa kulingana na safu na vitambulisho vya vipengele vya safu chini ya usawazishaji wa Unicode (NFC) — viungo vya `parent`, thamani za safu, na jina la `trait` au kitambulisho cha kichwa cha safu kinachoongoza safu. FLEx inalinganisha na NFC wakati wa kusafirisha nje, lakini baadhi ya uandishi ulikuwa ukiepuka hatua hiyo, hivyo `id` ya kipengele cha safu inaweza kuwa NFD wakati lebo zake, `parent` yake mwenyewe, na thamani za `.lift` zinazoiita ni NFC.
-  - Ikilinganishwa kwa usahihi, usafirishaji wa sauti unaonekana umevunjika — na safu yenye `id` iliyotamkwa kinyume haikaguliwi kabisa, kwa kuwa jina la sifa lisilofikia safu lolote linakubaliwa kimya kimya.
-  - Jina lililolingana tu baada ya urekebishaji linaripotiwa kama onyo la `normalization-mismatch`, mara moja kwa kila kitambulisho hata kama marejeleo mengi yanatofautiana, likielekezwa kwenye faili inayofafanua kitambulisho hicho. Data ni sahihi, lakini mtumiaji anayelinganisha nyuzi ghafi hawezi kutatua marejeleo hayo.
+- Majina yanatatuliwa dhidi ya safu na vitambulisho vya vipengele vya safu chini ya usawazishaji wa Unicode (NFC): viungo vya `parent`, thamani za safu, na jina la `trait` au kitambulisho cha kichwa cha safu kinachoongoza safu.
+  - FLEx inalinganisha na NFC wakati wa kusafirisha nje, lakini baadhi ya uandishi ulikuwa ukiepuka hatua hiyo, hivyo `id` ya kipengele cha safu inaweza kuwa NFD wakati lebo zake, `parent` yake mwenyewe, na thamani za `.lift` zinazoiita ni NFC.
+  - Ulinganisho sahihi ungekosea hili kwa njia mbili. Rejea za kitambulisho cha NFD zitaripotiwa kuwa zimevunjika, ingawa usafirishaji ni sahihi. Na safu yenye `id` yake iliyobadilishwa kuwa NFD haitachunguzwa: hakuna jina la sifa litakaloendana nayo, na sifa ambayo jina lake haliendani na safu yoyote inakubaliwa kama ilivyo.
+  - Jina lililolingana tu baada ya kusawazisha linaripotiwa kama onyo la `normalization-mismatch`, mara moja kwa kila kitambulisho badala ya mara moja kwa kila rejeleo, likielekezwa kwenye faili inayofafanua kitambulisho hicho. Data ni sahihi, lakini mtumiaji anayelinganisha nyuzi ghafi hawezi kutatua marejeleo hayo.
   - Vitambulisho havibadilishwi kamwe: faili linaendelea kuwa na tahajia iliyokuja nalo.
