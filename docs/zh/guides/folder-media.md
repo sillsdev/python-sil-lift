@@ -1,6 +1,6 @@
 # LIFT 文件夹：范围与媒体
 
-一个 LIFT 词汇表通常是一个 _文件夹_：包含 `.lift` 文件、一个或多个 `.lift-ranges` 辅助文件（sidecar 文件），以及 `audio/` / `pictures/` 中的媒体文件。
+一个 LIFT 词汇表通常是一个 _文件夹_：包含 `.lift` 文件、一个或多个 `.lift-ranges` 配套文件（辅助文件），以及位于 `audio/` 和 `pictures/` 文件夹中的多媒体文件。
 
 ## 范围
 
@@ -26,10 +26,10 @@ ranges.save()
 尝试了几个候选项，并加载了其中每个不同的文件。
 
 - 指向现有文件的 `range/@href` 标头按原样使用。
-- 如果 href 解析后没有结果，则会回退到其基础名称后跟 `.lift` 的形式——FieldWorks 会从导出机器写入悬空的绝对 `file://C:/...` 路径，而正是这种回退机制使得它们在本地能够正常工作。
+- 如果 href 解析后没有结果，则会回退到其基础名称，并在后面加上 `.lift`。 FieldWorks 会从导出机器写入不完整的绝对 `file://C:/...` 路径，正是这种备选方案使得它们能在本地正常运行。
 - 即使没有任何内容引用它，系统仍会自动识别常规的 `<name>.lift-ranges` 同级元素。
 
-仅在大小写或 Unicode 规范化方面存在差异的名称仍会被视为匹配——`Dict.LIFT` 会找到 `Dict.lift-ranges`——除非有多个文件匹配同一个名称，这种情况下将不会加载任何文件，并报告为 [`ambiguous-ranges-file`](validate.md#problem-codes)。
+仅在大小写或 Unicode 规范化方面存在差异的名称仍会被视为匹配（`Dict.LIFT` 会找到 `Dict.lift-ranges`），除非有多个文件匹配同一个名称——这种情况下不会加载任何一个文件，并会报告为 [`ambiguous-ranges-file`](validate.md#problem-codes)。
 
 无法作为 `<lift-ranges>` 文档读取的候选项（例如，因导出中断而产生的零字节文件）将被跳过，而非导致加载失败，并报告为 [`unreadable-ranges-file`](validate.md#problem-codes)。如果直接使用 `RangesFile.load()` 加载，则会引发异常。
 
@@ -44,15 +44,15 @@ for ref in lex.media_refs():        # 所有<media> 和<illustration>
 lex.check_media()                   # 无法正确解析的引用
 ```
 
-解析遵循常规布局：对相对 href 进行原样检查（反斜杠已规范化——WeSay 写的是 `pictures\photo with space.png`），并检查其是否位于 `audio/`（用于发音媒体）或 `pictures/`（用于插图）目录下。无法验证远程/绝对 href，因此会跳过这些链接。
+解析遵循常规布局：检查相对 href 是否按给定形式存在，且位于 `audio/`（用于发音媒体）或 `pictures/`（用于插图）目录下。反斜杠会被视为正斜杠，因为 WeSay 生成的 href 链接格式为 `pictures\photo with space.png`。无法验证远程和绝对 href，因此会跳过这些链接。
 
 `check_media()` 仅报告那些未成功解析的引用，每个引用对应一个 `MediaResolution`：
 
-- `status="missing"` — 无论拼写如何，均未找到与该 href 对应的文件。
-- `status="mismatch"` — 确实存在匹配，但仅在进行大小写转换或NFC处理时；`found` 指代磁盘上的文件。
+- `status="missing"`：无论拼写如何，均未找到与该 href 对应的文件。
+- `status="mismatch"`：确实存在匹配，但仅在进行大小写转换或NFC处理时；`found` 指代磁盘上的文件。
 
-文件名与链接完全一致的 A href 标签不会被报告。与会静默折叠的伴随名称不同，媒体 href 也会被后续提供该文件夹服务的任何系统读取，因此该折叠操作会被报告为 [`media-href-mismatch`](validate.md#problem-codes)。
+尽管找到了该文件，但系统仍报告了不匹配。关联名称的匹配较为宽松且不作提示，但媒体资源的 href 属性也会被后续提供该文件夹服务的任何系统读取，而区分大小写的主机名将无法找到该文件。验证结果与 [`media-href-mismatch`](validate.md#problem-codes) 中的情况相同。
 
 ## 其他文件夹内容
 
-LIFT 文件夹通常包含 sil-lift 未建模的文件——例如 `WritingSystems/` 下的书写系统 LDML、`consent/` 下的 The Combine 发言人同意书的音频/图像文件等； `load()`/`save()` 不会对这些文件进行任何操作，而 [`Lexicon.save_zip()`](lift-export-interop.md) 在打包文件夹时会原样保留这些文件。
+LIFT 文件夹通常包含 sil-lift 未建模的文件，例如位于 `WritingSystems/` 下的书写系统 LDML，或位于 `consent/` 下的 The Combine 发言者同意文件。 `load()` 和 `save()` 不会修改这些内容，而 [`Lexicon.save_zip()`](lift-export-interop.md) 在打包文件夹时会原样保留它们。
