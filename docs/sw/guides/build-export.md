@@ -1,6 +1,10 @@
 # Mfano uliofanyiwa kazi: kujenga usafirishaji wa LIFT kutoka mwanzo
 
-Ikiwa unatuma data za programu nyingine kama LIFT — kazi iliyopo nyuma ya [Kutengeneza LIFT inayokidhi viwango](lift-export-interop.md) — `sil-lift` inaweza kujenga kipengee cha hati kipengee kwa kipengee na kukisierializa, badala ya kutoa XML kwa mkono. Hii inaelezea hatua kwa hatua skripti moja inayounda kipengee chenye vipengele ambavyo kamusi halisi ina (mifumo mingi ya uandishi, matamshi, maana yenye mfano, mfano wa picha, sifa ya eneo la semanti, na sehemu maalum kwa programu), inaandika kamusi zilizodhibitiwa katika faili mwandani la `.lift-ranges`, inathibitisha, na huhifadhi.
+If you are exporting another application's data as LIFT (the task behind [Producing conformant LIFT](lift-export-interop.md)), `sil-lift` can build the document object by object and serialize it, instead of emitting XML by hand. This walks through one script that:
+
+- constructs an entry with the pieces a real dictionary has: multiple writing systems, a pronunciation, a sense with an example, an illustration, a semantic-domain trait, and an app-specific field;
+- writes the controlled vocabularies into a `.lift-ranges` companion;
+- validates and saves.
 
 ## Maandishi
 
@@ -156,14 +160,27 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 
 ## Maelezo kuhusu API
 
-- Maeneo ya maandishi mengi (`lexical_unit`, `definition`, lebo ya `Form`/`URLRef`, yaliyomo ya `Field`, ...) Chukua mnyororo mmoja kwa kila mfumo wa uandishi kupitia kiolesura cha upangaji: `entry.lexical_unit["seh"] = "nkhuku"` huongeza `<form lang="seh">`. Mfano wa chanzo unaotumia misimbo ya lugha kupanga nyuzi unaendana moja kwa moja na hili.
-- `RangesFile.add_range()` /  `Range.add_element()` hujenga vokabularia zilizodhibitiwa, na `Lexicon.add_ranges_file(ranges, href=...)` huunganisha faili ya ziada na kuongeza kichwa `<range href>` kwa marejeleo — hivyo `<grammatical-info value="Noun">` na `<trait name="semantic-domain-ddp4" value="1.6.1.2">` za kipengee hurejelea masafa uliyoyabainisha.
-- URLRef ni href pamoja na maandishi mengi ya kichwa/lebo ya hiari — hutumika kwa `<media>` (sauti) na `<illustration>` (picha). Matamshi hapa yanafuata kanuni ya The Combine ya aina ya 'en', kama inavyosomwa na msemaji: <name>
+### Building the document
+
+- Multitext fields (`lexical_unit`, `definition`, a `URLRef`'s label, a `Field`'s content) map language codes to text, so a source model's per-language strings carry over one-to-one.
+- `Lexicon.add_ranges_file(ranges, href=...)` attaches the companion and writes the header `<range href>` references for you, so the entry's `Noun` and `1.6.1.2` values resolve against the ranges you defined.
+- A `URLRef` is an href plus an optional caption/label multitext, used for both `<media>` (audio) and `<illustration>` (photos). Matamshi hapa yanafuata kanuni ya The Combine ya aina ya 'en', kama inavyosomwa na msemaji: <name>
 - Data maalum kwa programu bila safari za nyumbani za LIFT za asili kama `<field>` (au `<trait>`): FieldWorks husoma hizi kama viwanja maalum na The Combine huzihifadhi.
-- Panga kila kipengee na `guid` halisi, thabiti (kwa mfano kutoka `uuid.uuid4()`), inayotumika tena katika usafirishaji wa data — kuingiza tena baadaye husasisha kipengee mahali pake badala ya kuunda nakala yake. `sil-lift validate --require-ids` inahakikisha hili.
-- `dateCreated`/`dateModified` katika matokeo hapo juu hayapo kwenye skripti: `save()` iliweka alama hizo kwa wakati skripti ilipokuwa ikiendeshwa, kwa kuwa kumbukumbu iliyotengenezwa kwa mara ya kwanza haina tarehe yake mwenyewe. `when=` hutoa wakati huo badala ya kusoma saa, jambo linalofanya faili la nje lililotengenezwa liwe linaloweza kuzalishwa tena kwa kila baiti kwa ajili ya kazi ya CI kulinganisha; `stamp=False` haandiki tarehe yoyote kabisa. Tazama [Alama za muda zilizotengenezwa](../fidelity.md#generated-timestamps) kwa sehemu iliyobaki ya mkataba.
-- `lex.iter_problems()` inathibitisha hati iliyopo kwenye kumbukumbu kabla ya chochote kuhifadhiwa kwenye diski; hapa iko sawa. Kwa sababu kamusi bado haina folda, ukaguzi wa media-presence na companion-href umeachwa — endesha [`sil-lift validate`](cli.md) kwenye matokeo yaliyohifadhiwa (au kwa kutumia `--no-check-media`) mara tu faili za sauti na picha zitakapokuwa zimewekwa.
+- Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports); a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` inahakikisha hili.
+
+### Timestamps
+
+The `dateCreated`/`dateModified` in the output above are not in the script. `save()` stamped them with the moment it ran, since an entry written for the first time carries no date of its own.
+
+- `when=` supplies that moment instead of reading the clock, which is what makes a generated export byte-reproducible for a CI job to diff.
+- `stamp=False` writes no dates at all.
+
+Tazama [Alama za muda zilizotengenezwa](../fidelity.md#generated-timestamps) kwa sehemu iliyobaki ya mkataba.
+
+### Uthibitishaji
+
+`lex.iter_problems()` inathibitisha hati iliyopo kwenye kumbukumbu kabla ya chochote kuhifadhiwa kwenye diski; hapa iko sawa. Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped. Run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
 
 ## Ufungashaji
 
-`lex.save("export/birds.lift")` huandika muundo wa saraka (`.lift` + `.lift-ranges` kando kando). Ili kutoa kifurushi kimoja cha zip ambacho FieldWorks na The Combine huingiza moja kwa moja, tumia `lex.save_zip("birds.zip")` badala yake — angalia [Kutengeneza LIFT inayofuata viwango](lift-export-interop.md).
+`lex.save("export/birds.lift")` huandika muundo wa saraka (`.lift` + `.lift-ranges` kando kando). To emit a single zipped package that FieldWorks and The Combine import directly, use `lex.save_zip("birds.zip")` instead. See [Producing conformant LIFT](lift-export-interop.md).
