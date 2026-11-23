@@ -1,6 +1,10 @@
 # Beispiel: Erstellung eines LIFT-Exports von Grund auf
 
-Wenn Sie die Daten einer anderen Anwendung als LIFT exportieren – die Aufgabe, die hinter [Erstellung konformer LIFT-Dateien](lift-export-interop.md) steht –, kann `sil-lift` das Dokument Objekt für Objekt aufbauen und serialisieren, anstatt XML manuell zu generieren. Hier wird ein Skript Schritt für Schritt erläutert, das einen Eintrag mit den Bestandteilen eines echten Wörterbuchs erstellt (mehrere Schriftsysteme, eine Aussprache, eine Bedeutung mit einem Beispiel, eine Illustration, ein Merkmal des semantischen Bereichs und ein anwendungsspezifisches Feld), die kontrollierten Vokabulare in eine zugehörige `.lift-ranges`-Datei schreibt, die Daten validiert und speichert.
+Wenn Sie die Daten einer anderen Anwendung als LIFT exportieren (die Aufgabe hinter [Erstellung konformer LIFT-Dateien](lift-export-interop.md)), kann `sil-lift` das Dokument Objekt für Objekt aufbauen und serialisieren, anstatt XML manuell zu generieren. Hier wird ein Skript vorgestellt, das:
+
+- erstellt einen Eintrag mit den Elementen, die ein echtes Wörterbuch enthält: mehrere Schriftsysteme, eine Aussprache, eine Bedeutung mit einem Beispiel, eine Abbildung, ein Merkmal des Bedeutungsbereichs und ein anwendungsspezifisches Feld;
+- schreibt die kontrollierten Vokabulare in eine `.lift-ranges`-Begleitdatei;
+- überprüft und speichert.
 
 ## Das Drehbuch
 
@@ -156,14 +160,27 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 
 ## Hinweise zur API
 
-- Multitext-Felder (`lexical_unit`, `definition`, eine `Form`/`URLRef`-Bezeichnung, der Inhalt eines `Field`s, ...) Über die Mapping-Schnittstelle wird pro Schriftsystem eine Zeichenfolge übernommen: `entry.lexical_unit["seh"] = "nkhuku"` fügt ein `<form lang="seh">` hinzu. Ein Quellmodell, das Zeichenfolgen anhand des Sprachcodes zuordnet, lässt sich direkt darauf abbilden.
-- `RangesFile.add_range()` / `Range.add_element()` erstellen die kontrollierten Vokabulare, und `Lexicon.add_ranges_file(ranges, href=...)` fügt das zugehörige Dokument hinzu und ergänzt die Header-Referenzen `<range href>` – sodass die Einträge `<grammatical-info value="Noun">` und `<trait name="semantic-domain-ddp4" value="1.6.1.2">` auf die von Ihnen definierten Bereiche verweisen.
-- Ein `URLRef` besteht aus einem `href` sowie einem optionalen Multitext für eine Beschriftung oder Bezeichnung – er wird sowohl für `<media>` (Audio) als auch für `<illustration>` (Fotos) verwendet. Die Aussprache folgt hier der Konvention von „The Combine“, wonach die „en“-Form wie folgt ausgesprochen wird: „Sprecher: <name> “.
+### Erstellung des Dokuments
+
+- Multitextfelder (`lexical_unit`, `definition`, die Bezeichnung einer `URLRef`, der Inhalt eines `Field`) ordnen Sprachcodes Texten zu, sodass die sprachbezogenen Zeichenfolgen eines Quellmodells eins zu eins übernommen werden.
+- `Lexicon.add_ranges_file(ranges, href=...)` fügt das Companion-Objekt hinzu und schreibt die Header-Referenzen `<range href>` für Sie, sodass die Werte `Noun` und `1.6.1.2` des Eintrags auf die von Ihnen definierten Bereiche verweisen.
+- Ein `URLRef` besteht aus einem `href` sowie einem optionalen Multitext für eine Bildunterschrift oder Beschriftung und wird sowohl für `<media>` (Audio) als auch für `<illustration>` (Fotos) verwendet. Die Aussprache folgt hier der Konvention von „The Combine“, wonach die „en“-Form wie folgt ausgesprochen wird: „Sprecher: <name> “.
 - App-spezifische Daten ohne native LIFT-Heimfahrten als „<field> “ (oder „<trait> “): FieldWorks interpretiert diese als benutzerdefinierte Felder, und The Combine behält sie bei.
-- Weisen Sie jedem Eintrag eine echte, stabile `guid` zu (z. B. aus `uuid.uuid4()`, die bei allen Exporten wiederverwendet wird) – bei einem späteren Reimport wird der Eintrag an Ort und Stelle aktualisiert, anstatt ihn zu duplizieren. `sil-lift validate --require-ids` sorgt dafür, dass dies eingehalten wird.
-- Die Angaben `dateCreated`/`dateModified` in der obigen Ausgabe sind nicht im Skript enthalten: `save()` hat sie mit dem Zeitpunkt seiner Ausführung versehen, da ein zum ersten Mal geschriebener Eintrag kein eigenes Datum enthält. `when=` gibt diesen Zeitpunkt an, anstatt die Uhrzeit auszulesen – dadurch ist ein generierter Export für einen CI-Job zum Abgleich byteweise reproduzierbar; `stamp=False` schreibt überhaupt keine Datumsangaben. Den Rest des Vertrags finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
-- `lex.iter_problems()` überprüft das Dokument im Arbeitsspeicher, bevor Daten auf die Festplatte geschrieben werden; hier ist es fehlerfrei. Da das Lexikon noch keinen Ordner hat, werden die Überprüfungen auf Medienpräsenz und Companion-Href übersprungen – führen Sie [`sil-lift validate`](cli.md) auf der gespeicherten Ausgabe aus (oder mit `--no-check-media`), sobald die Audio- und Fotodateien vorhanden sind.
+- Weisen Sie jedem Eintrag eine echte, stabile `guid` zu (z. B. aus `uuid.uuid4()`, die bei allen Exporten wiederverwendet wird); bei einem späteren Reimport wird der Eintrag an Ort und Stelle aktualisiert, anstatt ihn zu duplizieren. `sil-lift validate --require-ids` sorgt dafür, dass dies eingehalten wird.
+
+### Zeitstempel
+
+Die Angaben `dateCreated`/`dateModified` in der obigen Ausgabe sind nicht im Skript enthalten. `save()` hat sie mit dem Zeitpunkt ihrer Ausführung versehen, da ein Eintrag, der zum ersten Mal geschrieben wird, kein eigenes Datum enthält.
+
+- `when=` liefert diesen Zeitpunkt, anstatt die Uhrzeit auszulesen – dadurch lässt sich ein generierter Export für einen CI-Job byteweise reproduzieren, um einen Vergleich durchzuführen.
+- `stamp=False` führt dazu, dass überhaupt keine Datumsangaben geschrieben werden.
+
+Den Rest des Vertrags finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
+
+### Validierung
+
+`lex.iter_problems()` überprüft das Dokument im Arbeitsspeicher, bevor Daten auf die Festplatte geschrieben werden; hier ist es fehlerfrei. Da das Lexikon noch keinen Ordner hat, werden die Prüfungen auf Medienpräsenz und Companion-Href übersprungen. Führen Sie [`sil-lift validate`](cli.md) auf der gespeicherten Ausgabe aus (oder mit `--no-check-media`), sobald die Audio- und Fotodateien bereitstehen.
 
 ## Verpackung
 
-`lex.save("export/birds.lift")` schreibt die Ordnerstruktur (`.lift` + `.lift-ranges` nebeneinander). Um ein einzelnes ZIP-Paket zu erstellen, das von FieldWorks und The Combine direkt importiert werden kann, verwenden Sie stattdessen `lex.save_zip("birds.zip")` – siehe [Erstellung konformer LIFT-Dateien](lift-export-interop.md).
+`lex.save("export/birds.lift")` schreibt die Ordnerstruktur (`.lift` + `.lift-ranges` nebeneinander). Um ein einzelnes ZIP-Paket zu erstellen, das von FieldWorks und The Combine direkt importiert werden kann, verwenden Sie stattdessen `lex.save_zip("birds.zip")`. Siehe [Erstellung konformer LIFT-Dateien](lift-export-interop.md).
