@@ -1,26 +1,44 @@
 # Produção de LIFT em conformidade
 
-Este guia destina-se a quem estiver a desenvolver um _exportador_ LIFT — código em qualquer linguagem de programação que converta o modelo de dados de outra aplicação para o formato LIFT 0.13. O `sil-lift` desempenha duas funções nesse trabalho: uma verificação de conformidade que compara a saída com o esquema e com a semântica que o esquema não consegue expressar, e uma referência para as formas e regras de texto que a saída deve seguir.
+Este guia destina-se a quem estiver a desenvolver um _exportador_ LIFT: código em qualquer linguagem de programação que converta o modelo de dados de outra aplicação para o formato LIFT 0.13. O `sil-lift` desempenha duas funções nesse trabalho:
 
-Escrever LIFT é muito mais fácil do que analisá-lo: um exportador apenas emite o subconjunto de construções que o seu próprio modelo produz e nunca se depara com todas as opções da especificação completa. A parte mais complicada são os detalhes — o complemento `.lift-ranges`, o texto específico para cada sistema de escrita, os identificadores estáveis e o escape de XML — e é precisamente isso que as verificações abaixo detetam.
+- um mecanismo de verificação de conformidade que compara a saída tanto com o esquema como com a semântica que um esquema não consegue expressar;
+- uma referência às formas e às regras de texto que o resultado final deve respeitar.
+
+Escrever LIFT é muito mais fácil do que analisá-lo: um exportador apenas emite o subconjunto de construções que o seu próprio modelo produz e nunca se depara com todas as opções da especificação completa. A parte mais complicada são os detalhes (o complemento `.lift-ranges`, o texto específico de cada sistema de escrita, os identificadores estáveis e o escape de XML), e é precisamente isso que as verificações abaixo detetam.
 
 ## Pacotes compactados
 
-O LIFT é normalmente transferido como um único ficheiro `.zip` — tanto o FieldWorks como o The Combine importam e exportam dessa forma — pelo que o `sil-lift` lê e grava pacotes compactados diretamente, independentemente do formato utilizado pelo ecossistema: os ficheiros na raiz do arquivo ou aninhados numa pasta de nível superior.
+O LIFT é normalmente transferido como um único ficheiro `.zip`; tanto o FieldWorks como o The Combine importam e exportam dessa forma. O `sil-lift` lê e grava pacotes compactados diretamente, independentemente da estrutura utilizada pelo ecossistema: quer os ficheiros se encontrem na raiz do arquivo, quer estejam aninhados numa pasta de nível superior.
 
-- **Nota:** `sil_lift.load("package.zip")` extrai o conteúdo para um diretório temporário, localiza o único ficheiro `.lift` e carrega-o (os ficheiros complementares e os ficheiros multimédia são resolvidos como habitualmente).
-  - Os comandos da CLI `validate`, `stats`, `check-media` e `export` também aceitam um caminho `.zip`, pelo que o gate abaixo é executado diretamente sobre um pacote tal como está.
-  - `stats` e `export`, e extrair apenas o `.lift` em vez de todo o pacote — para que continuem a ser eficientes num pacote com muitos ficheiros multimédia, e para que o limite de extração se aplique apenas ao `.lift`, em vez de a tudo o que o rodeia.
-  - A extração está limitada a 10 GiB e 100 000 elementos; um pacote que exceda qualquer um desses limites é rejeitado com um erro `LiftParseError`, tal como acontece com um pacote cujos caminhos dos elementos estejam fora do diretório de extração.
-- **Escreva:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` compacta o ficheiro `.lift`, os seus `.lift-ranges` e todos os outros ficheiros da pasta de origem (multimédia, `WritingSystems/`, `consent/`, ...) num ficheiro zip.
-  - O `wrap_folder` tem, por predefinição, uma pasta de nível superior com o nome do ficheiro zip (conforme a convenção de importação do FieldWorks/Combine); passe `False` para obter um arquivo simples.
-  - As entradas cujo conteúdo tenha sido alterado desde o carregamento recebem uma nova marcação `dateModified` ao serem enviadas, exatamente como no `save()`: um pacote é a base a partir da qual uma ferramenta de importação faz a reconciliação; por isso, uma data desatualizada nesse contexto faz com que um léxico atualizado pareça inalterado. O `stamp=False` e o `when=` funcionam da mesma forma aqui.
+### Ler uma embalagem
+
+O comando `sil_lift.load("package.zip")` extrai o conteúdo para um diretório temporário, localiza o único ficheiro `.lift` e carrega-o (os ficheiros complementares e os ficheiros multimédia são carregados como habitualmente).
+
+- Os comandos da CLI `validate`, `stats`, `check-media` e `export` também aceitam um caminho `.zip`, pelo que o gate abaixo é executado diretamente sobre um pacote tal como está.
+- `stats` e `export`, e extrair apenas o `.lift` em vez de todo o pacote. Mantêm-se baratos numa configuração com muitos ficheiros multimédia, e o limite de extração aplica-se apenas ao ficheiro `.lift`, e não a tudo o que está ao seu redor.
+- A extração está limitada a 10 GiB e 100 000 membros. Um pacote que exceda qualquer um desses limites é rejeitado com um `LiftParseError`, tal como acontece com aqueles cujos caminhos dos membros ultrapassem o diretório de extração.
+
+### Escrever um pacote
+
+`Lexicon.save_zip("out.zip", wrap_folder="MyDict")` compacta o ficheiro `.lift`, os seus ficheiros `.lift-ranges` e todos os outros ficheiros da pasta de origem (media, `WritingSystems/`, `consent/`, ...) num ficheiro zip.
+
+- O `wrap_folder` tem, por predefinição, uma pasta de nível superior com o nome do ficheiro zip (conforme a convenção de importação do FieldWorks/Combine); passe `False` para obter um arquivo simples.
+- As entradas cujo conteúdo tenha sido alterado desde o carregamento recebem um novo valor para `dateModified` ao serem enviadas, tal como acontece no método `save()`.
+  - Um pacote é a base a partir da qual uma ferramenta de importação efetua a reconciliação; por isso, uma data desatualizada nesse pacote faria com que um léxico atualizado parecesse não ter sido alterado.
+  - Aceita as mesmas opções `stamp=` e `when=` que a função `save()`; consulte [Como é aplicado o carimbo](../fidelity.md#how-the-stamp-is-applied).
 
 Os ficheiros `.lift` e `.lift-ranges` mantêm a sua fidelidade ao nível do byte dentro do pacote; o próprio ficheiro zip não é reproduzível ao nível do byte.
 
 ## Validar o resultado como um critério de conformidade
 
-Execute o comando `sil-lift validate` no ficheiro `.lift` gerado. Executa o RELAX NG (tanto no `.lift` como no seu complemento `.lift-ranges`) e realiza verificações semânticas que a gramática não consegue expressar: referências pendentes a `relation`/`variant`, GUIDs duplicados, integridade do elemento pai do intervalo, valores de características e de informação gramatical não definidos no respetivo intervalo e referências `range/@href` no cabeçalho que não remetem para nenhum elemento correspondente.
+Indique o comando `sil-lift validate` para um ficheiro `.lift`. Executa o RELAX NG tanto no ficheiro `.lift` como no seu ficheiro complementar `.lift-ranges`, além de verificações semânticas que a gramática não consegue expressar:
+
+- referências pendentes a `relation`/`variant`;
+- GUIDs duplicados;
+- integridade do elemento pai do intervalo;
+- valores de características e de informação gramatical não definidos no seu intervalo;
+- Referências de cabeçalho `range/@href` que não correspondem a nenhum elemento associado.
 
 No caso da CI, em caso de falha em qualquer etapa, gerar resultados legíveis por máquina:
 
@@ -32,9 +50,11 @@ sil-lift validate export.lift --strict --no-check-media --format json
 - `--no-check-media` ignora a verificação da presença de ficheiros multimédia no sistema de ficheiros, cujos resultados de `missing-media` são irrelevantes quando os ficheiros de áudio/fotografias não se encontram na mesma pasta que o ficheiro `.lift` na CI.
 - `--format json` apresenta um único objeto JSON (`{"problems": [...], "summary": {...}}`) em vez de texto legível; os seus códigos de saída e esquema constituem uma interface suportada e abrangida pela SemVer (ver [o guia da linha de comandos](cli.md)).
 - `--allow CODE[,CODE...]` (repetível) evita que um código tolerado, como o `uri-not-rfc` do FLEx, provoque o falhanço da execução. Os seus resultados são impressos, mas não são contabilizados.
-- `--require-ids` também apresenta erros em entradas que não tenham um `guid` ou que não tenham um `id` — útil quando uma reimportação posterior tiver de atualizar, em vez de duplicar.
+- O `--require-ids` também apresenta erros em entradas em que falte um `guid` ou detecta a ausência de um `id`, o que é útil quando uma reimportação posterior tiver de atualizar, em vez de duplicar.
 
-Proteja-se contra a perda silenciosa de dados (o modo de falha que torna a exportação em CSV simples propensa a perdas) verificando as contagens com o comando `stats --format json` no seu modelo de origem:
+### Prevenir a perda silenciosa de dados
+
+A perda silenciosa de dados é o modo de falha que torna a exportação para CSV simples sujeita a perdas. Previna-se contra isso calculando as contagens com o comando `stats --format json` no seu modelo de origem:
 
 ```
 sil-lift stats export.lift --format json
@@ -65,7 +85,7 @@ docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 
 ## O componente complementar `.lift-ranges`
 
-Os vocabulários controlados — classes gramaticais, domínios semânticos e qualquer outro conjunto de valores baseado em características — encontram-se num ficheiro `.lift-ranges` paralelo, referenciado a partir do ficheiro `<header>`:
+Os vocabulários controlados (classes gramaticais, domínios semânticos e qualquer outro conjunto de valores associados a características) encontram-se num ficheiro `.lift-ranges` paralelo, referenciado a partir do ficheiro `<header>`:
 
 ```xml
 <header>
@@ -95,7 +115,12 @@ O guia contém a definição completa de cada gama. Os valores são `<range-elem
 </lift-ranges>
 ```
 
-Uma entrada remete, então, para um valor através do seu identificador: a classe gramatical de um sentido é `<grammatical-info value="Noun"/>`, e um domínio semântico é `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. O `sil-lift validate` emite um aviso (`undefined-range-value`) quando um valor não está definido no seu intervalo e um erro (`range-parent`) quando um `parent` não é um ID de elemento irmão — por isso, indique os intervalos que os seus dados utilizam efetivamente. Essas comparações são normalizadas segundo a NFC, pelo que um identificador e o valor ou o `parent` a que se refere podem apresentar diferenças na normalização Unicode — essa diferença constitui um aviso de `normalization-mismatch` e não um erro, mas, se possível, utilize uma normalização consistente: os consumidores que comparam cadeias de caracteres em bruto não irão resolver essas referências. Ver também [Intervalos e meios de comunicação](folder-media.md).
+Uma entrada remete, então, para um valor através do seu identificador: a classe gramatical de um sentido é `<grammatical-info value="Noun"/>`, e um domínio semântico é `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. O comando `sil-lift validate` verifica essas referências, por isso indique os intervalos que os seus dados utilizam efetivamente:
+
+- um valor que não esteja definido no seu intervalo constitui um aviso do tipo `undefined-range-value`;
+- Um `parent` que não seja um ID de elemento irmão constitui um erro `range-parent`.
+
+Essas comparações são normalizadas segundo a NFC, pelo que um identificador e o valor ou o `parent` a que se refere podem diferir na normalização Unicode. Essa diferença constitui um aviso de «incompatibilidade de normalização», e não um erro. Ainda assim, se possível, defina uma normalização consistente: os consumidores que comparam cadeias de caracteres em bruto não irão resolver essas referências. Ver também [Intervalos e meios de comunicação](folder-media.md).
 
 Se criar a exportação em Python, as funções `Lexicon.add_ranges_file()`, `RangesFile.add_range()` e `Range.add_element()` criam o objeto complementar e adicionam as referências do cabeçalho automaticamente; `open_writer(..., ranges=...)` faz o mesmo no caminho de streaming.
 
@@ -110,6 +135,11 @@ Cada sequência de caracteres de uma língua humana no LIFT é um _multitexto_: 
 </lexical-unit>
 ```
 
-Um modelo que indexa cadeias de caracteres pelo código do idioma (um `MultiString`, um `Record<code, string>`, um `dict[str, str]`) estabelece uma correspondência um-para-um com este: cada entrada por chave corresponde a um `<form lang="…">`. É permitida, no máximo, uma forma por língua num único multitexto — caso contrário, o `sil-lift` emite um aviso de `duplicate-form-lang`.
+Um modelo que indexa cadeias de caracteres pelo código do idioma (um `MultiString`, um `Record<code, string>`, um `dict[str, str]`) estabelece uma correspondência um-para-um com este: cada entrada por chave corresponde a um `<form lang="…">`. É permitida, no máximo, uma forma por língua num único multitexto; caso contrário, o `sil-lift` emite um aviso de `duplicate-form-lang`.
 
-A codificação de escape em XML é a única parte em que a precisão é realmente fundamental. No texto dos elementos, os caracteres `&`, `<`, and `>` devem ser escapados (`&amp;`, `&lt;`, `&gt;`); nos valores dos atributos, o caractere de aspas também deve ser escapado. O autor do `sil-lift` aplica exatamente estas regras e nunca altera os espaços em branco dentro de `<text>` — não adiciona qualquer indentação nesse local, pois isso corromperia os dados lexicais. Se pretender obter o mesmo resultado, reutilize o processo de escape de um serializador XML verdadeiro (em vez de uma substituição feita manualmente que se esqueça do `&`) e mantenha o conteúdo de `<text>` byte a byte, tal como aparece na sua fonte.
+A codificação de escape em XML é a única parte em que a precisão é realmente fundamental:
+
+- No texto do elemento, os caracteres `&`, `<`, and `>` devem ser escapados (`&amp;`, `&lt;`, `&gt;`);
+- Nos valores dos atributos, o caractere de aspas também deve ser escapado.
+
+O autor do `sil-lift` aplica exatamente estas regras e nunca altera os espaços em branco dentro de `<text>`: não adiciona qualquer indentação nesse local, pois isso corromperia os dados lexicais. Para corresponder à sua saída, utilize uma biblioteca XML para efetuar o escape e mantenha o conteúdo de `<text>` byte a byte, tal como consta na sua fonte.
