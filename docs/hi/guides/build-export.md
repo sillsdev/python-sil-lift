@@ -1,6 +1,10 @@
 # कार्य उदाहरण: शून्य से LIFT एक्सपोर्ट बनाना
 
-यदि आप किसी अन्य एप्लिकेशन का डेटा LIFT के रूप में निर्यात कर रहे हैं — [अनुरूप LIFT उत्पन्न करने](lift-export-interop.md) के पीछे का कार्य — तो `sil-lift` दस्तावेज़ के प्रत्येक ऑब्जेक्ट को क्रमबद्ध करके उसे सीरियलाइज़ कर सकता है, बजाय इसके कि आप XML को हाथ से उत्पन्न करें। यह एक स्क्रिप्ट के माध्यम से दिखाता है कि कैसे एक प्रविष्टि तैयार की जाती है, जिसमें एक वास्तविक शब्दकोश के सभी घटक होते हैं (कई लेखन प्रणालियाँ, उच्चारण, एक अर्थ उदाहरण के साथ, एक चित्रण, एक अर्थ-क्षेत्रीय गुण, और एक ऐप-विशिष्ट फ़ील्ड), नियंत्रित शब्दावलियों को `.lift-ranges` साथी फ़ाइल में लिखा जाता है, सत्यापित किया जाता है, और सहेजा जाता है।
+If you are exporting another application's data as LIFT (the task behind [Producing conformant LIFT](lift-export-interop.md)), `sil-lift` can build the document object by object and serialize it, instead of emitting XML by hand. This walks through one script that:
+
+- constructs an entry with the pieces a real dictionary has: multiple writing systems, a pronunciation, a sense with an example, an illustration, a semantic-domain trait, and an app-specific field;
+- writes the controlled vocabularies into a `.lift-ranges` companion;
+- validates and saves.
 
 ## पटकथा
 
@@ -156,14 +160,27 @@ print((out / "birds.lift-ranges").read_text(encoding="utf-8"), end="")
 
 ## एपीआई पर नोट्स
 
-- मल्टीटेक्स्ट फ़ील्ड (`lexical_unit`, `definition`, एक `Form`/`URLRef` लेबल, एक `Field` की सामग्री, ...) लेखन प्रणाली के लिए एक स्ट्रिंग मैपिंग इंटरफ़ेस के माध्यम से लें: `entry.lexical_unit["seh"] = "nkhuku"` एक `<form lang="seh">` जोड़ता है। एक स्रोत मॉडल जो भाषा कोड के आधार पर स्ट्रिंग्स को मैप करता है, सीधे इस पर लागू होता है।
-- `RangesFile.add_range()` / `Range.add_element()` नियंत्रित शब्दावलियाँ बनाती हैं, और `Lexicon.add_ranges_file(ranges, href=...)` साथी फ़ाइल को जोड़ती है और हेडर `<range href>` संदर्भ जोड़ती है — ताकि प्रविष्टि के `<grammatical-info value="Noun">` और `<trait name="semantic-domain-ddp4" value="1.6.1.2">` आपके द्वारा परिभाषित रेंज के अनुसार हल हों।
-- `URLRef` एक href और एक वैकल्पिक कैप्शन/लेबल मल्टीटेक्स्ट है — जो `<media>` (ऑडियो) और `<illustration>` (फ़ोटो) दोनों के लिए उपयोग किया जाता है। यहाँ का उच्चारण द कॉम्बाइन की परंपरा का पालन करता है, जिसमें `en` रूप को `Speaker: <name>` के रूप में पढ़ा जाता है।
+### Building the document
+
+- Multitext fields (`lexical_unit`, `definition`, a `URLRef`'s label, a `Field`'s content) map language codes to text, so a source model's per-language strings carry over one-to-one.
+- `Lexicon.add_ranges_file(ranges, href=...)` attaches the companion and writes the header `<range href>` references for you, so the entry's `Noun` and `1.6.1.2` values resolve against the ranges you defined.
+- A `URLRef` is an href plus an optional caption/label multitext, used for both `<media>` (audio) and `<illustration>` (photos). यहाँ का उच्चारण द कॉम्बाइन की परंपरा का पालन करता है, जिसमें `en` रूप को `Speaker: <name>` के रूप में पढ़ा जाता है।
 - ऐप-विशिष्ट डेटा जिसमें कोई नेटिव LIFT होम राइड्स नहीं होतीं, एक `<field>` (या `<trait>`) के रूप में: FieldWorks इन्हें कस्टम फ़ील्ड्स के रूप में पढ़ता है और The Combine इन्हें संरक्षित करता है।
-- प्रत्येक प्रविष्टि को एक वास्तविक, स्थिर `guid` दें (उदाहरण के लिए `uuid.uuid4()` से, जो एक्सपोर्ट्स में पुन: उपयोग किया जाता है) — बाद में पुनः आयात करने पर यह प्रविष्टि को डुप्लिकेट करने के बजाय उसी स्थान पर अपडेट कर देता है। `sil-lift validate --require-ids` इसे लागू करता है।
-- उपरोक्त आउटपुट में `dateCreated`/`dateModified` स्क्रिप्ट में नहीं हैं: `save()` ने उन्हें उस क्षण की तारीख के साथ अंकित किया जब यह चला, क्योंकि पहली बार लिखी गई प्रविष्टि में अपनी कोई तारीख नहीं होती। `when=` घड़ी पढ़ने के बजाय उस क्षण को प्रदान करता है, जो जेनरेट किए गए एक्सपोर्ट को CI जॉब द्वारा डिफ करने के लिए बाइट-रिप्रोड्यूसिबल बनाता है; `stamp=False` कोई तारीख नहीं लिखता। बाकी कॉन्ट्रैक्ट के लिए [जेनरेट किए गए टाइमस्टैम्प](../fidelity.md#generated-timestamps) देखें।
-- `lex.iter_problems()` डिस्क पर कुछ भी लिखने से पहले इन-मेमोरी दस्तावेज़ की वैधता जांचता है; यहाँ यह त्रुटिरहित है। चूंकि लेक्सिकॉन में अभी तक कोई फ़ोल्डर नहीं है, इसलिए मीडिया-उपस्थिति और साथी-href जांच छोड़ दी जाती हैं — ऑडियो और फोटो फ़ाइलें तैयार होने पर सहेजे गए आउटपुट पर [`sil-lift validate`](cli.md) चलाएँ (या `--no-check-media` के साथ)।
+- Give every entry a real, stable `guid` (e.g. from `uuid.uuid4()`, reused across exports); a later re-import updates the entry in place rather than duplicating it. `sil-lift validate --require-ids` इसे लागू करता है।
+
+### Timestamps
+
+The `dateCreated`/`dateModified` in the output above are not in the script. `save()` stamped them with the moment it ran, since an entry written for the first time carries no date of its own.
+
+- `when=` supplies that moment instead of reading the clock, which is what makes a generated export byte-reproducible for a CI job to diff.
+- `stamp=False` writes no dates at all.
+
+बाकी कॉन्ट्रैक्ट के लिए [जेनरेट किए गए टाइमस्टैम्प](../fidelity.md#generated-timestamps) देखें।
+
+### प्रमाणीकरण
+
+`lex.iter_problems()` डिस्क पर कुछ भी लिखने से पहले इन-मेमोरी दस्तावेज़ की वैधता जांचता है; यहाँ यह त्रुटिरहित है। Because the lexicon has no folder yet, the media-presence and companion-href checks are skipped. Run [`sil-lift validate`](cli.md) on the saved output (or with `--no-check-media`) once the audio and photo files are in place.
 
 ## पैकेजिंग
 
-`lex.save("export/birds.lift")` फ़ोल्डर फ़ॉर्म (`.lift` + `.lift-ranges` एक साथ) लिखता है। FieldWorks और The Combine द्वारा सीधे आयात किए जाने वाले एकल ज़िप पैकेज को उत्पन्न करने के लिए, इसके बजाय `lex.save_zip("birds.zip")` का उपयोग करें — देखें [अनुरूप LIFT का उत्पादन](lift-export-interop.md)।
+`lex.save("export/birds.lift")` फ़ोल्डर फ़ॉर्म (`.lift` + `.lift-ranges` एक साथ) लिखता है। To emit a single zipped package that FieldWorks and The Combine import directly, use `lex.save_zip("birds.zip")` instead. See [Producing conformant LIFT](lift-export-interop.md).
