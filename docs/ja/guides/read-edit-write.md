@@ -8,34 +8,44 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` は、スキーマに準拠していない実世界のファイルを含め、形式が正しい LIFT **0.13** ドキュメントであればどれでも受け付けます。モデルで定義されていないもの（未知の要素や属性、コメントなど）は、各ノードの不透明な `extra` フィールドに LIFT 残余として、情報を失うことなく保持されます。その他の LIFT バージョンでは、そのバージョン名を指定した `LiftParseError` が発生します。
+`load()` accepts any well-formed LIFT **0.13** document, including schema-invalid real-world files. モデルで定義されていないもの（未知の要素や属性、コメントなど）は、各ノードの不透明な `extra` フィールドに LIFT 残余として、情報を失うことなく保持されます。その他の LIFT バージョンでは、そのバージョン名を指定した `LiftParseError` が発生します。
 
 ## モデル
 
-LIFTの各要素は、型付きデータクラスです。具体的には、`Entry`、`Sense`、`Example`、`Pronunciation`、`Variant`、`Relation`、`Etymology`、`Reversal`などがあります。多言語テキストは `Multitext` であり、これは言語コードから `Text` への `Mapping` です：
+Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on.
+
+### Multilingual text
+
+多言語テキストは `Multitext` であり、これは言語コードから `Text` への `Mapping` です：
 
 ```python
-entry = lex.find(id="abat")
+entry = lex.find(id="poʻo_a1b2")
 
-str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # プレーン文字列は型変換される
+str(entry.lexical_unit["haw"])          # "poʻo"
+entry.lexical_unit["en"] = "head"       # plain strings are coerced
 "en" in entry.citation                  # False
-list(entry.lexical_unit.keys())         # ["seh", "en"]
+list(entry.lexical_unit.keys())         # ["haw", "en"]
 ```
 
-`keys()`、`values()`、`items()` はビューであり、言語ごとに 1 つのキーが割り当てられ、`len()` はフォームの数ではなく言語の数を数えます。どちらのミューテータも、特定の語形ではなく言語全体に対して作用します。`del entry.lexical_unit["en"]` はすべての英語の語形を削除し、`"en"` に代入すると、ちょうど 1 つだけが残ります。
+`Text` is structured (an ordered list of `str` and `Span` fragments) because `<text>` can contain nested `<span>` markup. `str(text)` はプレーンテキストに変換されますが、フラグメントは往復処理のためにマークアップを維持します。
 
-スキーマに準拠したドキュメントにはそれ以上の要素は含まれていませんが、実際のファイルでは言語が重複することがあります。 `forms` にはファイル順にすべてのフォームが格納されており、最初のフォームから回答を読み込み、[`validate`](validate.md#problem-codes) はその言語を割り当てるまで `duplicate-form-lang` を報告します。 `lang` がまったく指定されていないフォームは、マッピングを通じて作成することができず、`form-missing-lang` として報告され、そのノードが再シリアル化される際に破棄されます。
+The mapping shows one value per language. Underneath, `forms` holds every `<form>` in file order. A schema-valid document has at most one form per language, but real files sometimes repeat one.
 
-`Text` は、`str` および `Span` のフラグメントからなる順序付きリストとして構成されています。これは、`<text>` にネストされた `<span>` マークアップが含まれる可能性があるためです。 `str(text)` はプレーンテキストに変換されますが、フラグメントは往復処理のためにマークアップを維持します。
+Because the mapping is keyed by language, `len()` counts languages rather than forms, and the `keys()`, `values()` and `items()` views list each language once. Both mutators also act on the whole language: `del entry.lexical_unit["en"]` removes every English form, and assigning to `"en"` leaves exactly one.
+
+For a repeated language, `entry.lexical_unit["en"]`, `get()`, `values()` and `items()` all answer with its first form, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language.
+
+A form carrying no `lang` at all cannot be created through the mapping. It is reported as `form-missing-lang`, and is dropped when its node re-serializes.
+
+### Senses and glosses
 
 LIFT では、グロスは _form の形_ をとります（各 `<gloss>` は独自の言語を持ちます）。したがって、センスには `glosses: list[Form]` と、以下のヘルパー関数が用意されています：
 
 ```python
-sense = entry.senses[0]                 # 最上位の意味のみ
-sense.gloss("en")                       # Text | None
-entry.all_senses()                      # すべての意味と下位の意味、文書順
-entry.gloss_langs()                     # {"en", "id"}、下位の意味を含む
+sense = entry.senses[0]       # top level only
+sense.gloss("en")             # Text | None
+entry.all_senses()            # every sense and subsense, document order
+entry.gloss_langs()           # {"en", "id"}, subsenses included
 ```
 
 項目全体に関する質問（語義の数を数えたり、使用言語をまとめたり、メディアを探したりすることなど）がある場合は、いつでも `all_senses()` を利用してください。 `entry.senses` は最上位レベルを示しますが、これはネスト構造そのものが重要である場合にのみ必要な情報です。
@@ -43,13 +53,22 @@ entry.gloss_langs()                     # {"en", "id"}、下位の意味を含�
 ## 保存
 
 ```python
-lex.save()                # 読み込まれた場所に戻す
+lex.save()                    # back to where it was loaded from
 lex.save("elsewhere.lift")
 ```
 
 変更を加えなかったエントリは、**バイト単位で同一**な状態で書き戻されます。まったく変更を加えなかったドキュメントは、最初のバイトから最後のバイトまでバイト単位で同一です。契約の詳細については、[フィデリティの保証](../fidelity.md)をご覧ください。
 
-変更を加えたエントリは、新しい `dateModified`（および、もし `dateCreated` が存在しなかった場合はそれ）が設定された状態で出力されるため、編集内容は読み込まれた日付の下には反映されません。 LIFTをマージするツールが、その属性から何が変更されたかを決定します。 `lex.save(stamp=False)` は、モデルが保持している日付のみを書き込み、それ以外は書き込みません。一方、`lex.save(when=...)` は、時計の時刻を読み取るのではなく、その瞬間を固定します。その他のルールについては、[生成されたタイムスタンプ](../fidelity.md#generated-timestamps)を参照してください。
+### タイムスタンプ
+
+変更を加えたエントリは、新しい `dateModified`（および、もし `dateCreated` が存在しなかった場合はそれ）が設定された状態で出力されるため、編集内容は読み込まれた日付の下には反映されません。 Tools that merge LIFT decide what changed from that attribute. Two arguments adjust the stamping:
+
+- `lex.save(stamp=False)` writes the dates the model holds and nothing more.
+- `lex.save(when=...)` pins the moment instead of reading the clock.
+
+その他のルールについては、[生成されたタイムスタンプ](../fidelity.md#generated-timestamps)を参照してください。
+
+### Skipping a save that changes nothing
 
 何も変更しない保存をスキップするには、`lex.changes()` を使ってその保存をガードします：
 
@@ -58,9 +77,11 @@ if lex.changes():
     lex.save()
 ```
 
-`save()` がソースバイトを再現する場合にのみ `False` を返します。これには、エントリ、ヘッダー、ルート要素、およびすべての `.lift-ranges` コンパニオンが含まれます。最初の差異で停止するため、編集済みの辞書を使用すれば、コストはほぼかかりません。変更のない辞書は、変更がないことを証明するために完全にシリアライズする必要がありますが、それでも、スキップされる保存処理よりもコストは低くなります。書き込みをスキップすることで、ファイルの最終更新日時も変更されず、誤った差分が表示されるのを防ぐことができます。
+`save()` がソースバイトを再現する場合にのみ `False` を返します。これには、エントリ、ヘッダー、ルート要素、およびすべての `.lift-ranges` コンパニオンが含まれます。 Skipping the write leaves the file's modification time alone and avoids a spurious diff.
 
-これは保存先ではなく内容を比較するため、その場での保存のみを保護してください。 `lex.save("elsewhere.lift")` は、`changes()` が何を返そうとも、そのドキュメントとその関連ファイルをその場所に書き込みます。
+The check is cheap. 最初の差異で停止するため、編集済みの辞書を使用すれば、コストはほぼかかりません。変更のない辞書は、変更がないことを証明するために完全にシリアライズする必要がありますが、それでも、スキップされる保存処理よりもコストは低くなります。
+
+これは保存先ではなく内容を比較するため、その場での保存のみを保護してください。 `lex.save("elsewhere.lift")` writes the document and its companions to the new path even when `changes()` is `False`, so guarding it would skip that copy.
 
 ## ゼロから構築する
 
