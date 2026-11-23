@@ -4,18 +4,25 @@ LIFT एक _इंटरचेंज_ प्रारूप है, इसल�
 
 ## पढ़ना
 
-कोई भी अच्छी तरह से निर्मित LIFT 0.13 दस्तावेज़ लोड हो जाता है — स्कीमा-अमान्य सामग्री सहित। जो कुछ भी मॉडल परिभाषित नहीं करता है, उसे निकटतम नोड के अपारदर्शी `Extras` कंटेनर में _LIFT अवशेष_ के रूप में रखा जाता है — FieldWorks द्वारा इसी विचार के लिए दिया गया नाम, जिसे यह `LiftResidue` फ़ील्ड में संग्रहीत करता है: अज्ञात गुण और तत्व, XML टिप्पणियाँ और प्रसंस्करण निर्देश, बिखरा हुआ पाठ, और दूषित प्रकारित गुण (एक खराब तारीख `Extras` में मूल स्ट्रिंग के रूप में बनी रहती है; टाइप्ड फ़ील्ड `None` होता है)।
+Any well-formed LIFT 0.13 document loads, schema-invalid content included. Whatever the model does not define is carried in the nearest node's opaque `Extras` container as _LIFT residue_. (That is FieldWorks' name for the same idea, which it stores in a `LiftResidue` field.) Residue includes:
+
+- unknown attributes and elements;
+- XML comments and processing instructions;
+- stray text;
+- malformed typed attributes: a bad date stays as the original string in `Extras`, and the typed field is `None`.
 
 ## बिना बदले दस्तावेज़ को सहेजें
 
-`load()` → `save()` बिना किसी संपादन के **बाइट-समान आउटपुट** लिखता है — कोई पुनः स्वरूपण नहीं, कोई पुनः एस्केपिंग नहीं, कोई पुनर्विन्यास नहीं, बाइट-ऑर्डर मार्क और XML घोषणाएँ शामिल हैं। वर्तमान में कोई सामान्यीकरण सूची नहीं है: पहचान सटीक है। टाइमस्टैम्प सामग्री से उत्पन्न होते हैं, इसलिए अपरिवर्तित दस्तावेज़ में भी कोई टाइमस्टैम्प उत्पन्न नहीं होता।
+`load()` → `save()` with no edits writes **byte-identical output**: no reformatting, no re-escaping, no reordering, byte-order marks and XML declarations included. वर्तमान में कोई सामान्यीकरण सूची नहीं है: पहचान सटीक है। टाइमस्टैम्प सामग्री से उत्पन्न होते हैं, इसलिए अपरिवर्तित दस्तावेज़ में भी कोई टाइमस्टैम्प उत्पन्न नहीं होता।
 
 अपवाद (लेखक पूर्ण कैनोनिकल सीरियलाइज़ेशन पर वापस चला जाता है, जो अर्थगत रूप से पूर्ण है लेकिन बाइट-संरक्षण नहीं करता):
 
 - स्रोत एन्कोडिंग ASCII-संगत नहीं है (UTF-8/US-ASCII नहीं), या
 - स्रोत में एक DOCTYPE है, या
-- बाइट स्कैनर और पार्सर दस्तावेज़ की शीर्ष-स्तरीय संरचना को लेकर असहमत हैं — उदाहरण के लिए विनिर्देश के बाहर का दूसरा `<header>`, जिसे पार्सर केवल एक बार रखता है (स्कैनर जानबूझकर सतर्क है: किसी भी संदेह पर यह कोई भी स्रोत बाइट नहीं पकड़ता), या
+- the byte scanner and the parser disagree about the document's top-level structure, for instance an out-of-spec second `<header>`, which the parser keeps only once, or
 - स्रोत फ़ाइल से लोड करने के बजाय मेमोरी में बनाया गया था।
+
+The byte scanner is deliberately conservative: on any doubt it captures no source bytes at all.
 
 ## संपादित दस्तावेज़ सहेजें
 
@@ -26,22 +33,29 @@ LIFT एक _इंटरचेंज_ प्रारूप है, इसल�
   - प्रत्येक तत्व के लिए एक दस्तावेजित बाल समूह; `<entry>` के लिए: शब्द-इकाई, उद्धरण, उच्चारण, रूप-रूप, अर्थ, टिप्पणियाँ, संबंध, व्युत्पत्तियाँ, टिप्पणियाँ, विशेषताएँ, क्षेत्र।
   - लक्षित गुणों का क्रम।
   - ISO-8601 में दिनांक (`Z` UTC के लिए)।
-- सभी अवशेष पुनः उत्सर्जित किए जाते हैं। इसकी स्थिति मूल चाइल्ड इंडेक्स पर पुनर्स्थापित की जाती है, नई चाइल्ड सूची में क्लैम्प की जाती है — यह केवल एक अनुमान है, क्योंकि सटीक बाइट स्थितियाँ केवल अछूती प्रविष्टियों के लिए ही गारंटी की जाती हैं।
+- **All residue is re-emitted.** Its position is restored to the original child index, clamped to the new child list; that is an approximation, since exact byte positions are only guaranteed for untouched entries.
 - प्रविष्टियाँ जोड़ने, हटाने या पुनर्व्यवस्थित करने से दस्तावेज़ की संरचना पुनः अनुक्रमित होती है, लेकिन फिर भी हर अपरिवर्तित प्रविष्टि के बाइट्स को शब्दशः उत्सर्जित किया जाता है।
-- एक स्पर्शित प्रविष्टि पर एक ताज़ा `dateModified` मुहर लगाई जाती है, और यदि उसमें पहले से कोई `dateCreated` नहीं थी तो एक `dateCreated` भी — [जेनरेट किए गए टाइमस्टैम्प](#generated-timestamps) देखें।
+- **A touched entry is stamped** with a fresh `dateModified`, and a `dateCreated` if it had none. See [Generated timestamps](#generated-timestamps).
 
 !!! note "&quot;यहाँ का कैनोनिकल&quot; किसी अन्य कैनोनिकल XML से संबंधित नहीं है।"
+
     इस पृष्ठ पर कैनोनिकल रूप का अर्थ है `sil-lift` का अपना प्रलेखित स्वरूप, जिसे ऊपर एक बुलेट में वर्णित किया गया है। यह W3C की कैनोनिकल XML (C14N) प्रक्रिया से असंबंधित है। यह `SIL.Core` की `CanonicalXmlSettings` क्लास से असंबंधित है।
 
 ## उत्पन्न टाइमस्टैम्प
 
 उत्पन्न स्टैम्प ही आउटपुट में एकमात्र ऐसी चीज़ है जो इनपुट पर निर्भर नहीं करती।
 
+### Which entries are stamped
+
 - **क्या स्टैम्प किया गया है।** प्रत्येक प्रविष्टि जिसकी सामग्री तब से बदली है जब से इसे पढ़ा गया था, एक नए `dateModified` के साथ और यदि कोई नहीं था तो उसी क्षण की `dateCreated` के साथ। अपनी लोडेड तारीख के अंतर्गत भेजा गया एक एडिट उस एट्रिब्यूट पर मेल खाने वाली सभी चीज़ों में अपरिवर्तित दिखता है, जिसमें FieldWorks और The Combine का LIFT इम्पोर्ट भी शामिल है।
 - केवल प्रविष्टियाँ। `<entry>` के नीचे कोई नोड नहीं, और हेडर में कुछ भी नहीं।
 - **जो अकेला रह जाता है।** एक प्रविष्टि जिसकी तारीख कॉलर ने जानबूझकर सेट की थी, और एक प्रविष्टि जिसे लोड के बाद बनाया गया था, जो पहले से ही एक को वहन कर चुकी है।
-- दिनांक को खाली करना सम्मानित है। `entry.date_modified = None` किसी प्रविष्टि को पढ़ते समय एक जानबूझकर रखा गया मान है, जैसे कोई अन्य मान, इसलिए प्रविष्टि बिना `dateModified` के ही बाहर आती है, चाहे उसकी सामग्री स्थानांतरित हुई हो या नहीं। बिना किसी मान के पढ़ी गई एक प्रविष्टि एक अलग मामला है: वहाँ `None` पहले से ही मौजूद मान है, जो फ़ील्ड को कभी न छूने से अलग नहीं है, इसलिए संपादन फिर भी इसे चिह्नित कर देता है।
-- एक अपार्स करने योग्य तारीख को प्रतिस्थापित किया जाता है। एक ऐसी तारीख जिसे मॉडल पार्स नहीं कर सका, वह तारीख के बजाय [residue](#reading) होती है, इसलिए एक स्टैम्प इसे ओवरराइट कर देता है और मूल स्ट्रिंग को हटा दिया जाता है — एक संपादित प्रविष्टि के लिए `dateModified="whenever"` की तुलना में वास्तविक तारीख रखना बेहतर है।
+- दिनांक को खाली करना सम्मानित है। `entry.date_modified = None` किसी प्रविष्टि को पढ़ते समय एक जानबूझकर रखा गया मान है, जैसे कोई अन्य मान, इसलिए प्रविष्टि बिना `dateModified` के ही बाहर आती है, चाहे उसकी सामग्री स्थानांतरित हुई हो या नहीं।
+  - बिना किसी मान के पढ़ी गई एक प्रविष्टि एक अलग मामला है: वहाँ `None` पहले से ही मौजूद मान है, जो फ़ील्ड को कभी न छूने से अलग नहीं है, इसलिए संपादन फिर भी इसे चिह्नित कर देता है।
+- **An unparseable date is replaced.** A date the model could not parse is [residue](#reading) rather than a date, so a stamp overwrites it and the original string is dropped. An edited entry is better off carrying a real date than `dateModified="whenever"`.
+
+### How the stamp is applied
+
 - **पल।** UTC सेकंड सटीकता पर (`YYYY-MM-DDTHH:MM:SSZ`, वह प्रारूप जो प्रत्येक सर्वेक्षण किए गए FieldWorks निर्यात में उपयोग होता है), दीवार घड़ी से पढ़ा गया। एक सेकंड में एक तिथि होती है, इसलिए पिछले संपादन के एक सेकंड के भीतर सहेजा गया संपादन उसी स्टैम्प को लेता है।
 - `save(when=...)` दीवार घड़ी के बजाय समय का क्षण प्रदान करता है, जो diff-आधारित CI गेट के लिए स्टैम्प्ड आउटपुट को पुनरुत्पादनीय बनाए रखता है। यह टाइमज़ोन-जागरूक होना चाहिए, और इसे UTC की पूर्ण सेकंड में सामान्यीकृत किया गया है।
 - `save(stamp=False)` मॉडल को ठीक उसी रूप में लिखता है जैसा वह है, अवशेष सहित।
@@ -49,13 +63,16 @@ LIFT एक _इंटरचेंज_ प्रारूप है, इसल�
 
 ## सामग्री XML प्रतिनिधित्व नहीं कर सकता
 
-गैर-बीएमपी वर्ण — इमोजी, CJK एक्सटेंशन B, आदलाम, U+FFFF से ऊपर के कोई भी वर्ण — साधारण सामग्री हैं और बाइट-दर-बाइट समान रूप से आदान-प्रदान होते हैं। एक "सुरोगेट जोड़ा" UTF-16 एन्कोडिंग का एक विवरण है: पाइथन स्ट्रिंग्स कोडपॉइंट्स की अनुक्रमणियाँ होती हैं, इसलिए रीडर, बाइट स्कैनर या राइटर में से कोई भी इसे कभी नहीं देखता।
+Non-BMP characters (emoji, CJK Extension B, Adlam, anything above U+FFFF) are ordinary content and round-trip byte-identically. एक "सुरोगेट जोड़ा" UTF-16 एन्कोडिंग का एक विवरण है: पाइथन स्ट्रिंग्स कोडपॉइंट्स की अनुक्रमणियाँ होती हैं, इसलिए रीडर, बाइट स्कैनर या राइटर में से कोई भी इसे कभी नहीं देखता।
 
-एक _lone_ सरोग्रेट (U+D800–U+DFFF) अलग होता है: एक पाइथन स्ट्रिंग में एक हो सकता है, एक XML दस्तावेज़ में किसी भी एन्कोडिंग में नहीं हो सकता। यह कभी भी फ़ाइल से नहीं आ सकता — पार्सर दोनों वर्तनी, एक `&#xD800;` कैरेक्टर रेफरेंस और CESU-8/WTF-8 बाइट्स को अस्वीकार कर देता है — केवल API के माध्यम से असाइन की गई स्ट्रिंग से ही आ सकता है। ऐसे मॉडल को सहेजने पर `LiftWriteError` उत्पन्न होता है, जो नोड और कोडपॉइंट का नाम बताता है और कुछ भी लिखता नहीं है; वैलिडेशन इसे एकल `lone-surrogate` त्रुटि के रूप में रिपोर्ट करता है, क्योंकि दस्तावेज़ को स्कीमा परतों द्वारा जाँच के लिए सीरियलाइज़ नहीं किया जा सकता।
+एक _lone_ सरोग्रेट (U+D800–U+DFFF) अलग होता है: एक पाइथन स्ट्रिंग में एक हो सकता है, एक XML दस्तावेज़ में किसी भी एन्कोडिंग में नहीं हो सकता। It can never arrive from a file, because the parser rejects both spellings (a `&#xD800;` character reference and CESU-8/WTF-8 bytes). It can only come from a string assigned through the API.
+
+Saving such a model raises `LiftWriteError` naming the node and the codepoint, and writes nothing. Validation reports it as a single `lone-surrogate` error, since the document cannot be serialized for the schema layers to check.
 
 ## ज्ञात अनुमान (केवल स्पर्श किए गए नोड्स)
 
 - <text>\` रन के अंदर की टिप्पणियाँ संरक्षित रहती हैं, लेकिन उन्हें रन के ठीक कैरेक्टर ऑफ़सेट पर रखने के बजाय रन के बगल में स्थानांतरित कर दिया जाता है।
 - संपादित तत्व के भीतर क्रॉस-टाइप बाल क्रम को मानक समूहबद्धता में सामान्यीकृत किया जाता है (LIFT स्कीमा का `interleave` इस क्रम को अर्थगत रूप से महत्वहीन बना देता है)।
 - `<form>` या `<gloss>` जिसमें `lang` नहीं होता, पुनः उत्सर्जित नहीं होता, और न ही इसमें रखी गई कोई भी चीज़; सत्यापन इस कमी को `form-missing-lang` के रूप में रिपोर्ट करता है। एक अपरिवर्तित नोड अपने स्रोत बाइट्स को बनाए रखता है, इसलिए इस प्रकार का स्वरूप तब तक बना रहता है जब तक उसकी प्रविष्टि में कुछ भी संपादित नहीं किया जाता।
-- एक मल्टीटेक्स्ट तत्व जो मौजूद तो है लेकिन कुछ भी नहीं ले जाता — न कोई फॉर्म, न कोई अवशेष, उदाहरण के लिए `<definition></definition>` — पुनः उत्सर्जित नहीं होता। मॉडल इन फ़ील्ड्स को हमेशा मौजूद `Multitext` (`lexical-unit`, `citation`, `definition`, किसी संबंध का `usage`, और `label` / `abbrev` / `description` url-refs, रेंज, रेंज-एलिमेंट्स और हेडर पर), इसलिए पार्सिंग के बाद एक खाली फ़ील्ड का अभाव वाले फ़ील्ड से कोई अंतर नहीं किया जा सकता। कोई भी अर्थपूर्ण बात खोई नहीं है।
+- A multitext element that is present but carries nothing (no forms, no residue, e.g. `<definition></definition>`) is not re-emitted. कोई भी अर्थपूर्ण बात खोई नहीं है।
+  - The model represents these fields as an always-present `Multitext`, so an empty one is indistinguishable from an absent one after parsing. The fields are `lexical-unit`, `citation`, `definition`, a relation's `usage`, and `label` / `abbrev` / `description` on url-refs, ranges, range-elements and the header.
