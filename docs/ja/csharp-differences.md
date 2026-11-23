@@ -1,38 +1,47 @@
 # C# ライブラリとの違い
 
-sil-lift は、SIL の C# LIFT ツール群――主に [libpalaso](https://github.com/sillsdev/libpalaso) にある `SIL.Lift`（パーサー、バリデータ、マイグレーター、`LiftSorter`）および同じリポジトリ内の `SIL.DictionaryServices`（`LexEntry`/`LexSense`モデルで、独自のLIFTリーダー／ライターを備え、The CombineやWeSayで使用されているもの）で構成されています。 これは移植版ではなく、新規に実装されたものです。 このページでは、意図的に異なる仕様となっている点をまとめています。
+sil-lift は、SIL の C# LIFT ツール群と大まかに類似しており、主に [libpalaso](https://github.com/sillsdev/libpalaso) の 2 つの部分で構成されています：
+
+- `SIL.Lift`: パーサー、バリデータ、マイグレーター、`LiftSorter`。
+- `SIL.DictionaryServices`：The Combine および WeSay で使用されている、独自の LIFT リーダー／ライターを備えた `LexEntry`/`LexSense` モデル。
+
+sil-lift は、移植版ではなく、新たに実装されたものです。このページでは、意図的に異なる仕様となっている点をまとめています。
 
 ## 適用範囲
 
 | 機能         | C# ライブラリ                                                 | シルリフト                                                |
 | ---------- | -------------------------------------------------------- | ---------------------------------------------------- |
 | LIFTのバージョン | 0.10–0.13（移行機能が組み込まれている） | **0.13のみ**；それより古いバージョンは明確なエラーで拒否されます |
-| バージョンの移行   | `Migrator`（XSLTチェーン）                                     | なし — 単発のアップグレードには、lift-standardに含まれるXSLTを使用してください    |
+| バージョンの移行   | `Migrator`（XSLTチェーン）                                     | なし。単発のアップグレードには、lift-standardに含まれるXSLTを使用してください。     |
 | 検証         | RELAX NG のみ（`Validator`）                                 | RELAX NG + スキーマおよびセマンティックチェックの範囲                     |
 | ストリーミング    | エントリ単位の内部解析                                              | パブリック `open_reader` / `open_writer` API              |
 
 ## APIの形状
 
-`SIL.Lift`のパーサーはコールバック駆動型（`ILexiconMerger`）であり、解析イベントをコンシューマーにプッシュします。 その代わりに、sil-lift は単純なオブジェクトグラフ（LIFT の各要素に対応する型付きデータクラス）を返します。これは、Python スクリプト作成者がコールバックではなくオブジェクトを求めているためです。 `SIL.DictionaryServices` は、`SIL.Lift`の上に`LexEntry`/`LexSense`オブジェクトモデルを重ねていますが、アプリケーションモデルとしては、それらのアプリが使用する構造のみを表しています。そのため、これを通じて再シリアル化を行っても、sil-liftのLIFT残余処理やバイト単位の忠実度処理（後述）のように、モデル外のコンテンツを保持することはできません。 ストリーミングAPIは_同じ_ `Entry` 型を返すため、別途学習すべき簡略化されたモデルは存在しません。
+`SIL.Lift`のパーサーはコールバック駆動型（`ILexiconMerger`）であり、解析イベントをコンシューマーにプッシュします。 sil-lift instead returns a plain object graph (typed dataclasses for every LIFT element) because Python scripters want objects, not callbacks.
+
+`SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but it is an application model: it represents only the constructs those apps use. Re-serializing through it therefore can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below).
+
+ストリーミングAPIは_同じ_ `Entry` 型を返すため、別途学習すべき簡略化されたモデルは存在しません。
 
 ## 往復の忠実度
 
 最も顕著な意図的な違い。 `SIL.Lift` を使用して保存すると、ドキュメント全体が再シリアル化されます。 sil-liftの保証：
 
 - 変更のないドキュメントは**バイト単位で同一**に保存され、
-- 他のエントリが変更されても、変更されていないエントリはソースのバイトデータをそのまま保持します。これは、エントリごとにバイト単位で分割され、自動的に適用される仕組みによるものです。
+- untouched entries keep their exact source bytes even when other entries change: per-entry byte chunking, applied automatically.
 
 [フィデリティの保証](fidelity.md)をご覧ください。
 
 ## 検証
 
-C#の`Validator`は、RELAX NGによる検証を1回実行し、最初に検出されたエラーを文字列として報告します。 sil-lift は、構造化された `Problem` ストリームを報告します。各ストリームには、対象となるファイル、エントリ、行が含まれており、そのスキーマ層は意図的に 3 箇所で異なる仕様となっています：
+C#の`Validator`は、RELAX NGによる検証を1回実行し、最初に検出されたエラーを文字列として報告します。 sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns. Its schema layer knowingly diverges in three places:
 
-- **無効なURIはエラーではなく警告です。** C#のRELAX NGエンジンは`anyURI`データ型を強制したことがなかったため、FieldWorks (FLEx) では長年にわたり、実際のレキシコンに`file://C:/...`というhrefを記述してきました。 それらのファイルを拒否すると、事実上すべてのFLExエクスポートにフラグが立てられてしまいます。
-- **Schematronルールが適用されます**（セマンティックチェックとして）：LIFT文法における重複するフォーム言語や類似の共制約は、C#および生のlxmlによる検証のいずれにおいても、黙って無視されていました。
-- **範囲IDの比較はUnicode正規化（NFC）** されています。これは、FLExのエクスポートが内部的に一貫していなかったためです。エクスポート時にはNFCに正規化されますが、一部の `.lift-ranges` の書き込みでは、そのステップをバイパスしてNFDを出力していたため、 そのため、`grammatical-info`や`lexical-relation`の範囲要素の`id`がNFDである一方で、そのラベル、同じ要素の`parent`属性、およびそれを参照する`.lift`の値はすべてNFCである、といった状況が生じることがあります。 正規化は比較処理にのみ適用されます。sil-lift は ID を書き換えることは決してなく、正規化後にのみ解決される参照は `normalization-mismatch` 警告として報告されます（C# にはこれに対応するチェック機能はありません）。そのため、独自の比較が厳密なユーザーには、エンコーディングの分割が引き続き確認できるようになっています。
+- **無効なURIはエラーではなく警告です。** C#のRELAX NGエンジンは`anyURI`データ型を強制したことがなかったため、FieldWorks (FLEx) では長年にわたり、実際のレキシコンに`file://C:/...`というhrefを記述してきました。それらのファイルを拒否すると、事実上すべてのFLExエクスポートにフラグが立てられてしまいます。
+- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by C# validation.
+- **Range id comparisons are Unicode-normalized** (NFC), because FLEx exports mix NFC and NFD ids. References that resolve only after normalizing are reported as `normalization-mismatch` warnings, a check with no C# counterpart. See [Real-world FieldWorks (FLEx) output](guides/validate.md#real-world-fieldworks-flex-output).
 
-sil-lift は、読み込まれたレキシコンの `.lift-ranges` コンパニオンを、スタンドアロンの範囲ドキュメント用のスキーマ（ベースとなる LIFT 文法とともに `lift-standard` から提供されているもの）に対して検証します — `.lift` の検証が行われるたびに、追跡対象となっているすべての外部レンジファイルがチェックされます — C#の世界には、このようなスキーマ（またはチェック）は存在しません。 （`.lift` ファイルから切り離された状態で、`.lift-ranges` ファイル単体を検証するためのエントリポイントは存在しません。）
+When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companions against a schema for standalone ranges documents, vendored from `lift-standard`. The C# `Validator` does not check `.lift-ranges` files.
 
 ## 規範的順序付け
 
@@ -40,12 +49,12 @@ sil-lift は、読み込まれたレキシコンの `.lift-ranges` コンパニ�
 
 - GUID を持たないエントリは、ID に基づいて決定論的にソートされます（`LiftSorter` は GUID が存在することを前提としています）。
 - 順序付けはロケールに依存しません（大文字小文字を区別しないコードポイントに基づくものであり、.NET の不変文化ソート順序ではありません）。
-- ノート、関係、フォームなどの同種のリストは、キーに基づいて再ソートされるのではなく、ドキュメント内の順序を維持します。グループ化はすでに決定論的であり、順序を変更しても差分のノイズが増えるだけです。
+- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key; grouping is already deterministic, and reordering them only adds diff noise.
 
 仕様リポジトリの `canonicalizeLift.xsl` はまったく使用されていません。このXSLは、字句テキスト内の空白を削除してしまう（破壊的）うえ、生成されるIDが実行のたびに異なるからです。
 
 ## 繰り越されなかった
 
 - WeSay特有の利便性（ダッシュボード／LIFTファイルに関する設定処理）。
-- `SynchronicMerger`（LIFTの更新ファイルマージ）— バイト単位のチャンク化という考え方はフィデリティ層で引き継がれているが、マージ機能自体は引き継がれていない。
+- `SynchronicMerger` (LIFT update-file merging): the byte-chunking idea lives on in the fidelity layer, the merging does not.
 - LDMLの表記体系の解析：`WritingSystems/` ディレクトリ内のファイルは、不透明なフォルダ内容として扱われます。
