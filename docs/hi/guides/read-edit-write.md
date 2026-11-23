@@ -8,34 +8,44 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` कोई भी सुव्यवस्थित LIFT **0.13** दस्तावेज़ स्वीकार करता है — जिसमें स्कीमा-अमान्य वास्तविक-विश्व फ़ाइलें भी शामिल हैं। मॉडल द्वारा परिभाषित न किए गए कोई भी तत्व (अज्ञात तत्व/गुणधर्म, टिप्पणियाँ) प्रत्येक नोड के अपारदर्शी `extra` फ़ील्ड में LIFT अवशेष के रूप में बिना किसी हानि के संचित किया जाता है। अन्य LIFT संस्करण संस्करण का नाम बताते हुए `LiftParseError` उत्पन्न करते हैं।
+`load()` accepts any well-formed LIFT **0.13** document, including schema-invalid real-world files. मॉडल द्वारा परिभाषित न किए गए कोई भी तत्व (अज्ञात तत्व/गुणधर्म, टिप्पणियाँ) प्रत्येक नोड के अपारदर्शी `extra` फ़ील्ड में LIFT अवशेष के रूप में बिना किसी हानि के संचित किया जाता है। अन्य LIFT संस्करण संस्करण का नाम बताते हुए `LiftParseError` उत्पन्न करते हैं।
 
 ## मॉडल
 
-प्रत्येक LIFT तत्व एक प्रकारित डेटाक्लास है: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, आदि। बहुभाषी पाठ एक `Multitext` है, जो भाषा कोड से `Text` के लिए एक `Mapping` है:
+Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on.
+
+### Multilingual text
+
+बहुभाषी पाठ एक `Multitext` है, जो भाषा कोड से `Text` के लिए एक `Mapping` है:
 
 ```python
-entry = lex.find(id="abat")
+entry = lex.find(id="poʻo_a1b2")
 
-str(entry.lexical_unit["seh"])          # "abat"
-entry.lexical_unit["en"] = "grove"      # साधारण स्ट्रिंग्स को कोअर्स्ड किया जाता है
+str(entry.lexical_unit["haw"])          # "poʻo"
+entry.lexical_unit["en"] = "head"       # plain strings are coerced
 "en" in entry.citation                  # False
-list(entry.lexical_unit.keys())         # ["seh", "en"]
+list(entry.lexical_unit.keys())         # ["haw", "en"]
 ```
 
-`keys()`, `values()` और `items()` व्यूज़ हैं, प्रत्येक भाषा के लिए एक कुंजी, और `len()` फ़ॉर्म के बजाय भाषाओं की गिनती करता है। दोनों म्यूटेटर्स किसी एक रूप पर नहीं बल्कि भाषा पर काम करते हैं: `del entry.lexical_unit["en"]` सभी अंग्रेज़ी रूपों को हटा देता है, और `"en"` को असाइन करने पर ठीक एक ही रूप बचता है।
+`Text` is structured (an ordered list of `str` and `Span` fragments) because `<text>` can contain nested `<span>` markup. `str(text)` सादे पाठ में बदल देता है; खंड राउंड-ट्रिपिंग के लिए मार्कअप बनाए रखते हैं।
 
-एक स्कीमा-मान्य दस्तावेज़ में इससे अधिक कुछ नहीं होता, लेकिन वास्तविक फ़ाइलें कभी-कभी भाषा को दोहराती हैं। `forms` फ़ाइल क्रम में प्रत्येक फ़ॉर्म को रखता है, पहले वाले के साथ उत्तर पढ़ता है, और [`validate`](validate.md#problem-codes) `duplicate-form-lang` रिपोर्ट करता है जब तक आप उस भाषा को असाइन नहीं करते। मैपिंग के माध्यम से कोई भी ऐसा फ़ॉर्म नहीं बनाया जा सकता जिसमें बिल्कुल भी `lang` न हो, इसे `form-missing-lang` के रूप में रिपोर्ट किया जाता है, और जब उसका नोड पुनः सीरियलाइज़ होता है तो उसे हटा दिया जाता है।
+The mapping shows one value per language. Underneath, `forms` holds every `<form>` in file order. A schema-valid document has at most one form per language, but real files sometimes repeat one.
 
-`Text` संरचित है — `str` और `Span` खंडों की एक क्रमबद्ध सूची — क्योंकि `<text>` में घिरी हुई `<span>` मार्कअप हो सकती है। `str(text)` सादे पाठ में बदल देता है; खंड राउंड-ट्रिपिंग के लिए मार्कअप बनाए रखते हैं।
+Because the mapping is keyed by language, `len()` counts languages rather than forms, and the `keys()`, `values()` and `items()` views list each language once. Both mutators also act on the whole language: `del entry.lexical_unit["en"]` removes every English form, and assigning to `"en"` leaves exactly one.
+
+For a repeated language, `entry.lexical_unit["en"]`, `get()`, `values()` and `items()` all answer with its first form, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language.
+
+A form carrying no `lang` at all cannot be created through the mapping. It is reported as `form-missing-lang`, and is dropped when its node re-serializes.
+
+### Senses and glosses
 
 LIFT में ग्लॉसेज़ _फॉर्म-आकार_ होते हैं (प्रत्येक `<gloss>` अपनी भाषा स्वयं साथ लेता है), इसलिए एक सेंस में `glosses: list[Form]` होता है और साथ ही कुछ हेल्पर होते हैं:
 
 ```python
-sense = entry.senses[0]                 # केवल शीर्ष स्तर
-sense.gloss("en")                       # टेक्स्ट | None
-entry.all_senses()                      # हर अर्थ और उप-अर्थ, दस्तावेज़ क्रम
-entry.gloss_langs()                     # {"en", "id"}, उप-अर्थ शामिल
+sense = entry.senses[0]       # top level only
+sense.gloss("en")             # Text | None
+entry.all_senses()            # every sense and subsense, document order
+entry.gloss_langs()           # {"en", "id"}, subsenses included
 ```
 
 जब भी कोई प्रश्न पूरी प्रविष्टि से संबंधित हो, तो `all_senses()` का उपयोग करें: संवेदनाओं की गिनती करने, भाषाओं को एकत्रित करने, मीडिया खोजने के लिए। `entry.senses` शीर्ष स्तर देता है, जो तब ही काम आता है जब स्वयं नेस्टिंग मायने रखती हो।
@@ -43,13 +53,22 @@ entry.gloss_langs()                     # {"en", "id"}, उप-अर्थ श�
 ## बचत
 
 ```python
-lex.save()                # उस स्थान पर वापस जहाँ से इसे लोड किया गया था
+lex.save()                    # back to where it was loaded from
 lex.save("elsewhere.lift")
 ```
 
 आपने जिन प्रविष्टियों में कोई बदलाव नहीं किया, वे बाइट-समान रूप से वापस लिखी जाती हैं; एक ऐसा दस्तावेज़ जिसे आपने बिल्कुल भी संशोधित नहीं किया, वह पहले बाइट से लेकर आखिरी बाइट तक बाइट-समान होता है। सटीक अनुबंध के लिए [फिडेलिटी गारंटी](../fidelity.md) देखें।
 
-आपने जिन प्रविष्टियों में संशोधन किया, वे एक नए `dateModified` (और यदि उनके पास कोई `dateCreated` नहीं था तो `dateCreated`) के साथ भेजी जाती हैं, इसलिए कोई संपादन उस तारीख के तहत नहीं भेजा जाता जिस पर इसे लोड किया गया था। LIFT को मर्ज करने वाले उपकरण तय करते हैं कि उस विशेषता से क्या बदला है। `lex.save(stamp=False)` केवल मॉडल में मौजूद तिथियों को लिखता है और कुछ नहीं; `lex.save(when=...)` घड़ी पढ़ने के बजाय उस क्षण को स्थिर कर देता है। बाकी नियमों के लिए [जेनरेट किए गए टाइमस्टैम्प](../fidelity.md#generated-timestamps) देखें।
+### समय-मुद्रांक
+
+आपने जिन प्रविष्टियों में संशोधन किया, वे एक नए `dateModified` (और यदि उनके पास कोई `dateCreated` नहीं था तो `dateCreated`) के साथ भेजी जाती हैं, इसलिए कोई संपादन उस तारीख के तहत नहीं भेजा जाता जिस पर इसे लोड किया गया था। Tools that merge LIFT decide what changed from that attribute. Two arguments adjust the stamping:
+
+- `lex.save(stamp=False)` writes the dates the model holds and nothing more.
+- `lex.save(when=...)` pins the moment instead of reading the clock.
+
+बाकी नियमों के लिए [जेनरेट किए गए टाइमस्टैम्प](../fidelity.md#generated-timestamps) देखें।
+
+### Skipping a save that changes nothing
 
 ऐसे सेव को छोड़ने के लिए जो कुछ भी नहीं बदलेगा, उसे `lex.changes()` से गार्ड करें:
 
@@ -58,9 +77,11 @@ lex.save("elsewhere.lift")
     lex.save()
 ```
 
-यह केवल तभी `False` लौटाता है जब `save()` स्रोत बाइट्स को पुन: उत्पन्न कर सके, जिसमें प्रविष्टियाँ, हेडर, रूट एलिमेंट और प्रत्येक `.lift-ranges` साथी शामिल हों। यह पहले अंतर पर ही रुक जाता है, इसलिए संपादित शब्दकोश पर इसका खर्च लगभग शून्य होता है। एक अपरिवर्तित शब्दकोश को अपरिवर्तित साबित करने के लिए उसे पूरी तरह से सीरियलाइज करना पड़ता है, लेकिन फिर भी इसकी लागत उस सेव की तुलना में कम होती है जिसे यह छोड़ देता है। लिखने की प्रक्रिया को छोड़ने से फ़ाइल का संशोधन समय भी जस का तस रहता है और एक झूठी diff से बचा जा सकता है।
+यह केवल तभी `False` लौटाता है जब `save()` स्रोत बाइट्स को पुन: उत्पन्न कर सके, जिसमें प्रविष्टियाँ, हेडर, रूट एलिमेंट और प्रत्येक `.lift-ranges` साथी शामिल हों। Skipping the write leaves the file's modification time alone and avoids a spurious diff.
 
-यह सामग्री की तुलना करता है, गंतव्य की नहीं, इसलिए केवल उसी स्थान पर सहेजने की रक्षा करें। `lex.save("elsewhere.lift")` दस्तावेज़ और उसके साथियों को वहाँ लिखता है, जो कुछ भी `changes()` लौटाता है।
+The check is cheap. यह पहले अंतर पर ही रुक जाता है, इसलिए संपादित शब्दकोश पर इसका खर्च लगभग शून्य होता है। एक अपरिवर्तित शब्दकोश को अपरिवर्तित साबित करने के लिए उसे पूरी तरह से सीरियलाइज करना पड़ता है, लेकिन फिर भी इसकी लागत उस सेव की तुलना में कम होती है जिसे यह छोड़ देता है।
+
+यह सामग्री की तुलना करता है, गंतव्य की नहीं, इसलिए केवल उसी स्थान पर सहेजने की रक्षा करें। `lex.save("elsewhere.lift")` writes the document and its companions to the new path even when `changes()` is `False`, so guarding it would skip that copy.
 
 ## शुरू से निर्माण
 
