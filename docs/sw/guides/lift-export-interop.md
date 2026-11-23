@@ -1,26 +1,44 @@
 # Kutengeneza LIFT inayokidhi viwango
 
-Mwongozo huu ni kwa yeyote anayeandika _exporter_ ya LIFT — msimbo katika lugha yoyote unaobadilisha muundo wa data wa programu nyingine kuwa LIFT 0.13. `sil-lift` ina majukumu mawili katika kazi hiyo: lango la utimilifu linalokagua pato dhidi ya skema na semantiki ambazo skema haiwezi kueleza, na rejea ya maumbo na kanuni za maandishi ambazo pato linapaswa kufuata.
+Mwongozo huu ni kwa yeyote anayeandika _exporter_ ya LIFT: msimbo katika lugha yoyote unaobadilisha muundo wa data wa programu nyingine kuwa LIFT 0.13. `sil-lift` inatekeleza majukumu mawili kwa kazi hiyo:
 
-Kuandika LIFT ni rahisi zaidi kuliko kuchanganua: kiendeshaji cha kusafirisha hutoa tu sehemu ndogo ya miundo ambayo mfano wake wenyewe huzalisha, na kamwe hakikabiliwi na chaguzi zote za kiwango kamili. Sehemu ngumu ni maelezo — `.lift-ranges` companion, maandishi kulingana na mfumo wa uandishi, vitambulisho thabiti, na kuepuka XML — na hayo ndiyo hasa yanayokamatwa na ukaguzi hapa chini.
+- lango la utiifu linalokagua pato dhidi ya schema na semantiki ambazo schema haiwezi kueleza;
+- Rejea ya sheria za maumbo na maandishi ambazo matokeo lazima yafuate.
+
+Kuandika LIFT ni rahisi zaidi kuliko kuchanganua: kiendeshaji cha kusafirisha hutoa tu sehemu ndogo ya miundo ambayo mfano wake wenyewe huzalisha, na kamwe hakikabiliwi na chaguzi zote za kiwango kamili. Sehemu ngumu ni maelezo (msaidizi wa `.lift-ranges`, maandishi kulingana na mfumo wa uandishi, vitambulisho thabiti, na utokomezaji wa XML), na hayo ndiyo hasa yanayodhibitiwa na ukaguzi hapa chini.
 
 ## Vifurushi vilivyosimbwa
 
-LIFT kawaida huhamishwa kama faili moja ya `.zip` — FieldWorks na The Combine zote huingiza na kusafirisha kwa njia hiyo — hivyo `sil-lift` husoma na kuandika vifurushi vilivyofungwa kwa `zip` moja kwa moja, katika mpangilio wowote ambao mfumo unatumia: faili ziko mizizi ya hifadhi, au zimepangwa ndani ya folda moja kuu.
+LIFT kawaida huhamishwa kama faili moja la `.zip`; FieldWorks na The Combine zote huingiza na kusafirisha kwa njia hiyo. `sil-lift` husoma na kuandika vifurushi vilivyobanwa moja kwa moja, katika mpangilio wowote unaotumiwa na mfumo wa ikolojia: faili kwenye mzizi wa hifadhi, au zilizopangwa ndani ya folda moja kuu.
 
-- Soma: `sil_lift.load("package.zip")` hutoa maudhui kwenye saraka ya muda, hupata faili moja la `.lift`, na kulipakia (viendani na vyombo vya habari hutatuliwa kama kawaida).
-  - Amri za CLI `validate`, `stats`, `check-media`, na `export` pia zinakubali njia ya `.zip`, hivyo lango hapa chini linafanya kazi dhidi ya kifurushi kama kilivyo.
-  - mtiririko wa `stats` na `export`, na uchimbe tu `.lift` badala ya kifurushi kizima — ili viwe nafuu kwenye mfumo wenye media nyingi, na kikomo cha uchimbaji kitumike kwa `.lift` pekee badala ya kila kitu kingine.
-  - Utoaji umepunguzwa hadi 10 GiB na wanachama 100,000; kifurushi kinachovuka mojawapo ya mipaka hiyo kinakataliwa kwa `LiftParseError`, vivyo hivyo kifurushi ambacho njia za wanachama zake zinatoka nje ya saraka ya uondoaji.
-- **Andika:** `Lexicon.save_zip("out.zip", wrap_folder="MyDict")` hufunga `.lift`, `.lift-ranges` zake, na kila faili nyingine katika folda ya chanzo (media, `WritingSystems/`, `consent/`, ...) katika zipu
-  - `wrap_folder` kwa chaguo-msingi huunda folda ya ngazi ya juu inayopewa jina la faili la zip (utaratibu wa kuingiza wa FieldWorks/Combine); toa `False` ili kupata hifadhi tambarare.
-  - Maingizo ambayo yamebadilika yaliyomo tangu kupakia yanapigwa muhuri na `dateModified` mpya wanapotoka, sawa kabisa na kwenye `save()`: kifurushi ni kile ambacho zana ya kuingiza inakubaliana nacho, hivyo tarehe iliyopitwa na wakati hapo ndiyo inafanya kamusi iliyosasishwa ionekane haijaguswa. `stamp=False` na `when=` hufanya kazi kwa njia ileile hapa.
+### Kusoma kifurushi
+
+`sil_lift.load("package.zip")` hutoa maudhui kwenye saraka ya muda, hutafuta faili moja la `.lift`, na kulipakia (viendani na vyombo vya habari hutatuliwa kama kawaida).
+
+- Amri za CLI `validate`, `stats`, `check-media`, na `export` pia zinakubali njia ya `.zip`, hivyo lango hapa chini linafanya kazi dhidi ya kifurushi kama kilivyo.
+- Mtiririko wa `stats` na `export`, na uchague tu `.lift` badala ya kifurushi kizima. Zinabaki nafuu kwenye ile yenye media nyingi, na kikomo cha uchimbaji kinatumika kwa `.lift` pekee badala ya kila kitu kilicho kando yake.
+- Uchimbaji umepunguzwa hadi 10 GiB na wanachama 100,000. Kifurushi kinachozidi mojawapo ya mipaka kinakataliwa kwa `LiftParseError`, vivyo hivyo na kile ambacho njia za wanachama wake zinatoka nje ya saraka ya uchimbaji.
+
+### Kuandika kifurushi
+
+`Lexicon.save_zip("out.zip", wrap_folder="MyDict")` hufunga `.lift`, `.lift-ranges` zake, na kila faili nyingine katika saraka ya chanzo (media, `WritingSystems/`, `consent/`, ...) katika zipu
+
+- `wrap_folder` kwa chaguo-msingi huunda folda ya ngazi ya juu inayopewa jina la faili la zip (utaratibu wa kuingiza wa FieldWorks/Combine); toa `False` ili kupata hifadhi tambarare.
+- Ningizo ambazo maudhui yao yamebadilika tangu kupakia yanapigwa muhuri na `dateModified` mpya wanapotoka, sawa kabisa na kwenye `save()`.
+  - Kifurushi ndicho chombo cha kuingiza kinachotegemea, hivyo tarehe iliyopitwa na wakati hapo itaifanya kamusi iliyosasishwa ionekane haijaguswa.
+  - Inatumia chaguzi zile zile za `stamp=` na `when=` kama `save()`; tazama [Jinsi stamp inavyotumika](../fidelity.md#how-the-stamp-is-applied).
 
 `.lift` na `.lift-ranges` huhifadhi uaminifu wa baiti ndani ya kifurushi; chombo cha zip chenyewe hakiruhusu kurejesha baiti kikamilifu.
 
 ## Thibitisha pato kama lango la utii
 
-Lenga `sil-lift validate` kwenye faili ya `.lift` iliyotengenezwa. Inatekeleza RELAX NG (kupitia `.lift` na mwenza wake `.lift-ranges`) pamoja na ukaguzi wa kisemantiki ambao sarufi haiwezi kueleza: marejeleo ya `relation`/`variant` yasiyo na kiungo, GUID zilizorudiwa, uadilifu wa wazazi wa vipengele vya safu, thamani za sifa na taarifa za kisarufi ambazo hazijaelezwa katika safu zao, na marejeleo ya `range/@href` katika kichwa yanayotatua hadi kwa mwandani asiye na muunganisho.
+Lenga `sil-lift validate` kwenye faili la `.lift`. Inatumia RELAX NG juu ya `.lift` na faili yake ya `.lift-ranges`, pamoja na ukaguzi wa semantiki ambao sarufi haiwezi kuonyesha:
+
+- marejeleo ya `relation`/`variant` yanayodondoka;
+- GUID zinazorudiwa;
+- Uadilifu wa mzazi wa kipengele cha safu;
+- Thamani za sifa na taarifa za kisarufi hazijaelezwa katika wigo wao;
+- Kichwa `range/@href` kinarejelea vigezo ambavyo havina mwenza.
 
 Kwa CI, shindwa katika chochote na kutoa matokeo yanayosomeka na mashine:
 
@@ -32,9 +50,11 @@ sil-lift validate export.lift --strict --no-check-media --format json
 - `--no-check-media` hupuuza ukaguzi wa uwepo wa media kwenye mfumo wa faili, ambao matokeo yake ya `missing-media` ni kelele tu wakati faili za sauti/picha haziko kwenye folda moja na `.lift` katika CI.
 - `--format json` huchapisha kitu kimoja cha JSON (`{"problems": [...], "summary": {...}}`) badala ya maandishi ya kawaida; misimbo yake ya kutoka na schema ni kiolesura kinachotumika kinachofunikwa na SemVer (tazama [mwongozo wa mstari wa amri](cli.md)).
 - `--allow CODE[,CODE...]` (inaweza kurudiwa) huruhusu msimbo unaokubalika, kama vile `uri-not-rfc` ya FLEx, usishindwe wakati wa utekelezaji. Matokeo yake yamechapishwa lakini hayajahesabiwa.
-- `--require-ids` pia hutoa hitilafu kwa maingizo yanayokosa `guid` au `id` — ni muhimu wakati uingizaji upya wa baadaye unapaswa kusasisha badala ya kurudia.
+- `--require-ids` pia hutoa makosa kwa maingizo yanayokosa `guid` au `id`, jambo ambalo ni muhimu wakati uingizaji upya wa baadaye unapaswa kusasisha badala ya kurudia.
 
-Jikinga dhidi ya upotevu wa data kimya (mtindo wa kushindwa unaofanya usafirishaji wa CSV wa kawaida upoteze data) kwa kuthibitisha idadi kwa kutumia `stats --format json` dhidi ya mfano wako wa chanzo:
+### Kujikinga dhidi ya upotevu wa data kimya
+
+Upotevu wa data kimya ni aina ya hitilafu inayofanya usafirishaji wa CSV wa kawaida kupoteza data. Jikinga dhidi yake kwa kuthibitisha hesabu kwa kutumia `stats --format json` dhidi ya modeli yako ya chanzo:
 
 ```
 sil-lift takwimu toa.lift --format json
@@ -65,7 +85,7 @@ docker run --rm -v "$PWD:/work" -w /work sil-lift validate export.lift --strict
 
 ## Mwandani wa `.lift-ranges`
 
-Vibainishi vilivyodhibitiwa — aina za maneno, nyanja za maana, na seti nyingine yoyote ya thamani zilizo na ufunguo wa sifa — huishi katika faili ndugu ya `.lift-ranges`, inayorejelewa kutoka kwenye `<header>`:
+Vibainishi vilivyodhibitiwa (sehemu za hotuba, nyanja za semantiki, na seti nyingine yoyote ya thamani zilizo na ufunguo wa sifa) huishi katika faili ndugu ya `.lift-ranges`, inayorejelewa kutoka `<header>`:
 
 ```xml
 <header>
@@ -95,7 +115,12 @@ Kiambatisho kinabeba ufafanuzi kamili wa kila safu. Thamani ni `<range-element>`
 </lift-ranges>
 ```
 
-Kisha, kila kipengee kinarejelea thamani kwa kutumia ID: sehemu ya hotuba ya hisia ni `<grammatical-info value="Noun"/>`, na uwanja wa semantiki ni `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` inatoa onyo (`undefined-range-value`) wakati thamani haijafafanuliwa katika upeo wake na makosa (`range-parent`) wakati `parent` si id ya ndugu — kwa hivyo toa upeo ambao data yako inatumia kweli. Mlinganisho huo umeendana na utaratibu wa kawaida wa NFC, hivyo kitambulisho na thamani yake au `parent` inayorejelea inaweza kutofautiana katika utaratibu wa kawaida wa Unicode — tofauti hiyo ni onyo la `normalization-mismatch` badala ya kosa, lakini andika utaratibu mmoja wa kawaida endelevu ikiwa unaweza: watumiaji wanaolinganisha nyuzi ghafi hawatatatua marejeleo hayo. Tazama pia [Vipimo na vyombo vya habari](folder-media.md).
+Kisha, kila kipengee kinarejelea thamani kwa kutumia ID: sehemu ya hotuba ya hisia ni `<grammatical-info value="Noun"/>`, na uwanja wa semantiki ni `<trait name="semantic-domain-ddp4" value="1.6.1.2"/>`. `sil-lift validate` hukagua marejeleo hayo, kwa hivyo toa masafa ambayo data yako inayotumia kweli:
+
+- thamani ambayo haijaelezwa katika wigo wake ni onyo la `undefined-range-value`;
+- `parent` ambayo si id ya ndugu ni hitilafu ya `range-parent`.
+
+Milinganisho hiyo imewekwa katika muundo wa kawaida wa NFC, hivyo kitambulisho na thamani yake au `parent` inayorejelea inaweza kutofautiana katika urekebishaji wa Unicode. Tofauti hiyo ni onyo la `normalization-mismatch` badala ya kosa. Hata hivyo, andika unormalishaji mmoja thabiti ikiwa unaweza: watumiaji wanaolinganisha nyuzi ghafi hawatafafanua marejeleo hayo. Tazama pia [Vipimo na vyombo vya habari](folder-media.md).
 
 Ukijenga toleo la kusafirisha kwa kutumia Python, `Lexicon.add_ranges_file()`, `RangesFile.add_range()`, na `Range.add_element()` huunda kiambatisho na kuongeza marejeleo ya kichwa kwa niaba yako; `open_writer(..., ranges=...)` hufanya vivyo hivyo kwenye njia ya utiririshaji.
 
@@ -110,6 +135,11 @@ Kila mfululizo wa lugha ya kibinadamu katika LIFT ni _multitext_: `<form>` moja 
 </lexical-unit>
 ```
 
-Mfano unaopanga nyuzi kwa msimbo wa lugha (MultiString, Record<code, string>, dict[str, str]) unaakisi uwiano wa moja kwa moja: kila kipengee kwa kila ufunguo kinakuwa<form lang="… "> moja. Kila lugha inaweza kuwa na fomu moja tu katika maandishi mengi — vinginevyo `sil-lift` itatoa onyo la `duplicate-form-lang`.
+Mfano unaopanga nyuzi kwa msimbo wa lugha (MultiString, Record<code, string>, dict[str, str]) unaakisi uwiano wa moja kwa moja: kila kipengee kwa kila ufunguo kinakuwa<form lang="… "> moja. Kila lugha inaruhusiwa fomu moja tu katika maandishi mengi; vinginevyo `sil-lift` inatoa onyo la `duplicate-form-lang`.
 
-Utoaji wa XML ni sehemu pekee inayohitaji usahihi hasa. Katika maandishi ya elementi, `&`, `<`, and `>` lazima ziwekwe kwa alama za kutoroka (`&amp;`, `&lt;`, `&gt;`); katika thamani za sifa, pia alama ya nukuu. Mwandishi wa `sil-lift` hutumia kanuni hizi hasa na kamwe haibadilishi nafasi tupu ndani ya `<text>` — haiongezi nafasi ya kuanzishia hapo, kwa sababu hilo lingeharibu data ya kisemaji. Ikiwa unalenga kuendana na matokeo yake, tumia tena mbinu halisi ya serializer ya XML ya kuepuka alama (sio uingizaji uliofanywa kwa mkono unaosahau `&`) na acha maudhui ya `<text>` byte kwa byte kama chanzo chako kilivyo.
+Kutoroka kwa XML ndiyo sehemu pekee inayohitaji usahihi kwa kweli:
+
+- katika maandishi ya elementi, `&`, `<`, and `>` lazima zipitishwe (`&amp;`, `&lt;`, `&gt;`);
+- katika thamani za sifa, alama ya nukuu lazima pia ipelekwe.
+
+Mwandishi wa `sil-lift` hutumia kanuni hizi hasa na kamwe haibadilishi nafasi tupu ndani ya `<text>`: haiongezi nafasi ya kuanzisha hapo, kwa sababu hilo lingeharibu data ya kisemantiki. Ili kuendana na kile kinachotolewa, tumia maktaba ya XML kufanya ukombozi na acha maudhui ya `<text>` byte kwa byte kama chanzo chako kilivyo.
