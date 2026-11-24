@@ -8,44 +8,44 @@ import sil_lift
 lex = sil_lift.load("dictionary.lift")
 ```
 
-`load()` accepts any well-formed LIFT **0.13** document, including schema-invalid real-world files. Alles, was das Modell nicht definiert (unbekannte Elemente/Attribute, Kommentare), wird verlustfrei als LIFT-Rest im undurchsichtigen `extra`-Feld jedes Knotens übertragen. Andere LIFT-Versionen lösen einen `LiftParseError` aus, in dem die Version angegeben wird.
+`load()` akzeptiert jedes wohlgeformte LIFT-**0.13**-Dokument, einschließlich schemaverstossender Dateien aus der Praxis. Alles, was das Modell nicht definiert (unbekannte Elemente/Attribute, Kommentare), wird verlustfrei als LIFT-Rest im undurchsichtigen `extra`-Feld jedes Knotens übertragen. Andere LIFT-Versionen lösen einen `LiftParseError` aus, in dem die Version angegeben wird.
 
 ## Das Modell
 
-Every LIFT element is a typed dataclass: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal`, and so on.
+Jedes LIFT-Element ist eine typisierte Datenklasse: `Entry`, `Sense`, `Example`, `Pronunciation`, `Variant`, `Relation`, `Etymology`, `Reversal` und so weiter.
 
-### Multilingual text
+### Mehrsprachiger Text
 
 Mehrsprachiger Text ist ein `Multitext`, also eine `Zuordnung` vom Sprachcode zum `Text`:
 
 ```python
 entry = lex.find(id="poʻo_a1b2")
 
-str(entry.lexical_unit["haw"])          # "poʻo"
-entry.lexical_unit["en"] = "head"       # plain strings are coerced
-"en" in entry.citation                  # False
+str(entry.lexical_unit["haw"])          # „poʻo“
+entry.lexical_unit["en"] = „head“       # einfache Zeichenketten werden umgewandelt
+„en“ in entry.citation                  # False
 list(entry.lexical_unit.keys())         # ["haw", "en"]
 ```
 
-`Text` is structured (an ordered list of `str` and `Span` fragments) because `<text>` can contain nested `<span>` markup. `str(text)` wandelt den Text in reinen Text um; die Fragmente behalten das Markup für den Hin- und Rücktransport bei.
+`Text` ist strukturiert (eine geordnete Liste aus `str`- und `Span`-Fragmenten), da `<text>` verschachtelte `<span>`-Markups enthalten kann. `str(text)` wandelt den Text in reinen Text um; die Fragmente behalten das Markup für den Hin- und Rücktransport bei.
 
-The mapping shows one value per language. Underneath, `forms` holds every `<form>` in file order. A schema-valid document has at most one form per language, but real files sometimes repeat one.
+Die Zuordnung zeigt einen Wert pro Sprache. Darunter enthält `forms` alle `<form>` in der Reihenfolge, in der sie in der Datei stehen. Ein schemakonformes Dokument enthält höchstens eine Formularvariante pro Sprache, doch in realen Dateien kommt es manchmal vor, dass sich eine davon wiederholt.
 
-Because the mapping is keyed by language, `len()` counts languages rather than forms, and the `keys()`, `values()` and `items()` views list each language once. Both mutators also act on the whole language: `del entry.lexical_unit["en"]` removes every English form, and assigning to `"en"` leaves exactly one.
+Da die Zuordnung nach Sprache sortiert ist, zählt `len()` die Sprachen und nicht die Formen, und die Ansichten `keys()`, `values()` und `items()` listen jede Sprache nur einmal auf. Beide Mutatoren wirken sich zudem auf die gesamte Sprache aus: `del entry.lexical_unit["en"]` entfernt alle englischen Formen, und durch die Zuweisung an `"en"` bleibt genau eine übrig.
 
-For a repeated language, `entry.lexical_unit["en"]`, `get()`, `values()` and `items()` all answer with its first form, and [`validate`](validate.md#problem-codes) reports `duplicate-form-lang` until you assign to that language.
+Bei einer wiederholten Sprache geben `entry.lexical_unit["en"]`, `get()`, `values()` und `items()` jeweils die erste Form zurück, und [`validate`](validate.md#problem-codes) meldet den Fehler `duplicate-form-lang`, bis Sie dieser Sprache einen Wert zuweisen.
 
-A form carrying no `lang` at all cannot be created through the mapping. It is reported as `form-missing-lang`, and is dropped when its node re-serializes.
+Ein Formular, das überhaupt kein `lang`-Attribut enthält, kann über das Mapping nicht erstellt werden. Es wird als „form-missing-lang“ gemeldet und bei der erneuten Serialisierung des Knotens verworfen.
 
-### Senses and glosses
+### Bedeutungen und Erläuterungen
 
 Glossare sind in LIFT _Form-förmig_ (jede `<gloss>` enthält ihre eigene Sprache), daher hat ein Sense `glosses: list[Form]` sowie Hilfsfunktionen:
 
 ```python
-sense = entry.senses[0]       # top level only
+sense = entry.senses[0]       # nur oberste Ebene
 sense.gloss("en")             # Text | None
-entry.all_senses()            # every sense and subsense, document order
-entry.gloss_langs()           # {"en", "id"}, subsenses included
+entry.all_senses()            # alle Bedeutungen und Unterbedeutungen, in der Reihenfolge des Dokuments
+entry.gloss_langs()           # {"en", "id"}, einschließlich Unterbedeutungen
 ```
 
 Verwenden Sie `all_senses()`, wann immer sich eine Frage auf den gesamten Eintrag bezieht: zum Zählen von Bedeutungen, zum Erfassen von Sprachen oder zum Suchen von Medien. `entry.senses` gibt die oberste Ebene an, was nur dann sinnvoll ist, wenn die Verschachtelung selbst eine Rolle spielt.
@@ -53,7 +53,7 @@ Verwenden Sie `all_senses()`, wann immer sich eine Frage auf den gesamten Eintra
 ## Speichern
 
 ```python
-lex.save()                    # back to where it was loaded from
+lex.save()                    # zurück an den Ort, von dem es geladen wurde
 lex.save("elsewhere.lift")
 ```
 
@@ -61,14 +61,14 @@ Einträge, die Sie nicht geändert haben, werden **byte-identisch** zurückgesch
 
 ### Zeitstempel
 
-Die von Ihnen geänderten Einträge werden mit einem neuen `dateModified`-Wert (und einem `dateCreated`-Wert, falls noch keiner vorhanden war) ausgegeben, sodass eine Bearbeitung nicht unter dem Datum erscheint, mit dem sie geladen wurde. Tools that merge LIFT decide what changed from that attribute. Two arguments adjust the stamping:
+Die von Ihnen geänderten Einträge werden mit einem neuen `dateModified`-Wert (und einem `dateCreated`-Wert, falls noch keiner vorhanden war) ausgegeben, sodass eine Bearbeitung nicht unter dem Datum erscheint, mit dem sie geladen wurde. Tools, die LIFT zusammenführen, entscheiden, was sich bei diesem Attribut geändert hat. Zwei Argumente dienen zur Anpassung der Prägung:
 
-- `lex.save(stamp=False)` writes the dates the model holds and nothing more.
-- `lex.save(when=...)` pins the moment instead of reading the clock.
+- `lex.save(stamp=False)` schreibt lediglich die im Modell enthaltenen Datumsangaben und sonst nichts.
+- `lex.save(when=...)` hält den Moment fest, anstatt die Uhr abzulesen.
 
 Die übrigen Regeln finden Sie unter [Generierte Zeitstempel](../fidelity.md#generated-timestamps).
 
-### Skipping a save that changes nothing
+### Ein Speichern überspringen, das nichts ändert
 
 Um ein Speichern zu überspringen, das keine Änderungen zur Folge hätte, schütze es mit `lex.changes()`:
 
@@ -77,11 +77,11 @@ if lex.changes():
     lex.save()
 ```
 
-Die Funktion gibt nur dann `False` zurück, wenn `save()` die Quellbytes reproduzieren würde, einschließlich der Einträge, des Headers, des Stammelements und aller zugehörigen `.lift-ranges`-Elemente. Skipping the write leaves the file's modification time alone and avoids a spurious diff.
+Die Funktion gibt nur dann `False` zurück, wenn `save()` die Quellbytes reproduzieren würde, einschließlich der Einträge, des Headers, des Stammelements und aller zugehörigen `.lift-ranges`-Elemente. Wird der Schreibvorgang übersprungen, bleibt der Änderungszeitstempel der Datei unverändert, und es wird ein falscher Diff vermieden.
 
-The check is cheap. Es hört beim ersten Unterschied auf, sodass es bei einem bearbeiteten Lexikon fast nichts kostet. Ein unverändertes Lexikon muss vollständig serialisiert werden, um nachzuweisen, dass es unverändert ist, doch das kostet immer noch weniger als der Speichervorgang, der dadurch übersprungen wird.
+Der Scheck ist günstig. Es hört beim ersten Unterschied auf, sodass es bei einem bearbeiteten Lexikon fast nichts kostet. Ein unverändertes Lexikon muss vollständig serialisiert werden, um nachzuweisen, dass es unverändert ist, doch das kostet immer noch weniger als der Speichervorgang, der dadurch übersprungen wird.
 
-Da dabei der Inhalt und nicht das Ziel verglichen wird, sollte nur eine Speicherung am ursprünglichen Speicherort geschützt werden. `lex.save("elsewhere.lift")` writes the document and its companions to the new path even when `changes()` is `False`, so guarding it would skip that copy.
+Da dabei der Inhalt und nicht das Ziel verglichen wird, sollte nur eine Speicherung am ursprünglichen Speicherort geschützt werden. `lex.save("elsewhere.lift")` schreibt das Dokument und die zugehörigen Dateien in den neuen Pfad, selbst wenn `changes()` den Wert `False` hat; durch eine Abfrage würde diese Kopie also übersprungen werden.
 
 ## Von Grund auf neu aufbauen
 
