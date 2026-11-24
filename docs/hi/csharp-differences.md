@@ -18,9 +18,9 @@ sil-lift एक नया कार्यान्वयन है, पोर्
 
 ## एपीआई आकार
 
-`SIL.Lift` का पार्सर कॉलबैक-चालित (`ILexiconMerger`) है: यह पार्स इवेंट्स को एक कंज्यूमर पर पुश करता है। sil-lift instead returns a plain object graph (typed dataclasses for every LIFT element) because Python scripters want objects, not callbacks.
+`SIL.Lift` का पार्सर कॉलबैक-चालित (`ILexiconMerger`) है: यह पार्स इवेंट्स को एक कंज्यूमर पर पुश करता है। sil-lift इसके बजाय एक सादा ऑब्जेक्ट ग्राफ़ (प्रत्येक LIFT एलिमेंट के लिए टाइप्ड डेटाक्लासेस) लौटाता है क्योंकि पाइथन स्क्रिप्टर ऑब्जेक्ट चाहते हैं, कॉलबैक नहीं।
 
-`SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but it is an application model: it represents only the constructs those apps use. Re-serializing through it therefore can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below).
+`SIL.DictionaryServices` `SIL.Lift` पर एक `LexEntry`/`LexSense` ऑब्जेक्ट मॉडल की परत जरूर चढ़ाता है, लेकिन यह एक एप्लिकेशन मॉडल है: यह केवल उन संरचनाओं का प्रतिनिधित्व करता है जिनका उपयोग वे ऐप्स करते हैं। इसलिए इसे पुनः सीरियलाइज़ करने से मॉडल के बाहर की सामग्री को उसी तरह संरक्षित नहीं किया जा सकता जैसे sil-lift का LIFT अवशेष प्रबंधन और बाइट निष्ठा करती है (नीचे देखें)।
 
 स्ट्रीमिंग एपीआई वही `Entry` प्रकार देता है, इसलिए सीखने के लिए कोई दूसरा, संक्षिप्त मॉडल नहीं है।
 
@@ -29,19 +29,19 @@ sil-lift एक नया कार्यान्वयन है, पोर्
 सबसे मजबूत जानबूझकर किया गया अंतर। `SIL.Lift` के साथ सेव करने पर पूरा दस्तावेज़ पुनः सीरियलाइज़ हो जाता है। सिल-लिफ्ट गारंटियाँ:
 
 - एक अपरिवर्तित दस्तावेज़ **बाइट-समान रूप से** सहेजता है, और
-- untouched entries keep their exact source bytes even when other entries change: per-entry byte chunking, applied automatically.
+- अछूटी प्रविष्टियाँ अपने सटीक स्रोत बाइट्स को तब भी बनाए रखती हैं जब अन्य प्रविष्टियाँ बदलती हैं: प्रत्येक प्रविष्टि के लिए बाइट चंकिंग, स्वचालित रूप से लागू।
 
 देखें [फिडेलिटी गारंटी](fidelity.md)।
 
 ## प्रमाणीकरण
 
-C# `Validator` एक RELAX NG पास चलाता है और पहली त्रुटियों को स्ट्रिंग्स के रूप में रिपोर्ट करता है। sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns. Its schema layer knowingly diverges in three places:
+C# `Validator` एक RELAX NG पास चलाता है और पहली त्रुटियों को स्ट्रिंग्स के रूप में रिपोर्ट करता है। sil-lift एक संरचित `Problem` स्ट्रीम रिपोर्ट करता है, जिनमें से प्रत्येक में संबंधित फ़ाइल, प्रविष्टि और पंक्ति शामिल होती है। इसकी स्कीमा परत जानबूझकर तीन स्थानों पर विचलित होती है:
 
 - अमान्य URI चेतावनियाँ हैं, त्रुटियाँ नहीं। C# RELAX NG इंजन ने कभी भी `anyURI` डेटाटाइप को लागू नहीं किया, इसलिए FieldWorks (FLEx) वर्षों से वास्तविक शब्दकोशों में `file://C:/...` hrefs लिख रहा है। उन फ़ाइलों को अस्वीकार करने से लगभग हर FLEx एक्सपोर्ट पर निशान लग जाएगा।
-- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by C# validation.
-- **Range id comparisons are Unicode-normalized** (NFC), because FLEx exports mix NFC and NFD ids. References that resolve only after normalizing are reported as `normalization-mismatch` warnings, a check with no C# counterpart. See [Real-world FieldWorks (FLEx) output](guides/validate.md#real-world-fieldworks-flex-output).
+- **स्कीमैट्रॉन नियम लागू किए जाते हैं** (सेमांटिक जांच के रूप में): LIFT व्याकरण में डुप्लिकेट फॉर्म भाषाओं और समान सह-प्रतिबंधों को C# सत्यापन द्वारा चुपचाप अनदेखा किया गया था।
+- रेंज आईडी की तुलना यूनिकोड-नॉर्मलाइज्ड (NFC) होती है, क्योंकि FLEx एक्सपोर्ट्स NFC और NFD आईडी दोनों मिलाकर उपयोग करते हैं। केवल सामान्यीकरण के बाद ही हल होने वाले संदर्भों को `normalization-mismatch` चेतावनियों के रूप में रिपोर्ट किया जाता है, यह एक ऐसा चेक है जिसका C# में कोई समकक्ष नहीं है। देखें [Real-world FieldWorks (FLEx) आउटपुट](guides/validate.md#real-world-fieldworks-flex-output)।
 
-When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companions against a schema for standalone ranges documents, vendored from `lift-standard`. The C# `Validator` does not check `.lift-ranges` files.
+जब sil-lift `.lift` को मान्य करता है, तो यह `.lift-ranges` साथियों को भी `lift-standard` से विक्रेता किए गए स्वतंत्र रेंज दस्तावेज़ों के लिए स्कीमा के विरुद्ध मान्य करता है। C# `Validator` `.lift-ranges` फ़ाइलों की जाँच नहीं करता है।
 
 ## कैनोनिकल क्रमबद्धकरण
 
@@ -49,12 +49,12 @@ When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companio
 
 - guid के बिना प्रविष्टियाँ id के अनुसार क्रमबद्ध रूप से व्यवस्थित होती हैं (`LiftSorter` मानता है कि guid मौजूद है);
 - ऑर्डरिंग लोकेल-स्वतंत्र है (साधारण केस-फोल्ड किए गए कोड पॉइंट्स, .NET इन्वेरिएंट-कल्चर कोलेशन नहीं);
-- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key; grouping is already deterministic, and reordering them only adds diff noise.
+- नोट्स, रिलेशन्स और फॉर्म जैसी समान-प्रकार की सूचियाँ अपनी दस्तावेज़ व्यवस्था बनाए रखती हैं, बजाय इसके कि उन्हें कुंजी के अनुसार फिर से क्रमबद्ध किया जाए; समूहबद्धता पहले से ही निर्धारक है, और उन्हें पुनःक्रमबद्ध करने से केवल diff शोर बढ़ता है।
 
 spec रिपॉजिटरी का `canonicalizeLift.xsl` बिल्कुल भी उपयोग नहीं किया जाता है: यह लेक्सिकल टेक्स्ट के भीतर रिक्त स्थान को संकुचित कर देता है (विनाशकारी) और इसके उत्पन्न आईडी हर रन पर भिन्न होते हैं।
 
 ## आगे नहीं बढ़ाया गया
 
 - WeSay-विशिष्ट सुविधाएँ (LIFT फ़ाइलों के संबंध में डैशबोर्ड/कॉन्फ़िग हैंडलिंग)
-- `SynchronicMerger` (LIFT update-file merging): the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger` (LIFT अपडेट-फ़ाइल मर्जिंग): बाइट-चंकिंग का विचार फिडेलिटी लेयर में जीवित है, मर्जिंग नहीं।
 - LDML लेखन-प्रणाली पार्सिंग: `WritingSystems/` में मौजूद फ़ाइलों को अपारदर्शी फ़ोल्डर सामग्री के रूप में माना जाता है।
