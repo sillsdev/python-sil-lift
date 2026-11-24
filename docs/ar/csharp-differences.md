@@ -20,7 +20,7 @@
 
 يعمل محلل `SIL.Lift` على أساس آلية الاستدعاء المرتد (`ILexiconMerger`): فهو يقوم بدفع أحداث التحليل إلى المستلم. بدلاً من ذلك، تُرجع sil-lift مخطط كائنات عادي (فئات بيانات مُحددة النوع لكل عنصر من عناصر LIFT) لأن مبرمجي Python يفضلون الكائنات، وليس دالات الاستدعاء.
 
-تقوم `SIL.DictionaryServices` بتركيب نموذج كائنات `LexEntry`/`LexSense` فوق `SIL.Lift`، لكنه نموذج خاص بالتطبيقات: فهو يمثل فقط البنيات التي تستخدمها تلك التطبيقات. Re-serializing through it therefore can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below).
+تقوم `SIL.DictionaryServices` بتركيب نموذج كائنات `LexEntry`/`LexSense` فوق `SIL.Lift`، لكنه نموذج خاص بالتطبيقات: فهو يمثل فقط البنيات التي تستخدمها تلك التطبيقات. وبالتالي، فإن إعادة التسلسل من خلاله لا يمكنها الحفاظ على المحتوى الخارج عن النموذج بالطريقة التي تتبعها معالجة بقايا LIFT ودقة البايت في sil-lift (انظر أدناه).
 
 تُنتج واجهة برمجة التطبيقات (API) الخاصة بالتدفق النوع _نفسه_ من `Entry`، لذا لا يوجد نموذج ثانٍ مبسط يتعين تعلمه.
 
@@ -29,19 +29,19 @@
 أقوى اختلاف متعمد. يؤدي الحفظ باستخدام `SIL.Lift` إلى إعادة تسلسل المستند بأكمله. تضمن شركة «سيل-ليفت» ما يلي:
 
 - يتم حفظ المستند الذي لم يطرأ عليه تغيير **بشكل مطابق تمامًا من حيث البايتات**، و
-- untouched entries keep their exact source bytes even when other entries change: per-entry byte chunking, applied automatically.
+- تحتفظ الإدخالات التي لم يتم التعديل عليها ببايتات المصدر الدقيقة الخاصة بها حتى عند تغيير الإدخالات الأخرى: حيث يتم تقسيم كل إدخال إلى أجزاء من البايتات، ويتم تطبيق ذلك تلقائيًا.
 
 انظر [ضمانات فيديليتي](fidelity.md).
 
 ## التحقق من الصحة
 
-يقوم `Validator` في لغة C# بتنفيذ دورة واحدة من RELAX NG ويُبلغ عن الأخطاء الأولى في شكل سلاسل نصية. sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns. Its schema layer knowingly diverges in three places:
+يقوم `Validator` في لغة C# بتنفيذ دورة واحدة من RELAX NG ويُبلغ عن الأخطاء الأولى في شكل سلاسل نصية. يُرجع sil-lift دفقًا منظمًا من «المشاكل» (Problem)، يحمل كل منها الملف والمدخل والسطر الذي يتعلق به. تختلف طبقة المخطط الخاصة بها عن عمد في ثلاثة مواضع:
 
 - **عناوين URI غير الصالحة تُعتبر تحذيرات وليست أخطاء.** لم يفرض محرك C# RELAX NG أبدًا نوع البيانات `anyURI`، لذا ظل برنامج FieldWorks (FLEx) لسنوات عديدة يدرج روابط href من النوع `file://C:/...` في المعاجم الفعلية. إن رفض تلك الملفات سيؤدي إلى وضع علامة على كل ملفات التصدير من FLEx تقريبًا.
-- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by C# validation.
-- **Range id comparisons are Unicode-normalized** (NFC), because FLEx exports mix NFC and NFD ids. References that resolve only after normalizing are reported as `normalization-mismatch` warnings, a check with no C# counterpart. See [Real-world FieldWorks (FLEx) output](guides/validate.md#real-world-fieldworks-flex-output).
+- **يتم تطبيق قواعد Schematron** (كعمليات تدقيق دلالية): فقد تم تجاهل تكرار لغات النماذج والقيود المشتركة المماثلة في قواعد LIFT لغوياً من قِبل أداة التحقق من صحة C#.
+- **يتم توحيد معرّفات النطاقات وفقًا لمعايير يونيكود** (NFC)، لأن ملفات التصدير من FLEx تضم مزيجًا من معرّفات NFC وNFD. يتم الإبلاغ عن المراجع التي لا يتم حلها إلا بعد التوحيد على أنها تحذيرات من نوع `normalization-mismatch`، وهي عملية فحص لا يوجد لها نظير في لغة C#. انظر [نتائج برنامج FieldWorks (FLEx) في العالم الواقعي](guides/validate.md#real-world-fieldworks-flex-output).
 
-When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companions against a schema for standalone ranges documents, vendored from `lift-standard`. The C# `Validator` does not check `.lift-ranges` files.
+عندما يقوم sil-lift بالتحقق من صحة ملف `.lift`، فإنه يتحقق أيضًا من صحة الملفات المصاحبة `.lift-ranges` وفقًا لمخطط مستندات النطاقات المستقلة، المستمد من `lift-standard`. لا يقوم `Validator` في لغة C# بالتحقق من ملفات `.lift-ranges`.
 
 ## الترتيب القياسي
 
@@ -49,12 +49,12 @@ When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companio
 
 - يتم فرز الإدخالات التي لا تحتوي على معرّف فريد (GUID) بشكل حتمي حسب المعرّف (ID) (يفترض `LiftSorter` وجود معرّف فريد (GUID))؛
 - الترتيب مستقل عن الإعدادات المحلية (نقاط الرموز بعد إزالة التمييز بين الأحرف الكبيرة والصغيرة، وليس ترتيب .NET المستقل عن الثقافة)؛
-- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key; grouping is already deterministic, and reordering them only adds diff noise.
+- تحتفظ القوائم من نفس النوع — مثل الملاحظات والعلاقات والنماذج — بترتيبها في المستند بدلاً من إعادة فرزها حسب المفتاح؛ فالتجميع عملية حتمية بالفعل، وإعادة ترتيبها لا تؤدي إلا إلى زيادة التشويش في ملفات المقارنة.
 
 لا يتم استخدام ملف `canonicalizeLift.xsl` الموجود في مستودع المواصفات على الإطلاق: فهو يدمج المسافات البيضاء داخل النص اللغوي (عملية تدميرية)، كما أن المعرّفات التي يولدها تختلف في كل عملية تشغيل.
 
 ## لم يتم ترحيله
 
 - الميزات الخاصة بـ WeSay (لوحة التحكم/إدارة الإعدادات المتعلقة بملفات LIFT).
-- `SynchronicMerger` (LIFT update-file merging): the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger` (دمج ملفات التحديث في LIFT): فكرة تقسيم البيانات إلى مقاطع بايت لا تزال قائمة في طبقة الدقة، أما عملية الدمج فلم تعد موجودة.
 - تحليل نظام الكتابة LDML: تُعامل الملفات الموجودة في `WritingSystems/` على أنها محتوى مجلد غير شفاف.
