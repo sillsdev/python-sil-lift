@@ -18,9 +18,9 @@ sil-lift 是一个全新的实现，而非移植版本。本页总结了行为�
 
 ## API 结构
 
-`SIL.Lift` 的解析器采用回调驱动模式（`ILexiconMerger`）：它会将解析事件推送给消费者。 sil-lift instead returns a plain object graph (typed dataclasses for every LIFT element) because Python scripters want objects, not callbacks.
+`SIL.Lift` 的解析器采用回调驱动模式（`ILexiconMerger`）：它会将解析事件推送给消费者。 sil-lift 反而返回一个普通的对象图（每个 LIFT 元素都对应一个带类型的数据类），因为 Python 脚本编写者需要的是对象，而不是回调函数。
 
-`SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but it is an application model: it represents only the constructs those apps use. Re-serializing through it therefore can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below).
+`SIL.DictionaryServices` 确实在 `SIL.Lift` 之上构建了一个 `LexEntry`/`LexSense` 对象模型，但这只是一个应用程序模型：它仅表示这些应用程序所使用的结构。因此，通过它进行重新序列化无法像 sil-lift 的 LIFT 残余处理和字节保真度那样保留模型外的内容（见下文）。
 
 流式处理 API 返回的是_相同的_ `Entry` 类型，因此无需学习第二个精简版模型。
 
@@ -29,19 +29,19 @@ sil-lift 是一个全新的实现，而非移植版本。本页总结了行为�
 最显著的刻意差异。使用 `SIL.Lift` 保存时，会将整个文档重新序列化。 sil-lift 保证：
 
 - 未发生更改的文档在存储时**字节完全一致**，并且
-- untouched entries keep their exact source bytes even when other entries change: per-entry byte chunking, applied automatically.
+- 即使其他条目发生变化，未被修改的条目仍会保留其原始字节内容：系统会自动对每个条目进行字节分块处理。
 
 请参阅[富达保证](fidelity.md)。
 
 ## 验证
 
-C# 的 `Validator` 会执行一次 RELAX NG 验证，并将首次检测到的错误以字符串形式返回。 sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns. Its schema layer knowingly diverges in three places:
+C# 的 `Validator` 会执行一次 RELAX NG 验证，并将首次检测到的错误以字符串形式返回。 sil-lift 会报告一个结构化的 `Problem` 流，其中每个 `Problem` 都包含其相关的文件、条目和行。其模式层在三个地方有意地有所不同：
 
 - **无效的 URI 属于警告，而非错误。** C# RELAX NG 引擎从未强制执行 `anyURI` 数据类型，因此 FieldWorks (FLEx) 多年来一直将 `file://C:/...` 格式的 href 写入实际词汇表中。如果拒绝这些文件，几乎所有 FLEx 导出文件都会被标记。
-- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by C# validation.
-- **Range id comparisons are Unicode-normalized** (NFC), because FLEx exports mix NFC and NFD ids. References that resolve only after normalizing are reported as `normalization-mismatch` warnings, a check with no C# counterpart. See [Real-world FieldWorks (FLEx) output](guides/validate.md#real-world-fieldworks-flex-output).
+- **Schematron 规则已强制执行**（作为语义检查）：LIFT 语法中重复的表单语言和类似的协同约束会被 C# 验证功能无提示地忽略。
+- **范围 ID 的比较采用 Unicode 规范化形式**（NFC），因为 FLEx 的导出文件中同时包含 NFC 和 NFD 格式的 ID。只有在规范化后才能解析的引用会被报告为 `normalization-mismatch` 警告，这是一项在 C# 中没有对应检查的验证。参见 [Real-world FieldWorks (FLEx) 输出结果](guides/validate.md#real-world-fieldworks-flex-output)。
 
-When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companions against a schema for standalone ranges documents, vendored from `lift-standard`. The C# `Validator` does not check `.lift-ranges` files.
+当 sil-lift 验证一个 `.lift` 时，它还会根据来自 `lift-standard` 的独立范围文档模式，对 `.lift-ranges` 伴生文件进行验证。 C# 的 `Validator` 不会检查 `.lift-ranges` 文件。
 
 ## 规范排序
 
@@ -49,12 +49,12 @@ When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companio
 
 - 没有 GUID 的条目将按 ID 进行确定性排序（`LiftSorter` 假设存在 GUID）；
 - 排序与区域设置无关（采用纯大写/小写转换后的码点，而非 .NET 的“不变文化”排序规则）；
-- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key; grouping is already deterministic, and reordering them only adds diff noise.
+- 同类型的列表（如笔记、关系和表单）会保留其文档顺序，而不是按键值重新排序；分组操作本身已经是确定性的，对它们进行重新排序只会增加差异噪声。
 
 规范代码库中的 `canonicalizeLift.xsl` 完全未被使用：它会压缩词法文本中的空白（破坏性操作），且每次运行生成的 ID 都不相同。
 
 ## 未结转
 
 - WeSay 特有的便捷功能（围绕 LIFT 文件的仪表盘/配置管理）。
-- `SynchronicMerger` (LIFT update-file merging): the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger`（LIFT 更新文件合并）：字节分块的理念在保真层中得以延续，但合并操作已不复存在。
 - LDML 书写系统解析：`WritingSystems/` 目录下的文件将被视为不透明的文件夹内容。
