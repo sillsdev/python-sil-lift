@@ -18,9 +18,9 @@ sil-lift は、移植版ではなく、新たに実装されたものです。�
 
 ## APIの形状
 
-`SIL.Lift`のパーサーはコールバック駆動型（`ILexiconMerger`）であり、解析イベントをコンシューマーにプッシュします。 sil-lift instead returns a plain object graph (typed dataclasses for every LIFT element) because Python scripters want objects, not callbacks.
+`SIL.Lift`のパーサーはコールバック駆動型（`ILexiconMerger`）であり、解析イベントをコンシューマーにプッシュします。その代わりに、sil-lift は単純なオブジェクトグラフ（すべての LIFT 要素に対して型付きデータクラス）を返します。これは、Python スクリプト作成者がコールバックではなくオブジェクトを求めているためです。
 
-`SIL.DictionaryServices` does layer a `LexEntry`/`LexSense` object model over `SIL.Lift`, but it is an application model: it represents only the constructs those apps use. Re-serializing through it therefore can't preserve out-of-model content the way sil-lift's LIFT residue handling and byte fidelity do (see below).
+`SIL.DictionaryServices` は、`SIL.Lift` の上に `LexEntry`/`LexSense` オブジェクトモデルを重ねていますが、これはアプリケーションモデルであり、それらのアプリが使用する構文のみを表しています。したがって、これを通じて再シリアライズを行っても、sil-liftのLIFT残余処理やバイト単位の忠実度のように、モデル外のコンテンツを保持することはできません（後述参照）。
 
 ストリーミングAPIは_同じ_ `Entry` 型を返すため、別途学習すべき簡略化されたモデルは存在しません。
 
@@ -29,19 +29,19 @@ sil-lift は、移植版ではなく、新たに実装されたものです。�
 最も顕著な意図的な違い。 `SIL.Lift` を使用して保存すると、ドキュメント全体が再シリアル化されます。 sil-liftの保証：
 
 - 変更のないドキュメントは**バイト単位で同一**に保存され、
-- untouched entries keep their exact source bytes even when other entries change: per-entry byte chunking, applied automatically.
+- 他のエントリが変更されても、変更されていないエントリはソースのバイトデータをそのまま保持します。これは、エントリごとにバイト単位で分割する処理が自動的に適用されるためです。
 
 [フィデリティの保証](fidelity.md)をご覧ください。
 
 ## 検証
 
-C#の`Validator`は、RELAX NGによる検証を1回実行し、最初に検出されたエラーを文字列として報告します。 sil-lift reports a structured `Problem` stream, each carrying the file, entry, and line it concerns. Its schema layer knowingly diverges in three places:
+C#の`Validator`は、RELAX NGによる検証を1回実行し、最初に検出されたエラーを文字列として報告します。 sil-lift は、構造化された `Problem` ストリームを報告し、各 `Problem` には、対象となるファイル、エントリ、および行の情報が含まれています。そのスキーマ層は、意図的に3か所で異なる仕様となっています：
 
 - **無効なURIはエラーではなく警告です。** C#のRELAX NGエンジンは`anyURI`データ型を強制したことがなかったため、FieldWorks (FLEx) では長年にわたり、実際のレキシコンに`file://C:/...`というhrefを記述してきました。それらのファイルを拒否すると、事実上すべてのFLExエクスポートにフラグが立てられてしまいます。
-- **Schematron rules are enforced** (as semantic checks): duplicate form languages and similar co-constraints in the LIFT grammar were silently ignored by C# validation.
-- **Range id comparisons are Unicode-normalized** (NFC), because FLEx exports mix NFC and NFD ids. References that resolve only after normalizing are reported as `normalization-mismatch` warnings, a check with no C# counterpart. See [Real-world FieldWorks (FLEx) output](guides/validate.md#real-world-fieldworks-flex-output).
+- **Schematronルールが適用されます**（セマンティックチェックとして）：LIFT文法における重複するフォーム言語や類似の共制約は、C#の検証では黙って無視されていました。
+- **範囲 ID の比較は Unicode 正規化**（NFC）で行われます。これは、FLEx のエクスポートデータには NFC と NFD の ID が混在しているためです。正規化を行って初めて解決される参照は、`normalization-mismatch` 警告として報告されます。これは、C# には対応するチェックがないものです。[実地調査（FLEx）の出力結果](guides/validate.md#real-world-fieldworks-flex-output)をご覧ください。
 
-When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companions against a schema for standalone ranges documents, vendored from `lift-standard`. The C# `Validator` does not check `.lift-ranges` files.
+sil-lift が `.lift` の妥当性を検証する際、`lift-standard` からベンダー化されたスタンドアロンの範囲ドキュメント用スキーマに基づいて、`.lift-ranges` コンパニオンの妥当性も同時に検証します。 C#の`Validator`は、`.lift-ranges`ファイルを検証しません。
 
 ## 規範的順序付け
 
@@ -49,12 +49,12 @@ When sil-lift validates a `.lift`, it also validates the `.lift-ranges` companio
 
 - GUID を持たないエントリは、ID に基づいて決定論的にソートされます（`LiftSorter` は GUID が存在することを前提としています）。
 - 順序付けはロケールに依存しません（大文字小文字を区別しないコードポイントに基づくものであり、.NET の不変文化ソート順序ではありません）。
-- same-type lists such as notes, relations, and forms keep their document order rather than being re-sorted by key; grouping is already deterministic, and reordering them only adds diff noise.
+- ノート、関係、フォームなどの同種のリストは、キーに基づいて再ソートされるのではなく、ドキュメント内の順序を維持します。グループ化はすでに決定論的であり、順序を変更しても差分のノイズが増えるだけです。
 
 仕様リポジトリの `canonicalizeLift.xsl` はまったく使用されていません。このXSLは、字句テキスト内の空白を削除してしまう（破壊的）うえ、生成されるIDが実行のたびに異なるからです。
 
 ## 繰り越されなかった
 
 - WeSay特有の利便性（ダッシュボード／LIFTファイルに関する設定処理）。
-- `SynchronicMerger` (LIFT update-file merging): the byte-chunking idea lives on in the fidelity layer, the merging does not.
+- `SynchronicMerger`（LIFTのupdate-fileマージ）：バイト単位のチャンク化という考え方はフィデリティ層で引き継がれているが、マージ処理自体は引き継がれていない。
 - LDMLの表記体系の解析：`WritingSystems/` ディレクトリ内のファイルは、不透明なフォルダ内容として扱われます。
